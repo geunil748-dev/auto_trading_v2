@@ -1,0 +1,1 @@
+"""Safe observability helpers."""

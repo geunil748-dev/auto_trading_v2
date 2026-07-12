@@ -1,0 +1,1 @@
+"""Infrastructure-facing adapter implementations."""
