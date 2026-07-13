@@ -1,5 +1,5 @@
 from datetime import UTC, date, datetime
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from uuid import uuid4
 
 import pytest
@@ -18,12 +18,34 @@ from .records import insert_canonical_graph
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.parametrize(
+    ("value", "pnl_value"),
+    [
+        (
+            Decimal("12345678901234567890.123456789012345678"),
+            Decimal("-999999999999999999.999999999999999999"),
+        ),
+        (
+            Decimal("0.000000000000000001"),
+            Decimal("-0.000000000000000001"),
+        ),
+    ],
+    ids=["maximum-scale", "minimum-scale"],
+)
 def test_decimal_38_18_values_round_trip_without_float_conversion(
     mssql_database: object,
+    value: Decimal,
+    pnl_value: Decimal,
 ) -> None:
-    value = Decimal("12345678901234567890.123456789012345678")
+    with localcontext() as context:
+        context.prec = 38
+        expected_equity = value + value
     with mssql_database.engine.begin() as connection:
-        ids = insert_canonical_graph(connection, decimal_value=value)
+        ids = insert_canonical_graph(
+            connection,
+            decimal_value=value,
+            pnl_value=pnl_value,
+        )
         observed = {
             "market": connection.execute(
                 market_snapshots.select()
@@ -55,8 +77,8 @@ def test_decimal_38_18_values_round_trip_without_float_conversion(
     assert observed["market"] == value
     assert observed["score"] == value
     assert observed["fill"] == value
-    assert observed["pnl"] == -value
-    assert observed["equity"] == value * 2
+    assert observed["pnl"] == pnl_value
+    assert observed["equity"] == expected_equity
     assert all(isinstance(item, Decimal) for item in observed.values())
 
 

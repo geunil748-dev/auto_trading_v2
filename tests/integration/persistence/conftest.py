@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
@@ -31,10 +31,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 @dataclass(frozen=True, slots=True)
 class TemporaryMssqlDatabase:
-    name: str
-    engine: Engine
-    alembic_config: Config
-    server_info: ServerInfo
+    name: str = field(repr=False)
+    engine: Engine = field(repr=False)
+    alembic_config: Config = field(repr=False)
+    server_info: ServerInfo = field(repr=False)
 
     def run_upgrade(self, revision: str = "head") -> None:
         self._run_alembic(command.upgrade, revision)

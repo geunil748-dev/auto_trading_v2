@@ -115,7 +115,10 @@ class DatabaseUrl:
 def create_database_engine(settings: DatabaseUrl, *, autocommit: bool = False) -> Engine:
     """Create an engine without opening a connection or mutating database state."""
 
-    options: dict[str, object] = {"pool_pre_ping": True}
+    options: dict[str, object] = {
+        "hide_parameters": True,
+        "pool_pre_ping": True,
+    }
     if autocommit:
         options["isolation_level"] = "AUTOCOMMIT"
     return create_engine(settings.sqlalchemy_url, **options)

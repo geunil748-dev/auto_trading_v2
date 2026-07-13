@@ -12,6 +12,7 @@ from migrations.ddl.common import (
     decimal_type,
     json_array_check,
     json_type,
+    named_check_constraint,
     symbol_check,
     symbol_type,
     timestamp_type,
@@ -54,24 +55,24 @@ def create_strategy_tables(op: Operations) -> None:
             name="fk_strategy_decisions_filter_evaluation_id_filter_evaluations",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "action IN ('ENTER_LONG', 'EXIT_LONG', 'SKIP', 'OBSERVE')",
             name="ck_strategy_decisions_action",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "(candidate_id IS NOT NULL AND position_id IS NULL) "
             "OR (candidate_id IS NULL AND position_id IS NOT NULL)",
             name="ck_strategy_decisions_candidate_xor_position",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "filter_evaluation_id IS NULL OR candidate_id IS NOT NULL",
             name="ck_strategy_decisions_filter_requires_candidate",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "position_id IS NULL OR filter_evaluation_id IS NULL",
             name="ck_strategy_decisions_position_without_filter",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             json_array_check("reason_codes"),
             name="ck_strategy_decisions_reason_codes_json_array",
         ),
@@ -135,19 +136,19 @@ def create_strategy_tables(op: Operations) -> None:
             name="fk_trade_intents_decision_id_strategy_decisions",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(symbol_check(), name="ck_trade_intents_symbol"),
-        sa.CheckConstraint(currency_check(), name="ck_trade_intents_currency"),
-        sa.CheckConstraint("side IN ('BUY', 'SELL')", name="ck_trade_intents_side"),
-        sa.CheckConstraint(
+        named_check_constraint(symbol_check(), name="ck_trade_intents_symbol"),
+        named_check_constraint(currency_check(), name="ck_trade_intents_currency"),
+        named_check_constraint("side IN ('BUY', 'SELL')", name="ck_trade_intents_side"),
+        named_check_constraint(
             "order_type IN ('MARKET', 'LIMIT')",
             name="ck_trade_intents_order_type",
         ),
-        sa.CheckConstraint("time_in_force = 'DAY'", name="ck_trade_intents_time_in_force"),
-        sa.CheckConstraint(
+        named_check_constraint("time_in_force = 'DAY'", name="ck_trade_intents_time_in_force"),
+        named_check_constraint(
             "requested_quantity > 0",
             name="ck_trade_intents_quantity_positive",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "(order_type = 'MARKET' AND limit_price IS NULL) "
             "OR (order_type = 'LIMIT' AND limit_price IS NOT NULL AND limit_price > 0)",
             name="ck_trade_intents_limit_price_by_order_type",

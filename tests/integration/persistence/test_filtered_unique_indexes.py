@@ -83,3 +83,24 @@ def test_second_candidate_decision_for_same_strategy_version_is_rejected(
                 "decided_at": datetime.now(UTC),
             },
         )
+
+
+def test_same_candidate_can_be_decided_by_a_different_strategy(
+    mssql_database: object,
+) -> None:
+    with mssql_database.engine.begin() as connection:
+        ids = insert_canonical_graph(connection)
+        connection.execute(
+            strategy_decisions.insert(),
+            {
+                "decision_id": uuid4(),
+                "decision_key": uuid4().hex,
+                "candidate_id": ids["candidate_id"],
+                "filter_evaluation_id": ids["filter_evaluation_id"],
+                "strategy_id": uuid4(),
+                "strategy_version": "v1",
+                "action": "OBSERVE",
+                "reason_codes": "[]",
+                "decided_at": datetime.now(UTC),
+            },
+        )

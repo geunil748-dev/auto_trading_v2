@@ -9,6 +9,7 @@ from migrations.ddl.common import (
     code_type,
     json_object_check,
     json_type,
+    named_check_constraint,
     symbol_check,
     symbol_type,
     timestamp_type,
@@ -104,20 +105,20 @@ def create_trading_events(op: Operations) -> None:
             name="fk_trading_events_equity_snapshot_id_equity_snapshots",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "DATALENGTH(LTRIM(RTRIM(event_type))) > 0",
             name="ck_trading_events_event_type_nonempty",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "DATALENGTH(LTRIM(RTRIM(stage))) > 0",
             name="ck_trading_events_stage_nonempty",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "severity IN ('DEBUG', 'INFO', 'WARNING', 'ERROR')",
             name="ck_trading_events_severity",
         ),
-        sa.CheckConstraint(symbol_check(), name="ck_trading_events_symbol"),
-        sa.CheckConstraint(
+        named_check_constraint(symbol_check(), name="ck_trading_events_symbol"),
+        named_check_constraint(
             json_object_check("payload"),
             name="ck_trading_events_payload_json_object",
         ),

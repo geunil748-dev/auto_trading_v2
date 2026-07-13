@@ -2,10 +2,17 @@
 
 import sqlalchemy as sa
 from sqlalchemy.dialects import mssql
+from sqlalchemy.sql.elements import conv
 
 SCHEMA = "trading"
 COLLATION = "Latin1_General_100_BIN2"
 UTC_DEFAULT = sa.text("TODATETIMEOFFSET(SYSUTCDATETIME(), '+00:00')")
+
+
+def named_check_constraint(sqltext: str, *, name: str) -> sa.CheckConstraint:
+    """Preserve a frozen migration constraint name under naming conventions."""
+
+    return sa.CheckConstraint(sqltext, name=conv(name))
 
 
 def uuid_type() -> mssql.UNIQUEIDENTIFIER:

@@ -1,8 +1,21 @@
 import ast
 import re
+from io import StringIO
 from pathlib import Path
 
-from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES
+from alembic.operations import Operations
+from alembic.runtime.migration import MigrationContext
+from sqlalchemy import CheckConstraint
+from sqlalchemy.dialects import mssql
+
+from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES, metadata
+from migrations.ddl import (
+    create_execution_tables,
+    create_market_tables,
+    create_portfolio_tables,
+    create_strategy_tables,
+    create_trading_events,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MIGRATIONS_ROOT = PROJECT_ROOT / "migrations"
@@ -64,6 +77,32 @@ def test_migration_contains_every_metadata_constraint_and_index_name() -> None:
 
     missing = {name for name in expected_names if f'"{name}"' not in text}
     assert missing == set()
+
+
+def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
+    output = StringIO()
+    context = MigrationContext.configure(
+        dialect=mssql.dialect(),
+        opts={"as_sql": True, "output_buffer": output, "target_metadata": metadata},
+    )
+    operations = Operations(context)
+
+    create_market_tables(operations)
+    create_portfolio_tables(operations, positions_only=True)
+    create_strategy_tables(operations)
+    create_execution_tables(operations)
+    create_portfolio_tables(operations, positions_only=False)
+    create_trading_events(operations)
+
+    ddl = output.getvalue()
+    expected_names = {
+        constraint.name
+        for table in BUSINESS_TABLES
+        for constraint in table.constraints
+        if isinstance(constraint, CheckConstraint)
+    }
+    assert all(name in ddl for name in expected_names)
+    assert all(f"ck_{table.name}_ck_{table.name}_" not in ddl for table in BUSINESS_TABLES)
 
 
 def test_migration_table_columns_match_metadata_exactly() -> None:

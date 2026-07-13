@@ -166,6 +166,52 @@ def test_invalid_json_is_rejected_and_unicode_decimal_strings_round_trip(
         )
 
 
+@pytest.mark.parametrize(
+    ("table", "primary_key", "id_key", "json_column", "invalid_value"),
+    [
+        (filter_evaluations, "filter_evaluation_id", "filter_evaluation_id", "details", "[]"),
+        (
+            filter_evaluations,
+            "filter_evaluation_id",
+            "filter_evaluation_id",
+            "details",
+            "{invalid",
+        ),
+        (
+            filter_evaluations,
+            "filter_evaluation_id",
+            "filter_evaluation_id",
+            "details",
+            "plain text",
+        ),
+        (filter_evaluations, "filter_evaluation_id", "filter_evaluation_id", "details", None),
+        (strategy_decisions, "decision_id", "decision_id", "reason_codes", "{}"),
+        (strategy_decisions, "decision_id", "decision_id", "reason_codes", "[invalid"),
+        (strategy_decisions, "decision_id", "decision_id", "reason_codes", "plain text"),
+        (strategy_decisions, "decision_id", "decision_id", "reason_codes", None),
+        (trading_events, "event_id", "event_id", "payload", "[]"),
+        (trading_events, "event_id", "event_id", "payload", "{invalid"),
+        (trading_events, "event_id", "event_id", "payload", "plain text"),
+        (trading_events, "event_id", "event_id", "payload", None),
+    ],
+)
+def test_json_columns_reject_invalid_shape_text_and_null(
+    mssql_database: object,
+    table: object,
+    primary_key: str,
+    id_key: str,
+    json_column: str,
+    invalid_value: str | None,
+) -> None:
+    with pytest.raises(IntegrityError), mssql_database.engine.begin() as connection:
+        ids = insert_canonical_graph(connection)
+        connection.execute(
+            table.update()
+            .where(table.c[primary_key] == ids[id_key])
+            .values(**{json_column: invalid_value})
+        )
+
+
 def test_equity_formula_constraint_rejects_mismatch(mssql_database: object) -> None:
     with pytest.raises(IntegrityError), mssql_database.engine.begin() as connection:
         connection.execute(

@@ -8,6 +8,7 @@ from auto_trading_v2.adapters.persistence.database import (
     ADMIN_URL_ENV,
     DatabaseConfigurationError,
     DatabaseUrl,
+    create_database_engine,
     quote_database_identifier,
     validate_database_identifier,
 )
@@ -62,6 +63,12 @@ def test_database_url_repr_and_errors_never_expose_password(
     monkeypatch.setenv(ADMIN_URL_ENV, raw)
     loaded = DatabaseUrl.from_environment(ADMIN_URL_ENV)
     assert secret not in repr(loaded)
+
+    engine = create_database_engine(settings)
+    try:
+        assert engine.hide_parameters is True
+    finally:
+        engine.dispose()
 
     with pytest.raises(DatabaseConfigurationError) as caught:
         DatabaseUrl(f"postgresql://user:{secret}@example/database")

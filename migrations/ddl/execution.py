@@ -10,6 +10,7 @@ from migrations.ddl.common import (
     currency_check,
     currency_type,
     decimal_type,
+    named_check_constraint,
     timestamp_type,
     uuid_type,
 )
@@ -40,17 +41,17 @@ def create_execution_tables(op: Operations) -> None:
             name="fk_paper_orders_trade_intent_id_trade_intents",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "status IN ('CREATED', 'ACCEPTED', 'PARTIALLY_FILLED', "
             "'FILLED', 'CANCELLED', 'REJECTED', 'EXPIRED')",
             name="ck_paper_orders_status",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "DATALENGTH(LTRIM(RTRIM(broker_code))) > 0",
             name="ck_paper_orders_broker_code_nonempty",
         ),
-        sa.CheckConstraint("version > 0", name="ck_paper_orders_version_positive"),
-        sa.CheckConstraint(
+        named_check_constraint("version > 0", name="ck_paper_orders_version_positive"),
+        named_check_constraint(
             "(status IN ('CREATED', 'ACCEPTED', 'PARTIALLY_FILLED') AND closed_at IS NULL) "
             "OR (status IN ('FILLED', 'CANCELLED', 'REJECTED', 'EXPIRED') "
             "AND closed_at IS NOT NULL)",
@@ -106,14 +107,14 @@ def create_execution_tables(op: Operations) -> None:
             name="fk_paper_fills_order_id_paper_orders",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             currency_check("fee_currency"),
             name="ck_paper_fills_fee_currency",
         ),
-        sa.CheckConstraint("fill_sequence > 0", name="ck_paper_fills_sequence_positive"),
-        sa.CheckConstraint("quantity > 0", name="ck_paper_fills_quantity_positive"),
-        sa.CheckConstraint("price > 0", name="ck_paper_fills_price_positive"),
-        sa.CheckConstraint("fee_amount >= 0", name="ck_paper_fills_fee_nonnegative"),
+        named_check_constraint("fill_sequence > 0", name="ck_paper_fills_sequence_positive"),
+        named_check_constraint("quantity > 0", name="ck_paper_fills_quantity_positive"),
+        named_check_constraint("price > 0", name="ck_paper_fills_price_positive"),
+        named_check_constraint("fee_amount >= 0", name="ck_paper_fills_fee_nonnegative"),
         sa.UniqueConstraint("execution_key", name="uq_paper_fills_execution_key"),
         sa.UniqueConstraint(
             "order_id",

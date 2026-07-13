@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import Decimal, localcontext
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -29,12 +29,20 @@ def insert_canonical_graph(
     connection: Connection,
     *,
     decimal_value: Decimal = Decimal("123.123456789012345678"),
+    pnl_value: Decimal | None = None,
     observed_at: datetime | None = None,
 ) -> dict[str, Any]:
     """Insert one valid row per table for constraint and round-trip tests."""
 
     now = observed_at or datetime.now(UTC)
     ids = _new_ids()
+    with localcontext() as context:
+        context.prec = 38
+        high_price = decimal_value + Decimal("2")
+        last_price = decimal_value + Decimal("1")
+        previous_high_price = decimal_value + Decimal("3")
+        equity_amount = decimal_value + decimal_value
+    realized_pnl = pnl_value if pnl_value is not None else decimal_value.copy_negate()
     connection.execute(
         market_snapshots.insert(),
         {
@@ -44,11 +52,11 @@ def insert_canonical_graph(
             "observed_at": now,
             "source": f"source-{ids['suffix']}",
             "open_price": decimal_value,
-            "high_price": decimal_value + Decimal("2"),
-            "low_price": decimal_value - Decimal("2"),
-            "last_price": decimal_value + Decimal("1"),
-            "previous_high_price": decimal_value + Decimal("3"),
-            "previous_low_price": decimal_value - Decimal("3"),
+            "high_price": high_price,
+            "low_price": decimal_value,
+            "last_price": last_price,
+            "previous_high_price": previous_high_price,
+            "previous_low_price": decimal_value,
             "previous_close_price": decimal_value,
             "volume": 100,
         },
@@ -88,7 +96,7 @@ def insert_canonical_graph(
             "status": "OPEN",
             "quantity": 10,
             "average_cost_price": decimal_value,
-            "realized_pnl_amount": -decimal_value,
+            "realized_pnl_amount": realized_pnl,
             "opened_at": now,
             "version": 1,
             "updated_at": now,
@@ -154,12 +162,24 @@ def insert_canonical_graph(
             "executed_at": now,
         },
     )
-    _insert_position_event_equity_and_event(connection, ids, now, decimal_value)
+    _insert_position_event_equity_and_event(
+        connection,
+        ids,
+        now,
+        decimal_value,
+        realized_pnl,
+        equity_amount,
+    )
     return ids
 
 
 def _insert_position_event_equity_and_event(
-    connection: Connection, ids: dict[str, Any], now: datetime, value: Decimal
+    connection: Connection,
+    ids: dict[str, Any],
+    now: datetime,
+    value: Decimal,
+    realized_pnl: Decimal,
+    equity_amount: Decimal,
 ) -> None:
     connection.execute(
         position_events.insert(),
@@ -172,8 +192,8 @@ def _insert_position_event_equity_and_event(
             "quantity_delta": 10,
             "quantity_after": 10,
             "average_cost_after": value,
-            "realized_pnl_delta": -value,
-            "realized_pnl_after": -value,
+            "realized_pnl_delta": realized_pnl,
+            "realized_pnl_after": realized_pnl,
             "occurred_at": now,
         },
     )
@@ -186,8 +206,8 @@ def _insert_position_event_equity_and_event(
             "currency": "USD",
             "cash_amount": value,
             "market_value_amount": value,
-            "equity_amount": value * 2,
-            "realized_pnl_amount": -value,
+            "equity_amount": equity_amount,
+            "realized_pnl_amount": realized_pnl,
             "unrealized_pnl_amount": value,
             "as_of": now,
         },

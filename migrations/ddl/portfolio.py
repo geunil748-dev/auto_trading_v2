@@ -10,6 +10,7 @@ from migrations.ddl.common import (
     currency_check,
     currency_type,
     decimal_type,
+    named_check_constraint,
     symbol_check,
     symbol_type,
     timestamp_type,
@@ -44,16 +45,16 @@ def _create_positions(op: Operations) -> None:
         sa.Column("recorded_at", timestamp_type(), server_default=UTC_DEFAULT, nullable=False),
         sa.Column("updated_at", timestamp_type(), nullable=False),
         sa.PrimaryKeyConstraint("position_id", name="pk_paper_positions"),
-        sa.CheckConstraint(symbol_check(), name="ck_paper_positions_symbol"),
-        sa.CheckConstraint(currency_check(), name="ck_paper_positions_currency"),
-        sa.CheckConstraint("status IN ('OPEN', 'CLOSED')", name="ck_paper_positions_status"),
-        sa.CheckConstraint("quantity >= 0", name="ck_paper_positions_quantity_nonnegative"),
-        sa.CheckConstraint(
+        named_check_constraint(symbol_check(), name="ck_paper_positions_symbol"),
+        named_check_constraint(currency_check(), name="ck_paper_positions_currency"),
+        named_check_constraint("status IN ('OPEN', 'CLOSED')", name="ck_paper_positions_status"),
+        named_check_constraint("quantity >= 0", name="ck_paper_positions_quantity_nonnegative"),
+        named_check_constraint(
             "average_cost_price >= 0",
             name="ck_paper_positions_average_cost_nonnegative",
         ),
-        sa.CheckConstraint("version > 0", name="ck_paper_positions_version_positive"),
-        sa.CheckConstraint(
+        named_check_constraint("version > 0", name="ck_paper_positions_version_positive"),
+        named_check_constraint(
             "(status = 'OPEN' AND quantity > 0 AND closed_at IS NULL) "
             "OR (status = 'CLOSED' AND quantity = 0 AND closed_at IS NOT NULL)",
             name="ck_paper_positions_status_state",
@@ -98,20 +99,20 @@ def _create_position_events(op: Operations) -> None:
             name="fk_position_events_fill_id_paper_fills",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "event_type IN ('OPENED', 'INCREASED', 'REDUCED', 'CLOSED')",
             name="ck_position_events_event_type",
         ),
-        sa.CheckConstraint("sequence_no > 0", name="ck_position_events_sequence_positive"),
-        sa.CheckConstraint(
+        named_check_constraint("sequence_no > 0", name="ck_position_events_sequence_positive"),
+        named_check_constraint(
             "quantity_delta <> 0",
             name="ck_position_events_quantity_delta_nonzero",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "quantity_after >= 0",
             name="ck_position_events_quantity_after_nonnegative",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "average_cost_after >= 0",
             name="ck_position_events_average_cost_nonnegative",
         ),
@@ -158,8 +159,8 @@ def _create_equity_snapshots(op: Operations) -> None:
         sa.Column("as_of", timestamp_type(), nullable=False),
         sa.Column("recorded_at", timestamp_type(), server_default=UTC_DEFAULT, nullable=False),
         sa.PrimaryKeyConstraint("equity_snapshot_id", name="pk_equity_snapshots"),
-        sa.CheckConstraint(currency_check(), name="ck_equity_snapshots_currency"),
-        sa.CheckConstraint(
+        named_check_constraint(currency_check(), name="ck_equity_snapshots_currency"),
+        named_check_constraint(
             "equity_amount = cash_amount + market_value_amount",
             name="ck_equity_snapshots_equity_formula",
         ),

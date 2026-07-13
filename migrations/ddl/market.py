@@ -10,6 +10,7 @@ from migrations.ddl.common import (
     decimal_type,
     json_object_check,
     json_type,
+    named_check_constraint,
     symbol_check,
     symbol_type,
     timestamp_type,
@@ -37,27 +38,27 @@ def create_market_tables(op: Operations) -> None:
         sa.Column("volume", sa.BigInteger(), nullable=True),
         sa.Column("recorded_at", timestamp_type(), server_default=UTC_DEFAULT, nullable=False),
         sa.PrimaryKeyConstraint("market_snapshot_id", name="pk_market_snapshots"),
-        sa.CheckConstraint(symbol_check(), name="ck_market_snapshots_symbol"),
-        sa.CheckConstraint(
+        named_check_constraint(symbol_check(), name="ck_market_snapshots_symbol"),
+        named_check_constraint(
             "open_price > 0 AND high_price > 0 AND low_price > 0 "
             "AND last_price > 0 AND previous_high_price > 0 AND previous_low_price > 0",
             name="ck_market_snapshots_required_prices_positive",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "previous_close_price IS NULL OR previous_close_price > 0",
             name="ck_market_snapshots_previous_close_positive",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "volume IS NULL OR volume >= 0",
             name="ck_market_snapshots_volume_nonnegative",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "high_price >= low_price AND high_price >= open_price "
             "AND high_price >= last_price AND low_price <= open_price "
             "AND low_price <= last_price",
             name="ck_market_snapshots_ohlc_consistent",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             "previous_high_price >= previous_low_price",
             name="ck_market_snapshots_previous_range_consistent",
         ),
@@ -105,7 +106,7 @@ def create_market_tables(op: Operations) -> None:
             name="fk_candidates_market_snapshot_id_market_snapshots",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint("rank IS NULL OR rank > 0", name="ck_candidates_rank_positive"),
+        named_check_constraint("rank IS NULL OR rank > 0", name="ck_candidates_rank_positive"),
         sa.UniqueConstraint(
             "run_id",
             "market_snapshot_id",
@@ -151,7 +152,7 @@ def create_market_tables(op: Operations) -> None:
             name="fk_filter_evaluations_candidate_id_candidates",
             ondelete="NO ACTION",
         ),
-        sa.CheckConstraint(
+        named_check_constraint(
             json_object_check("details"),
             name="ck_filter_evaluations_details_json_object",
         ),
