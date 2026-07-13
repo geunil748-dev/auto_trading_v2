@@ -8,7 +8,11 @@ version = "0.1.0"
 description = "Independent domain foundation for auto_trading_v2"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "alembic==1.18.5",
+    "pyodbc==5.3.0",
+    "SQLAlchemy==2.0.51",
+]
 
 [project.optional-dependencies]
 dev = [
@@ -24,6 +28,9 @@ where = ["src"]
 addopts = "-ra"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+    "integration: requires an explicitly configured temporary Microsoft SQL Server database",
+]
 
 [tool.ruff]
 line-length = 100

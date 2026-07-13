@@ -57,6 +57,18 @@ class CandidateID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class MarketSnapshotID(_UUIDIdentifier):
+    """Identifier for a canonical market observation."""
+
+    __slots__ = ()
+
+
+class FilterEvaluationID(_UUIDIdentifier):
+    """Identifier for a canonical filter evaluation."""
+
+    __slots__ = ()
+
+
 class DecisionID(_UUIDIdentifier):
     """Identifier for a strategy decision."""
 
@@ -89,6 +101,18 @@ class FillID(_UUIDIdentifier):
 
 class PositionID(_UUIDIdentifier):
     """Identifier reserved for a future position."""
+
+    __slots__ = ()
+
+
+class PositionEventID(_UUIDIdentifier):
+    """Identifier for an immutable position change event."""
+
+    __slots__ = ()
+
+
+class EquitySnapshotID(_UUIDIdentifier):
+    """Identifier for a canonical account-equity observation."""
 
     __slots__ = ()
 
