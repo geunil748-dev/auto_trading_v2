@@ -1,5 +1,19 @@
 # auto_trading_v2
 
+## 로컬 설정
+
+V2 로컬 설정은 repository root의 `.env`를 명시적으로 로드하며 Git에 포함하지 않습니다.
+실제 `.env`가 이미 있으면 덮어쓰지 마십시오. 새로 시작할 때만 다음 명령을 사용합니다.
+
+```powershell
+Copy-Item .env.example .env
+python scripts/check_config.py
+```
+
+진단 명령은 DB나 외부 API에 연결하지 않으며 secret과 raw URL을 출력하지 않습니다. 설정 key,
+source precedence, KIS paper 및 Telegram disabled 규칙은
+[설정 문서](docs/configuration.md)를 참고하십시오.
+
 `auto_trading_v2`는 기존 `auto_trading`과 코드, 데이터베이스, 런타임 상태를 공유하지 않는
 독립 프로젝트입니다. 현재 변경 범위는 도메인 기반과 Microsoft SQL Server용 canonical
 스키마입니다. 애플리케이션 유스케이스와 실제 주문 실행은 아직 포함하지 않습니다.

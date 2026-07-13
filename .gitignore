@@ -7,3 +7,12 @@ __pycache__/
 build/
 dist/
 *.egg-info/
+
+# Local configuration and database artifacts
+.env
+.env.*
+!.env.example
+*.mdf
+*.ldf
+*.bak
+*.bacpac

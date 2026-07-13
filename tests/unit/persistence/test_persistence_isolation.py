@@ -40,7 +40,6 @@ def test_forbidden_dependencies_and_artifacts_are_absent() -> None:
         "flask-sqlalchemy",
         "pandas",
         "numpy",
-        "dotenv",
         "testcontainers",
     )
 
