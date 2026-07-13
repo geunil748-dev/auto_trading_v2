@@ -1,4 +1,5 @@
 import ast
+import tomllib
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -9,14 +10,13 @@ def _python_files() -> list[Path]:
     return sorted(SOURCE_ROOT.rglob("*.py"))
 
 
-def test_source_has_no_v1_db_http_or_environment_imports() -> None:
+def test_source_has_no_v1_or_unapproved_database_and_http_imports() -> None:
     forbidden_roots = {
         "auto_trading",
         "dotenv",
         "httpx",
         "psycopg",
         "requests",
-        "sqlalchemy",
         "sqlite3",
     }
     discovered: set[str] = set()
@@ -40,37 +40,54 @@ def test_source_has_no_forbidden_runtime_packages() -> None:
 
 
 def test_source_has_no_environment_access_or_domain_wall_clock() -> None:
-    source_text = "\n".join(path.read_text(encoding="utf-8") for path in _python_files())
     domain_text = "\n".join(
         path.read_text(encoding="utf-8") for path in sorted((SOURCE_ROOT / "domain").rglob("*.py"))
     )
 
-    assert "os.getenv" not in source_text
-    assert "os.environ" not in source_text
-    assert "load_dotenv" not in source_text
+    assert "os.getenv" not in domain_text
+    assert "os.environ" not in domain_text
+    assert "load_dotenv" not in domain_text
     assert "datetime.now(" not in domain_text
     assert "date.today(" not in domain_text
     assert "time.time(" not in domain_text
 
 
-def test_project_declares_no_runtime_dependencies() -> None:
-    pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8")
+def test_project_declares_only_approved_runtime_dependencies() -> None:
+    with (PROJECT_ROOT / "pyproject.toml").open("rb") as file:
+        pyproject = tomllib.load(file)
 
-    assert "dependencies = []" in pyproject
-    assert "python-dotenv" not in pyproject
+    assert set(pyproject["project"]["dependencies"]) == {
+        "alembic==1.18.5",
+        "pyodbc==5.3.0",
+        "SQLAlchemy==2.0.51",
+    }
 
 
 def test_project_text_is_utf8_without_bom_or_replacement_characters() -> None:
-    paths = [PROJECT_ROOT / "README.md", PROJECT_ROOT / "pyproject.toml"]
+    paths = [
+        PROJECT_ROOT / "README.md",
+        PROJECT_ROOT / "pyproject.toml",
+        PROJECT_ROOT / "alembic.ini",
+    ]
     paths += sorted((PROJECT_ROOT / "docs").rglob("*.md"))
     paths += _python_files()
+    paths += sorted((PROJECT_ROOT / "migrations").rglob("*.py"))
+    paths += sorted((PROJECT_ROOT / "scripts").rglob("*.py"))
     paths += sorted((PROJECT_ROOT / "tests").rglob("*.py"))
+    replacement_character = chr(0xFFFD)
+    mojibake_fragments = (
+        replacement_character * 3,
+        chr(0xEC),
+        chr(0xEA),
+        chr(0xED),
+    )
 
     for path in paths:
         raw = path.read_bytes()
         assert not raw.startswith(b"\xef\xbb\xbf"), path
         text = raw.decode("utf-8")
-        assert chr(0xFFFD) not in text, path
+        assert replacement_character not in text, path
+        assert all(fragment not in text for fragment in mojibake_fragments), path
 
 
 def test_package_import_smoke() -> None:

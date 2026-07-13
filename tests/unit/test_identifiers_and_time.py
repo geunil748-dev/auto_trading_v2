@@ -7,7 +7,11 @@ from auto_trading_v2.adapters.clock import FixedClock, SystemClock
 from auto_trading_v2.domain.errors import InvalidTimestampError, ValidationError
 from auto_trading_v2.domain.primitives.identifiers import (
     CandidateID,
+    EquitySnapshotID,
+    FilterEvaluationID,
     IdentifierFactory,
+    MarketSnapshotID,
+    PositionEventID,
     StrategyID,
 )
 from auto_trading_v2.domain.primitives.time import SessionDate, UtcTimestamp
@@ -27,6 +31,20 @@ def test_typed_ids_round_trip_and_do_not_equal_other_id_types() -> None:
 def test_typed_id_rejects_invalid_uuid() -> None:
     with pytest.raises(ValidationError):
         StrategyID.parse("not-a-uuid")
+
+
+@pytest.mark.parametrize(
+    "identifier_type",
+    [MarketSnapshotID, FilterEvaluationID, PositionEventID, EquitySnapshotID],
+)
+def test_persistence_typed_ids_follow_existing_round_trip_policy(identifier_type: type) -> None:
+    raw = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+
+    identifier = identifier_type.parse(raw)
+
+    assert identifier.serialize() == raw
+    assert identifier != StrategyID.parse(raw)
+    assert hash(identifier) == hash(identifier_type.parse(raw))
 
 
 def test_identifier_factory_uses_injected_generation_policy() -> None:
