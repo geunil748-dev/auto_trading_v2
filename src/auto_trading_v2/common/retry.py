@@ -10,6 +10,8 @@ from auto_trading_v2.domain.errors import ValidationError
 
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
+    """Bound attempts and delays without providing semantic idempotency."""
+
     max_attempts: int
     retry_delay_seconds: float = 0.0
     request_delay_seconds: float = 0.0

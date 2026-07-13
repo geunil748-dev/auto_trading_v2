@@ -34,50 +34,74 @@ class _UUIDIdentifier:
 
 
 class StrategyID(_UUIDIdentifier):
+    """Identifier for a strategy definition."""
+
     __slots__ = ()
 
 
 class FilterSetID(_UUIDIdentifier):
+    """Identifier for a filter-set definition."""
+
     __slots__ = ()
 
 
 class RunID(_UUIDIdentifier):
+    """Identifier for one execution run."""
+
     __slots__ = ()
 
 
 class CandidateID(_UUIDIdentifier):
+    """Identifier for a trading candidate."""
+
     __slots__ = ()
 
 
 class DecisionID(_UUIDIdentifier):
+    """Identifier for a strategy decision."""
+
     __slots__ = ()
 
 
 class TradeIntentID(_UUIDIdentifier):
+    """Identifier reserved for a future trade intent."""
+
     __slots__ = ()
 
 
 class ClientOrderID(_UUIDIdentifier):
+    """Identifier supplied by a client at an order boundary."""
+
     __slots__ = ()
 
 
 class OrderID(_UUIDIdentifier):
+    """Identifier reserved for a future order."""
+
     __slots__ = ()
 
 
 class FillID(_UUIDIdentifier):
+    """Identifier reserved for a future fill."""
+
     __slots__ = ()
 
 
 class PositionID(_UUIDIdentifier):
+    """Identifier reserved for a future position."""
+
     __slots__ = ()
 
 
 class EventID(_UUIDIdentifier):
+    """Identifier for a domain or integration event."""
+
     __slots__ = ()
 
 
 class NotificationID(_UUIDIdentifier):
+    """Identifier reserved for a future notification."""
+
     __slots__ = ()
 
 

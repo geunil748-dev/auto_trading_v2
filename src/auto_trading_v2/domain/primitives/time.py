@@ -9,6 +9,8 @@ from auto_trading_v2.domain.errors import InvalidTimestampError, ValidationError
 
 
 def normalize_utc(value: datetime) -> datetime:
+    """Validate an aware datetime and normalize it to UTC."""
+
     if not isinstance(value, datetime):
         raise InvalidTimestampError("타임스탬프는 datetime이어야 합니다.")
     if value.tzinfo is None or value.utcoffset() is None:
@@ -18,6 +20,8 @@ def normalize_utc(value: datetime) -> datetime:
 
 @dataclass(frozen=True, slots=True)
 class UtcTimestamp:
+    """Immutable timezone-aware timestamp normalized to UTC."""
+
     value: datetime
 
     def __post_init__(self) -> None:

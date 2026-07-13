@@ -20,6 +20,17 @@ def test_volatility_breakout_price_uses_decimal_formula() -> None:
     assert target == price("120.0")
 
 
+def test_volatility_breakout_price_preserves_decimal_precision() -> None:
+    target = volatility_breakout_price(
+        price("0.123456789123456789"),
+        price("0.3"),
+        price("0.1"),
+        Decimal("0.123456789123456789"),
+    )
+
+    assert target.serialize() == "0.1481481469481481468"
+
+
 def test_breakout_triggered_includes_exact_target() -> None:
     assert breakout_triggered(price("120"), price("100"), price("120"), price("80"), Decimal("0.5"))
     assert not breakout_triggered(

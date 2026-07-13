@@ -8,6 +8,8 @@ from auto_trading_v2.domain.primitives.time import normalize_utc
 
 
 class SystemClock:
+    """Clock backed by the system's timezone-aware UTC time."""
+
     def now_utc(self) -> datetime:
         return datetime.now(UTC)
 

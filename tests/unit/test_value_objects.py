@@ -61,6 +61,13 @@ def test_money_rejects_float_and_non_finite_values() -> None:
         Money(Decimal("NaN"), Currency("USD"))
 
 
+def test_money_is_immutable() -> None:
+    money = Money(Decimal("10.00"), Currency("USD"))
+
+    with pytest.raises(FrozenInstanceError):
+        money.amount = Decimal("20.00")  # type: ignore[misc]
+
+
 def test_price_is_positive_finite_decimal() -> None:
     assert Price(Decimal("1.25")).serialize() == "1.25"
     for value in (Decimal("0"), Decimal("-1"), Decimal("Infinity")):

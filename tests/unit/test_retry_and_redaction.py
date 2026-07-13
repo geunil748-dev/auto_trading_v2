@@ -15,6 +15,20 @@ class PermanentFailure(RuntimeError):
     pass
 
 
+def test_retry_first_attempt_preserves_operation_result() -> None:
+    expected = {"value": 7}
+    sleeps: list[float] = []
+
+    result = call_with_retry(
+        lambda: expected,
+        RetryPolicy(max_attempts=3),
+        sleeper=sleeps.append,
+    )
+
+    assert result is expected
+    assert sleeps == [0.0]
+
+
 def test_retry_succeeds_and_uses_injected_sleeper() -> None:
     attempts = 0
     sleeps: list[float] = []
@@ -113,3 +127,14 @@ def test_redaction_is_recursive_case_insensitive_and_non_mutating() -> None:
 
 def test_redaction_supports_custom_placeholder() -> None:
     assert sanitize_event_details({"token": "abc"}, "***") == {"token": "***"}
+
+
+def test_redaction_result_repr_does_not_expose_sensitive_values() -> None:
+    sensitive_value = "credential-that-must-not-leak"
+
+    sanitized = sanitize_event_details(
+        {"token": sensitive_value, "nested": {"Password": sensitive_value}}
+    )
+
+    assert sensitive_value not in repr(sanitized)
+    assert sanitized == {"token": REDACTED, "nested": {"Password": REDACTED}}
