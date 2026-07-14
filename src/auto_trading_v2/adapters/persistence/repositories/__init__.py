@@ -9,9 +9,13 @@ from auto_trading_v2.adapters.persistence.repositories.filter_evaluations import
 from auto_trading_v2.adapters.persistence.repositories.market_snapshots import (
     SqlAlchemyMarketSnapshotRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.strategy_decisions import (
+    SqlAlchemyStrategyDecisionRepository,
+)
 
 __all__ = [
     "SqlAlchemyCandidateRepository",
     "SqlAlchemyFilterEvaluationRepository",
     "SqlAlchemyMarketSnapshotRepository",
+    "SqlAlchemyStrategyDecisionRepository",
 ]

@@ -23,10 +23,25 @@ def test_normal_exit_without_commit_rolls_back_and_closes() -> None:
 
     with uow:
         assert uow.market_snapshots is not None
+        assert uow.strategy_decisions is not None
 
     transaction.rollback.assert_called_once_with()
     transaction.commit.assert_not_called()
     connection.close.assert_called_once_with()
+
+
+def test_four_repositories_share_the_same_connection() -> None:
+    uow, connection, _ = _uow()
+
+    with uow:
+        repositories = (
+            uow.market_snapshots,
+            uow.candidates,
+            uow.filter_evaluations,
+            uow.strategy_decisions,
+        )
+        assert len(repositories) == 4
+        assert all(repository._connection is connection for repository in repositories)
 
 
 def test_commit_is_explicit_and_blocks_further_operations() -> None:

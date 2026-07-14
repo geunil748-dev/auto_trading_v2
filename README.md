@@ -109,3 +109,13 @@ No strategy, order, broker, fill, position, P&L, scheduler, or external API beha
 
 See [deterministic filtering policy](docs/filtering.md) for thresholds, scoring, stable IDs, details
 JSON, and re-evaluation rules.
+
+## PR 6 deterministic strategy decisions
+
+저장된 네 filter evaluation을 `STRICT_ENTRY`, `BALANCED_ENTRY`, `SCORE_ONLY_ENTRY`,
+`OBSERVATION_ONLY`의 결정으로 변환하고 기존 `strategy_decisions` table에 원자적으로 저장합니다.
+전략은 필터를 재계산하지 않으며, `OBSERVATION_ONLY`는 항상 `OBSERVE`입니다. TradeIntent, 주문,
+브로커, 체결, 포지션과 P&L은 아직 생성하지 않습니다.
+
+Stable StrategyID, version, reason code, decision key와 rollback 정책은
+[전략 결정 문서](docs/strategy-decisions.md)를 참고하세요.

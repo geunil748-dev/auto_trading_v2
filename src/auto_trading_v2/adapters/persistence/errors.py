@@ -21,12 +21,17 @@ _UNIQUE_CONSTRAINTS = frozenset(
         "uq_market_snapshots_source_symbol_observed",
         "uq_candidates_run_snapshot_source",
         "uq_filter_evaluations_candidate_set_version",
+        "uq_strategy_decisions_decision_key",
+        "ix_strategy_decisions_candidate_unique",
     }
 )
 _FOREIGN_KEY_CONSTRAINTS = frozenset(
     {
         "fk_candidates_market_snapshot_id_market_snapshots",
         "fk_filter_evaluations_candidate_id_candidates",
+        "fk_strategy_decisions_candidate_id_candidates",
+        "fk_strategy_decisions_filter_evaluation_id_filter_evaluations",
+        "fk_strategy_decisions_position_id_paper_positions",
     }
 )
 _CHECK_CONSTRAINTS = frozenset(
@@ -39,6 +44,11 @@ _CHECK_CONSTRAINTS = frozenset(
         "ck_market_snapshots_previous_range_consistent",
         "ck_candidates_rank_positive",
         "ck_filter_evaluations_details_json_object",
+        "ck_strategy_decisions_action",
+        "ck_strategy_decisions_candidate_xor_position",
+        "ck_strategy_decisions_filter_requires_candidate",
+        "ck_strategy_decisions_position_without_filter",
+        "ck_strategy_decisions_reason_codes_json_array",
     }
 )
 _KNOWN_CONSTRAINTS = _UNIQUE_CONSTRAINTS | _FOREIGN_KEY_CONSTRAINTS | _CHECK_CONSTRAINTS

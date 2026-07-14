@@ -58,6 +58,41 @@ def test_foreign_key_and_check_translation() -> None:
     )
 
 
+def test_strategy_constraints_translate_to_safe_categories() -> None:
+    duplicate = IntegrityError(
+        None,
+        None,
+        Exception("23000", "ix_strategy_decisions_candidate_unique (2601)"),
+    )
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint "
+            "fk_strategy_decisions_filter_evaluation_id_filter_evaluations (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception("23000", "CHECK constraint ck_strategy_decisions_action (547)"),
+    )
+
+    assert isinstance(
+        translate_persistence_error(duplicate, entity="strategy_decision", operation="insert"),
+        DuplicateRecordError,
+    )
+    assert isinstance(
+        translate_persistence_error(foreign_key, entity="strategy_decision", operation="insert"),
+        ForeignKeyViolationError,
+    )
+    assert isinstance(
+        translate_persistence_error(check, entity="strategy_decision", operation="insert"),
+        CheckConstraintViolationError,
+    )
+
+
 def test_connection_sqlstate_maps_to_unavailable_without_raw_error() -> None:
     exc = OperationalError("private SQL", None, Exception("08001", "private host"))
 

@@ -10,12 +10,14 @@ from auto_trading_v2.application.ports.repositories import (
     FilterEvaluationRepository,
     MarketSnapshotRepository,
 )
+from auto_trading_v2.application.ports.strategy_decisions import StrategyDecisionRepository
 
 
 class UnitOfWork(Protocol):
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository
     filter_evaluations: FilterEvaluationRepository
+    strategy_decisions: StrategyDecisionRepository
 
     def __enter__(self) -> Self: ...
 
