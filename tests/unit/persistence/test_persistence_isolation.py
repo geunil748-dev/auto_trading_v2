@@ -31,6 +31,20 @@ def test_runtime_has_no_create_all_orm_or_automatic_migration() -> None:
     assert "command.upgrade" not in source_text
 
 
+def test_repositories_do_not_control_transactions_or_configuration() -> None:
+    repository_root = SOURCE_ROOT / "adapters" / "persistence" / "repositories"
+    source_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(repository_root.rglob("*.py"))
+    )
+
+    assert ".commit(" not in source_text
+    assert ".rollback(" not in source_text
+    assert ".begin(" not in source_text
+    assert "create_engine" not in source_text
+    assert "os.getenv" not in source_text
+    assert "os.environ" not in source_text
+
+
 def test_forbidden_dependencies_and_artifacts_are_absent() -> None:
     pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8").lower()
     forbidden_dependencies = (

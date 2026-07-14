@@ -1,0 +1,116 @@
+"""Translate SQLAlchemy/MSSQL failures into safe application errors."""
+
+from __future__ import annotations
+
+import re
+from collections.abc import Iterable
+
+from sqlalchemy.exc import DBAPIError, IntegrityError, SQLAlchemyError
+
+from auto_trading_v2.application.errors import (
+    CheckConstraintViolationError,
+    DuplicateRecordError,
+    ForeignKeyViolationError,
+    PersistenceError,
+    PersistenceUnavailableError,
+)
+
+_MSSQL_ERROR_CODE = re.compile(r"(?:\(|\b)(2601|2627|547)(?:\)|\b)")
+_UNIQUE_CONSTRAINTS = frozenset(
+    {
+        "uq_market_snapshots_source_symbol_observed",
+        "uq_candidates_run_snapshot_source",
+        "uq_filter_evaluations_candidate_set_version",
+    }
+)
+_FOREIGN_KEY_CONSTRAINTS = frozenset(
+    {
+        "fk_candidates_market_snapshot_id_market_snapshots",
+        "fk_filter_evaluations_candidate_id_candidates",
+    }
+)
+_CHECK_CONSTRAINTS = frozenset(
+    {
+        "ck_market_snapshots_symbol",
+        "ck_market_snapshots_required_prices_positive",
+        "ck_market_snapshots_previous_close_positive",
+        "ck_market_snapshots_volume_nonnegative",
+        "ck_market_snapshots_ohlc_consistent",
+        "ck_market_snapshots_previous_range_consistent",
+        "ck_candidates_rank_positive",
+        "ck_filter_evaluations_details_json_object",
+    }
+)
+_KNOWN_CONSTRAINTS = _UNIQUE_CONSTRAINTS | _FOREIGN_KEY_CONSTRAINTS | _CHECK_CONSTRAINTS
+
+
+def _safe_fragments(exc: SQLAlchemyError) -> tuple[str, ...]:
+    original = getattr(exc, "orig", None)
+    args = getattr(original, "args", ())
+    if not isinstance(args, Iterable) or isinstance(args, (str, bytes)):
+        args = ()
+    return tuple(str(item) for item in args if isinstance(item, (str, int)))
+
+
+def _known_constraint(text: str) -> str | None:
+    folded = text.casefold()
+    return next((name for name in sorted(_KNOWN_CONSTRAINTS) if name in folded), None)
+
+
+def translate_persistence_error(
+    exc: SQLAlchemyError,
+    *,
+    entity: str,
+    operation: str,
+) -> PersistenceError:
+    """Return a sanitized error without retaining SQL, parameters, or credentials."""
+
+    fragments = _safe_fragments(exc)
+    internal_text = " ".join(fragments)
+    code_match = _MSSQL_ERROR_CODE.search(internal_text)
+    code = None if code_match is None else code_match.group(1)
+    constraint = _known_constraint(internal_text)
+
+    if isinstance(exc, IntegrityError):
+        if code in {"2601", "2627"}:
+            return DuplicateRecordError(
+                entity=entity,
+                operation=operation,
+                reason="duplicate_record",
+                constraint=constraint,
+            )
+        if code == "547" and (
+            constraint in _FOREIGN_KEY_CONSTRAINTS
+            or "foreign key constraint" in internal_text.casefold()
+        ):
+            return ForeignKeyViolationError(
+                entity=entity,
+                operation=operation,
+                reason="foreign_key_violation",
+                constraint=constraint,
+            )
+        if code == "547" and (
+            constraint in _CHECK_CONSTRAINTS or "check constraint" in internal_text.casefold()
+        ):
+            return CheckConstraintViolationError(
+                entity=entity,
+                operation=operation,
+                reason="check_constraint_violation",
+                constraint=constraint,
+            )
+        return PersistenceError(
+            entity=entity,
+            operation=operation,
+            reason="integrity_violation",
+            constraint=constraint,
+        )
+
+    if isinstance(exc, DBAPIError):
+        sqlstate = next((part for part in fragments if len(part) == 5), "")
+        if exc.connection_invalidated or sqlstate.startswith("08"):
+            return PersistenceUnavailableError(
+                entity=entity,
+                operation=operation,
+                reason="database_unavailable",
+            )
+    return PersistenceError(entity=entity, operation=operation)

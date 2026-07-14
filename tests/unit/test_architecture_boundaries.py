@@ -54,9 +54,25 @@ def test_python_dotenv_is_confined_to_explicit_config_loader() -> None:
 
 def test_source_has_no_forbidden_runtime_packages() -> None:
     relative_paths = {path.relative_to(SOURCE_ROOT).as_posix() for path in _python_files()}
-    forbidden_parts = {"broker", "database", "orders", "fills", "positions", "repositories"}
+    forbidden_parts = {"broker", "database", "orders", "fills", "positions"}
 
     assert all(not forbidden_parts.intersection(path.split("/")) for path in relative_paths)
+
+
+def test_application_and_domain_do_not_import_persistence_libraries() -> None:
+    forbidden = {"sqlalchemy", "alembic", "pyodbc"}
+    discovered: set[str] = set()
+
+    for layer in ("application", "domain"):
+        for path in sorted((SOURCE_ROOT / layer).rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Import):
+                    discovered.update(alias.name.split(".")[0] for alias in node.names)
+                elif isinstance(node, ast.ImportFrom) and node.module:
+                    discovered.add(node.module.split(".")[0])
+
+    assert discovered.isdisjoint(forbidden)
 
 
 def test_source_has_no_environment_access_or_domain_wall_clock() -> None:

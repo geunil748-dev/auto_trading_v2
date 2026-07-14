@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,8 +10,6 @@ from alembic.config import Config
 from sqlalchemy import Engine
 
 from auto_trading_v2.adapters.persistence.database import (
-    ADMIN_URL_ENV,
-    TEST_ADMIN_URL_ENV,
     DatabaseUrl,
     create_database_engine,
 )
@@ -25,6 +22,7 @@ from auto_trading_v2.adapters.persistence.database_admin import (
     validate_server_info,
     verify_target_connection,
 )
+from auto_trading_v2.config import load_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -61,14 +59,15 @@ class TemporaryMssqlDatabase:
 
 @pytest.fixture(scope="session")
 def mssql_database() -> Iterator[TemporaryMssqlDatabase]:
-    raw_admin_url = os.environ.get(TEST_ADMIN_URL_ENV) or os.environ.get(ADMIN_URL_ENV)
-    if not raw_admin_url:
+    database_settings = load_settings().database
+    protected_admin_url = database_settings.test_admin_url or database_settings.admin_url
+    if protected_admin_url is None:
         pytest.skip(
             "AUTO_TRADING_V2_TEST_ADMIN_URL 또는 명시적 ADMIN_URL이 없어 "
             "MSSQL 통합 테스트를 건너뜁니다."
         )
 
-    admin_settings = DatabaseUrl(raw_admin_url).require_database("master")
+    admin_settings = DatabaseUrl(protected_admin_url.reveal()).require_database("master")
     admin_engine = create_database_engine(admin_settings, autocommit=True)
     database_name = generate_test_database_name()
     target_engine: Engine | None = None
