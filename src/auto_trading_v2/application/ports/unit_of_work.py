@@ -11,6 +11,7 @@ from auto_trading_v2.application.ports.repositories import (
     MarketSnapshotRepository,
 )
 from auto_trading_v2.application.ports.strategy_decisions import StrategyDecisionRepository
+from auto_trading_v2.application.ports.trade_intents import TradeIntentRepository
 
 
 class UnitOfWork(Protocol):
@@ -18,6 +19,7 @@ class UnitOfWork(Protocol):
     candidates: CandidateRepository
     filter_evaluations: FilterEvaluationRepository
     strategy_decisions: StrategyDecisionRepository
+    trade_intents: TradeIntentRepository
 
     def __enter__(self) -> Self: ...
 

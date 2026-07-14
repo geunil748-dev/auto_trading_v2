@@ -149,3 +149,80 @@ class StrategyDecisionConflictError(RuntimeError):
             "strategy decision conflict: "
             f"{strategy_name.value}/{self.strategy_version}: {self.category}"
         )
+
+
+class RequiredStrategyDecisionMissingError(RuntimeError):
+    """A built-in strategy has no matching persisted decision."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        super().__init__(
+            "required strategy decision missing: "
+            f"{strategy_name.value}/{self.strategy_version} for {candidate_id.serialize()}"
+        )
+
+
+class InvalidStrategyDecisionError(RuntimeError):
+    """A persisted decision cannot safely drive a trade intent."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+        reason: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        self.reason = _safe_label(reason, "invalid_strategy_decision")
+        super().__init__(
+            "invalid strategy decision: "
+            f"{strategy_name.value}/{self.strategy_version}: {self.reason}"
+        )
+
+
+class TradeIntentRiskRejectedError(RuntimeError):
+    """The deterministic risk policy approved no positive quantity."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        policy_name: str,
+        policy_version: str,
+        reason_code: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.policy_name = _safe_label(policy_name, "unknown_policy")
+        self.policy_version = _safe_label(policy_version, "unknown_version")
+        self.reason_code = _safe_label(reason_code, "risk_rejected")
+        super().__init__(
+            "trade intent risk rejected: "
+            f"{self.policy_name}/{self.policy_version}: {self.reason_code}"
+        )
+
+
+class TradeIntentConflictError(RuntimeError):
+    """A canonical trade intent already occupies the semantic identity."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+        category: str = "duplicate_record",
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        self.category = _safe_label(category, "conflict")
+        super().__init__(
+            f"trade intent conflict: {strategy_name.value}/{self.strategy_version}: {self.category}"
+        )

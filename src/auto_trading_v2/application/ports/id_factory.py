@@ -2,7 +2,7 @@
 
 from typing import Protocol
 
-from auto_trading_v2.domain.primitives import DecisionID, FilterEvaluationID
+from auto_trading_v2.domain.primitives import DecisionID, FilterEvaluationID, TradeIntentID
 
 
 class FilterEvaluationIDFactory(Protocol):
@@ -15,3 +15,9 @@ class DecisionIDFactory(Protocol):
     """Create only per-decision IDs; strategy IDs come from the catalog."""
 
     def new(self) -> DecisionID: ...
+
+
+class TradeIntentIDFactory(Protocol):
+    """Create canonical trade-intent IDs only for eligible decisions."""
+
+    def new(self) -> TradeIntentID: ...

@@ -76,7 +76,7 @@ class DecisionID(_UUIDIdentifier):
 
 
 class TradeIntentID(_UUIDIdentifier):
-    """Identifier reserved for a future trade intent."""
+    """Identifier for a canonical trade intent."""
 
     __slots__ = ()
 

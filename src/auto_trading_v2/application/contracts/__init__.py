@@ -13,6 +13,10 @@ from auto_trading_v2.application.contracts.strategy_decisions import (
     NewCandidateStrategyDecision,
     StoredCandidateStrategyDecision,
 )
+from auto_trading_v2.application.contracts.trade_intents import (
+    NewTradeIntent,
+    StoredTradeIntent,
+)
 
 __all__ = [
     "JSONValue",
@@ -20,8 +24,10 @@ __all__ = [
     "NewCandidateStrategyDecision",
     "NewFilterEvaluation",
     "NewMarketSnapshot",
+    "NewTradeIntent",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
     "StoredFilterEvaluation",
     "StoredMarketSnapshot",
+    "StoredTradeIntent",
 ]

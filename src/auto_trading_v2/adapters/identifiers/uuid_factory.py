@@ -6,6 +6,7 @@ from auto_trading_v2.domain.primitives import (
     DecisionID,
     FilterEvaluationID,
     IdentifierFactory,
+    TradeIntentID,
 )
 
 
@@ -27,3 +28,13 @@ class UuidDecisionIDFactory:
 
     def new(self) -> DecisionID:
         return self.identifier_factory.new(DecisionID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidTradeIntentIDFactory:
+    """Adapt the existing UUID policy to the trade-intent-specific port."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> TradeIntentID:
+        return self.identifier_factory.new(TradeIntentID)

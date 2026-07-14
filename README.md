@@ -15,8 +15,9 @@ source precedence, KIS paper 및 Telegram disabled 규칙은
 [설정 문서](docs/configuration.md)를 참고하십시오.
 
 `auto_trading_v2`는 기존 `auto_trading`과 코드, 데이터베이스, 런타임 상태를 공유하지 않는
-독립 프로젝트입니다. 현재 변경 범위는 도메인 기반과 Microsoft SQL Server용 canonical
-스키마입니다. 애플리케이션 유스케이스와 실제 주문 실행은 아직 포함하지 않습니다.
+독립 프로젝트입니다. Microsoft SQL Server canonical schema 위에서 filter evaluation, strategy
+decision과 TradeIntent application use case까지 구현되어 있습니다. 실제 주문 실행은 포함하지
+않습니다.
 
 ## 개발 환경
 
@@ -91,11 +92,9 @@ python -m pytest tests/integration -m integration
 
 ## 현재 범위
 
-현재 포함되는 것은 도메인 원시 타입, 변동성 돌파의 순수 계산, Clock 포트와 구현,
-일반 재시도 도우미, 민감정보 마스킹, SQLAlchemy Core metadata와 Alembic 초기
-마이그레이션입니다. 테이블은 시장 관측부터 paper 주문·체결·포지션·자산 곡선·감사 이벤트까지
-사실과 상태를 저장할 구조만 정의합니다. Repository, Unit of Work, 브로커, 외부 API,
-스케줄러와 실제 매매는 포함하지 않습니다.
+현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
+Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
+Alembic 초기 마이그레이션입니다. 브로커, 외부 API, 스케줄러와 실제 매매는 포함하지 않습니다.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
 
@@ -119,3 +118,14 @@ JSON, and re-evaluation rules.
 
 Stable StrategyID, version, reason code, decision key와 rollback 정책은
 [전략 결정 문서](docs/strategy-decisions.md)를 참고하세요.
+
+## PR 7 deterministic TradeIntent와 수량 정책
+
+저장된 네 strategy decision 중 `ENTER_LONG`만 canonical `trade_intents`로 변환합니다. 초기
+`FIXED_USD_NOTIONAL/v1` 정책은 snapshot last price를 기준으로 USD 1,000 이하의 정수 수량을
+계산하며, 여러 eligible intent를 하나의 Unit of Work에서 원자적으로 저장합니다. `SKIP`과
+`OBSERVE`는 intent를 만들지 않고 duplicate는 batch 전체를 rollback합니다. PaperOrder와 broker는
+아직 생성하지 않습니다.
+
+정확한 수량, idempotency key, transaction 및 제한사항은
+[TradeIntent 정책 문서](docs/trade-intents.md)를 참고하세요.

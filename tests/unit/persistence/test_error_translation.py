@@ -93,6 +93,45 @@ def test_strategy_constraints_translate_to_safe_categories() -> None:
     )
 
 
+def test_trade_intent_constraints_translate_without_payloads() -> None:
+    sentinel = "SHOULD_NEVER_APPEAR_PR7_782c1f"
+    duplicate = IntegrityError(
+        sentinel,
+        {"payload": sentinel},
+        Exception("23000", f"uq_trade_intents_idempotency_key {sentinel} (2627)"),
+    )
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint fk_trade_intents_decision_id_strategy_decisions (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception("23000", "CHECK constraint ck_trade_intents_quantity_positive (547)"),
+    )
+
+    translated = translate_persistence_error(
+        duplicate,
+        entity="trade_intent",
+        operation="insert",
+    )
+    assert isinstance(translated, DuplicateRecordError)
+    assert isinstance(
+        translate_persistence_error(foreign_key, entity="trade_intent", operation="insert"),
+        ForeignKeyViolationError,
+    )
+    assert isinstance(
+        translate_persistence_error(check, entity="trade_intent", operation="insert"),
+        CheckConstraintViolationError,
+    )
+    assert sentinel not in str(translated)
+    assert sentinel not in repr(translated)
+
+
 def test_connection_sqlstate_maps_to_unavailable_without_raw_error() -> None:
     exc = OperationalError("private SQL", None, Exception("08001", "private host"))
 
