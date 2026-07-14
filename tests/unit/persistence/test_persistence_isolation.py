@@ -45,6 +45,31 @@ def test_repositories_do_not_control_transactions_or_configuration() -> None:
     assert "os.environ" not in source_text
 
 
+def test_filter_domain_and_service_have_no_infrastructure_or_runtime_policy_access() -> None:
+    filter_root = SOURCE_ROOT / "domain" / "filtering"
+    domain_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in sorted(filter_root.rglob("*.py"))
+    )
+    service_text = (SOURCE_ROOT / "application" / "services" / "filter_evaluation.py").read_text(
+        encoding="utf-8"
+    )
+
+    for forbidden in (
+        "sqlalchemy",
+        "pyodbc",
+        "os.getenv",
+        "os.environ",
+        "load_dotenv",
+        "uuid4",
+        "getcontext(",
+        "setcontext(",
+        "float(",
+    ):
+        assert forbidden not in domain_text
+    for forbidden in ("sqlalchemy", "pyodbc", "create_engine", "os.getenv", "os.environ"):
+        assert forbidden not in service_text
+
+
 def test_forbidden_dependencies_and_artifacts_are_absent() -> None:
     pyproject = (PROJECT_ROOT / "pyproject.toml").read_text(encoding="utf-8").lower()
     forbidden_dependencies = (

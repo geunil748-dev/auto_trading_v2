@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import re
 
+from auto_trading_v2.domain.filtering.models import FilterSetName
+from auto_trading_v2.domain.primitives import CandidateID, MarketSnapshotID
+
 _SAFE_LABEL = re.compile(r"^[A-Za-z0-9_]{1,128}$")
 
 
@@ -62,3 +65,27 @@ class PersistenceMappingError(PersistenceError):
 
     def __init__(self, entity: str, operation: str = "map") -> None:
         super().__init__(entity=entity, operation=operation, reason="invalid_stored_data")
+
+
+class CandidateNotFoundError(RuntimeError):
+    """The requested canonical candidate does not exist."""
+
+    def __init__(self, candidate_id: CandidateID) -> None:
+        self.candidate_id = candidate_id
+        super().__init__(f"candidate not found: {candidate_id.serialize()}")
+
+
+class MarketSnapshotNotFoundError(RuntimeError):
+    """The candidate references no readable canonical market snapshot."""
+
+    def __init__(self, market_snapshot_id: MarketSnapshotID) -> None:
+        self.market_snapshot_id = market_snapshot_id
+        super().__init__(f"market snapshot not found: {market_snapshot_id.serialize()}")
+
+
+class FilterEvaluationConflictError(RuntimeError):
+    """A versioned filter evaluation already exists."""
+
+    def __init__(self, filter_set_name: FilterSetName) -> None:
+        self.filter_set_name = filter_set_name
+        super().__init__(f"filter evaluation conflict: {filter_set_name.value}")

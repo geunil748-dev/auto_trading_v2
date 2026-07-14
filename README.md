@@ -98,3 +98,14 @@ python -m pytest tests/integration -m integration
 스케줄러와 실제 매매는 포함하지 않습니다.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
+
+## PR 5 deterministic filtering
+
+The current V2 foundation evaluates one canonical candidate and market snapshot against four stable
+filter sets (`STRICT`, `BALANCED`, `SCORE_ONLY`, and `OBSERVATION`) and atomically stores only their
+versioned evaluation rows. Filtering is pure Decimal-based Domain policy; application orchestration
+injects the clock and evaluation-ID factory and uses the existing Repository/Unit of Work boundary.
+No strategy, order, broker, fill, position, P&L, scheduler, or external API behavior is included.
+
+See [deterministic filtering policy](docs/filtering.md) for thresholds, scoring, stable IDs, details
+JSON, and re-evaluation rules.
