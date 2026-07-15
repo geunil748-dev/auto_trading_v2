@@ -88,7 +88,7 @@ class ClientOrderID(_UUIDIdentifier):
 
 
 class OrderID(_UUIDIdentifier):
-    """Identifier reserved for a future order."""
+    """Identifier for a canonical paper order."""
 
     __slots__ = ()
 

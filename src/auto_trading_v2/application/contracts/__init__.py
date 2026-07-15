@@ -1,5 +1,11 @@
 """Immutable application boundary contracts."""
 
+from auto_trading_v2.application.contracts.paper_orders import (
+    NewPaperOrder,
+    PaperOrderSubmissionRequest,
+    PaperOrderSubmissionResult,
+    StoredPaperOrder,
+)
 from auto_trading_v2.application.contracts.persistence import (
     JSONValue,
     NewCandidate,
@@ -24,10 +30,14 @@ __all__ = [
     "NewCandidateStrategyDecision",
     "NewFilterEvaluation",
     "NewMarketSnapshot",
+    "NewPaperOrder",
     "NewTradeIntent",
+    "PaperOrderSubmissionRequest",
+    "PaperOrderSubmissionResult",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
     "StoredFilterEvaluation",
     "StoredMarketSnapshot",
+    "StoredPaperOrder",
     "StoredTradeIntent",
 ]

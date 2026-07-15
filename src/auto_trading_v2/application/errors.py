@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 from auto_trading_v2.domain.filtering.models import FilterSetName
-from auto_trading_v2.domain.primitives import CandidateID, MarketSnapshotID
+from auto_trading_v2.domain.primitives import CandidateID, MarketSnapshotID, TradeIntentID
 from auto_trading_v2.domain.strategy_decisions.models import StrategyName
 
 _SAFE_LABEL = re.compile(r"^[A-Za-z0-9_]{1,128}$")
@@ -226,3 +226,38 @@ class TradeIntentConflictError(RuntimeError):
         super().__init__(
             f"trade intent conflict: {strategy_name.value}/{self.strategy_version}: {self.category}"
         )
+
+
+class TradeIntentNotFoundError(RuntimeError):
+    """The requested canonical TradeIntent does not exist."""
+
+    def __init__(self, trade_intent_id: TradeIntentID) -> None:
+        self.trade_intent_id = trade_intent_id
+        super().__init__(f"trade intent not found: {trade_intent_id.serialize()}")
+
+
+class PaperOrderConflictError(RuntimeError):
+    """A canonical paper-order identity is already occupied."""
+
+    def __init__(self, trade_intent_id: TradeIntentID, category: str) -> None:
+        self.trade_intent_id = trade_intent_id
+        self.category = _safe_label(category, "conflict")
+        super().__init__(f"paper order conflict for {trade_intent_id.serialize()}: {self.category}")
+
+
+class InvalidPaperBrokerResultError(RuntimeError):
+    """A broker result cannot safely become a canonical PaperOrder."""
+
+    def __init__(self, broker_code: str, reason: str) -> None:
+        self.broker_code = _safe_label(broker_code, "unknown_broker")
+        self.reason = _safe_label(reason, "invalid_result")
+        super().__init__(f"invalid paper broker result: {self.broker_code}/{self.reason}")
+
+
+class PaperOrderSubmissionError(RuntimeError):
+    """A paper broker failed technically without a valid rejection result."""
+
+    def __init__(self, broker_code: str, category: str) -> None:
+        self.broker_code = _safe_label(broker_code, "unknown_broker")
+        self.category = _safe_label(category, "submission_failed")
+        super().__init__(f"paper order submission failed: {self.broker_code}/{self.category}")

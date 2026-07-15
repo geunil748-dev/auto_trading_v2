@@ -132,6 +132,41 @@ def test_trade_intent_constraints_translate_without_payloads() -> None:
     assert sentinel not in repr(translated)
 
 
+def test_paper_order_constraints_translate_without_payloads() -> None:
+    sentinel = "SHOULD_NEVER_APPEAR_PR8_6c19e2"
+    duplicate = IntegrityError(
+        sentinel,
+        {"payload": sentinel},
+        Exception("23000", f"ix_paper_orders_broker_ref_unique {sentinel} (2601)"),
+    )
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint fk_paper_orders_trade_intent_id_trade_intents (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception("23000", "CHECK constraint ck_paper_orders_status_closed_at (547)"),
+    )
+
+    translated = translate_persistence_error(duplicate, entity="paper_order", operation="insert")
+    assert isinstance(translated, DuplicateRecordError)
+    assert isinstance(
+        translate_persistence_error(foreign_key, entity="paper_order", operation="insert"),
+        ForeignKeyViolationError,
+    )
+    assert isinstance(
+        translate_persistence_error(check, entity="paper_order", operation="insert"),
+        CheckConstraintViolationError,
+    )
+    assert sentinel not in str(translated)
+    assert sentinel not in repr(translated)
+
+
 def test_connection_sqlstate_maps_to_unavailable_without_raw_error() -> None:
     exc = OperationalError("private SQL", None, Exception("08001", "private host"))
 
