@@ -132,9 +132,17 @@ Stable StrategyID, version, reason code, decision key와 rollback 정책은
 
 ## PR 8 internal paper-order submission
 
-V2 now submits one canonical TradeIntent at a time to the deterministic `InternalPaperBroker` and
+PR 8 submits one canonical TradeIntent at a time to the deterministic `InternalPaperBroker` and
 atomically stores either an `ACCEPTED` or `REJECTED` PaperOrder through the existing Unit of Work.
 ClientOrderID and broker references are versioned and deterministic. This slice does not create
 fills, update positions, calculate P&L, call KIS, or schedule submissions. See
 [internal paper-order submission](docs/paper-orders.md) for the identity, rejection, transaction,
 and deduplication policies.
+
+## PR 9 deterministic internal paper fills
+
+`INTERNAL_PAPER_SPLIT_FILL/v1` now records exactly one immutable canonical PaperFill per call and
+atomically advances its PaperOrder with optimistic status/version guards. Quantity one fills once;
+larger quantities split deterministically into two fills using the source snapshot's last price and
+zero fee. Positions, events, equity, P&L, KIS, and scheduling remain unimplemented. See
+[deterministic paper fills](docs/paper-fills.md) for policy, identity, history, and rollback rules.

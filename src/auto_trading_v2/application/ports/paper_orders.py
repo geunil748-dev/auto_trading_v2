@@ -2,6 +2,7 @@
 
 from typing import Protocol
 
+from auto_trading_v2.application.contracts.paper_fills import PaperOrderFillTransition
 from auto_trading_v2.application.contracts.paper_orders import NewPaperOrder, StoredPaperOrder
 from auto_trading_v2.domain.primitives import ClientOrderID, OrderID, TradeIntentID
 
@@ -18,3 +19,5 @@ class PaperOrderRepository(Protocol):
     def get_by_broker_reference(
         self, *, broker_code: str, broker_order_ref: str
     ) -> StoredPaperOrder | None: ...
+
+    def transition_after_fill(self, transition: PaperOrderFillTransition) -> StoredPaperOrder: ...

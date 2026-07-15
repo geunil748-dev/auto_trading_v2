@@ -3,6 +3,7 @@
 from auto_trading_v2.adapters.identifiers.uuid_factory import (
     Uuid5ClientOrderIDFactory,
     UuidDecisionIDFactory,
+    UuidFillIDFactory,
     UuidFilterEvaluationIDFactory,
     UuidOrderIDFactory,
     UuidTradeIntentIDFactory,
@@ -12,6 +13,7 @@ __all__ = [
     "Uuid5ClientOrderIDFactory",
     "UuidDecisionIDFactory",
     "UuidFilterEvaluationIDFactory",
+    "UuidFillIDFactory",
     "UuidOrderIDFactory",
     "UuidTradeIntentIDFactory",
 ]

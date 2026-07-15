@@ -94,7 +94,7 @@ class OrderID(_UUIDIdentifier):
 
 
 class FillID(_UUIDIdentifier):
-    """Identifier reserved for a future fill."""
+    """Identifier for a canonical paper fill."""
 
     __slots__ = ()
 

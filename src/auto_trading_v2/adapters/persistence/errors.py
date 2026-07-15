@@ -28,6 +28,8 @@ _UNIQUE_CONSTRAINTS = frozenset(
         "uq_paper_orders_trade_intent_id",
         "uq_paper_orders_client_order_id",
         "ix_paper_orders_broker_ref_unique",
+        "uq_paper_fills_execution_key",
+        "uq_paper_fills_order_sequence",
     }
 )
 _FOREIGN_KEY_CONSTRAINTS = frozenset(
@@ -39,6 +41,7 @@ _FOREIGN_KEY_CONSTRAINTS = frozenset(
         "fk_strategy_decisions_position_id_paper_positions",
         "fk_trade_intents_decision_id_strategy_decisions",
         "fk_paper_orders_trade_intent_id_trade_intents",
+        "fk_paper_fills_order_id_paper_orders",
     }
 )
 _CHECK_CONSTRAINTS = frozenset(
@@ -67,6 +70,11 @@ _CHECK_CONSTRAINTS = frozenset(
         "ck_paper_orders_broker_code_nonempty",
         "ck_paper_orders_version_positive",
         "ck_paper_orders_status_closed_at",
+        "ck_paper_fills_fee_currency",
+        "ck_paper_fills_sequence_positive",
+        "ck_paper_fills_quantity_positive",
+        "ck_paper_fills_price_positive",
+        "ck_paper_fills_fee_nonnegative",
     }
 )
 _KNOWN_CONSTRAINTS = _UNIQUE_CONSTRAINTS | _FOREIGN_KEY_CONSTRAINTS | _CHECK_CONSTRAINTS
