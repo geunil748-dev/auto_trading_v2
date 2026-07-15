@@ -13,8 +13,13 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from auto_trading_v2.adapters.persistence.errors import translate_persistence_error
 from auto_trading_v2.adapters.persistence.tables import paper_orders
+from auto_trading_v2.application.contracts.paper_fills import PaperOrderFillTransition
 from auto_trading_v2.application.contracts.paper_orders import NewPaperOrder, StoredPaperOrder
-from auto_trading_v2.application.errors import PersistenceMappingError
+from auto_trading_v2.application.errors import (
+    OptimisticConcurrencyError,
+    PersistenceMappingError,
+    PersistenceNotFoundError,
+)
 from auto_trading_v2.domain.errors import ValidationError
 from auto_trading_v2.domain.paper_orders import PaperOrderStatus
 from auto_trading_v2.domain.primitives import ClientOrderID, OrderID, TradeIntentID
@@ -151,6 +156,57 @@ class SqlAlchemyPaperOrderRepository:
                 & (paper_orders.c.broker_order_ref == broker_order_ref)
             )
         )
+
+    def transition_after_fill(
+        self,
+        transition: PaperOrderFillTransition,
+    ) -> StoredPaperOrder:
+        """Apply one fill-only transition with status/version concurrency guards."""
+
+        self._ensure_active()
+        try:
+            result = self._connection.execute(
+                paper_orders.update()
+                .where(
+                    paper_orders.c.order_id == transition.order_id.value,
+                    paper_orders.c.status == transition.expected_status.value,
+                    paper_orders.c.version == transition.expected_version,
+                )
+                .values(
+                    status=transition.new_status.value,
+                    closed_at=transition.closed_at,
+                    updated_at=transition.updated_at,
+                    version=transition.expected_version + 1,
+                )
+            )
+            if result.rowcount != 1:
+                current = self._select_one(paper_orders.c.order_id == transition.order_id.value)
+                self._mark_failed()
+                if current is None:
+                    raise PersistenceNotFoundError(
+                        entity="paper_order",
+                        operation="transition_after_fill",
+                        reason="not_found",
+                    )
+                raise OptimisticConcurrencyError(
+                    entity="paper_order",
+                    operation="transition_after_fill",
+                    reason="stale_status_or_version",
+                )
+            stored = self._select_one(paper_orders.c.order_id == transition.order_id.value)
+            if stored is None:
+                raise PersistenceMappingError("paper_order", "transition_after_fill")
+            return stored
+        except PersistenceMappingError:
+            self._mark_failed()
+            raise
+        except SQLAlchemyError as exc:
+            self._mark_failed()
+            raise translate_persistence_error(
+                exc,
+                entity="paper_order",
+                operation="transition_after_fill",
+            ) from None
 
     def _read(self, operation: Callable[[], StoredPaperOrder | None]) -> StoredPaperOrder | None:
         self._ensure_active()

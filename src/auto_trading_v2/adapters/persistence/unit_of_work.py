@@ -16,6 +16,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
     SqlAlchemyFilterEvaluationRepository,
     SqlAlchemyMarketSnapshotRepository,
+    SqlAlchemyPaperFillRepository,
     SqlAlchemyPaperOrderRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
@@ -46,6 +47,7 @@ class SqlAlchemyUnitOfWork:
         self._strategy_decisions: SqlAlchemyStrategyDecisionRepository | None = None
         self._trade_intents: SqlAlchemyTradeIntentRepository | None = None
         self._paper_orders: SqlAlchemyPaperOrderRepository | None = None
+        self._paper_fills: SqlAlchemyPaperFillRepository | None = None
 
     @property
     def market_snapshots(self) -> SqlAlchemyMarketSnapshotRepository:
@@ -89,6 +91,13 @@ class SqlAlchemyUnitOfWork:
             raise TransactionStateError("repository_access")
         return self._paper_orders
 
+    @property
+    def paper_fills(self) -> SqlAlchemyPaperFillRepository:
+        self._ensure_repository_operation()
+        if self._paper_fills is None:
+            raise TransactionStateError("repository_access")
+        return self._paper_fills
+
     def __enter__(self) -> SqlAlchemyUnitOfWork:
         if self._state is not _State.NEW:
             raise TransactionStateError("enter", "instance_reuse_forbidden")
@@ -114,6 +123,7 @@ class SqlAlchemyUnitOfWork:
         self._strategy_decisions = SqlAlchemyStrategyDecisionRepository(*repository_args)
         self._trade_intents = SqlAlchemyTradeIntentRepository(*repository_args)
         self._paper_orders = SqlAlchemyPaperOrderRepository(*repository_args)
+        self._paper_fills = SqlAlchemyPaperFillRepository(*repository_args)
         return self
 
     def commit(self) -> None:

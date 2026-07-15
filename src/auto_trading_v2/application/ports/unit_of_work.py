@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
+from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
 from auto_trading_v2.application.ports.repositories import (
     CandidateRepository,
@@ -22,6 +23,7 @@ class UnitOfWork(Protocol):
     strategy_decisions: StrategyDecisionRepository
     trade_intents: TradeIntentRepository
     paper_orders: PaperOrderRepository
+    paper_fills: PaperFillRepository
 
     def __enter__(self) -> Self: ...
 

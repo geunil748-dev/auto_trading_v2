@@ -50,6 +50,7 @@ def test_repository_protocol_has_only_required_add_and_reads() -> None:
         "get_by_trade_intent",
         "get_by_client_order_id",
         "get_by_broker_reference",
+        "transition_after_fill",
     }
     assert not {"commit", "rollback", "update", "delete", "upsert"}.intersection(methods)
 

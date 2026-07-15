@@ -3,11 +3,13 @@
 from auto_trading_v2.application.ports.id_factory import (
     ClientOrderIDFactory,
     DecisionIDFactory,
+    FillIDFactory,
     FilterEvaluationIDFactory,
     OrderIDFactory,
     TradeIntentIDFactory,
 )
 from auto_trading_v2.application.ports.paper_broker import PaperBroker, PaperBrokerError
+from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
 from auto_trading_v2.application.ports.repositories import (
     CandidateRepository,
@@ -24,10 +26,12 @@ __all__ = [
     "DecisionIDFactory",
     "FilterEvaluationIDFactory",
     "FilterEvaluationRepository",
+    "FillIDFactory",
     "MarketSnapshotRepository",
     "OrderIDFactory",
     "PaperBroker",
     "PaperBrokerError",
+    "PaperFillRepository",
     "PaperOrderRepository",
     "StrategyDecisionRepository",
     "TradeIntentIDFactory",

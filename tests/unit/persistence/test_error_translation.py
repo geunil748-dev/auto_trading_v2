@@ -167,6 +167,41 @@ def test_paper_order_constraints_translate_without_payloads() -> None:
     assert sentinel not in repr(translated)
 
 
+def test_paper_fill_constraints_translate_without_payloads() -> None:
+    sentinel = "SHOULD_NEVER_APPEAR_PR9_74a0e1"
+    duplicate = IntegrityError(
+        sentinel,
+        {"payload": sentinel},
+        Exception("23000", f"uq_paper_fills_execution_key {sentinel} (2627)"),
+    )
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint fk_paper_fills_order_id_paper_orders (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception("23000", "CHECK constraint ck_paper_fills_quantity_positive (547)"),
+    )
+
+    translated = translate_persistence_error(duplicate, entity="paper_fill", operation="insert")
+    assert isinstance(translated, DuplicateRecordError)
+    assert isinstance(
+        translate_persistence_error(foreign_key, entity="paper_fill", operation="insert"),
+        ForeignKeyViolationError,
+    )
+    assert isinstance(
+        translate_persistence_error(check, entity="paper_fill", operation="insert"),
+        CheckConstraintViolationError,
+    )
+    assert sentinel not in str(translated)
+    assert sentinel not in repr(translated)
+
+
 def test_connection_sqlstate_maps_to_unavailable_without_raw_error() -> None:
     exc = OperationalError("private SQL", None, Exception("08001", "private host"))
 

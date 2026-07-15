@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DecisionID,
+    FillID,
     FilterEvaluationID,
     IdentifierFactory,
     OrderID,
@@ -63,3 +64,13 @@ class UuidOrderIDFactory:
 
     def new(self) -> OrderID:
         return self.identifier_factory.new(OrderID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidFillIDFactory:
+    """Adapt the existing UUID policy to canonical PaperFill IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> FillID:
+        return self.identifier_factory.new(FillID)

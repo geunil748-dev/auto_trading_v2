@@ -9,6 +9,9 @@ from auto_trading_v2.adapters.persistence.repositories.filter_evaluations import
 from auto_trading_v2.adapters.persistence.repositories.market_snapshots import (
     SqlAlchemyMarketSnapshotRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.paper_fills import (
+    SqlAlchemyPaperFillRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.paper_orders import (
     SqlAlchemyPaperOrderRepository,
 )
@@ -24,6 +27,7 @@ __all__ = [
     "SqlAlchemyFilterEvaluationRepository",
     "SqlAlchemyMarketSnapshotRepository",
     "SqlAlchemyPaperOrderRepository",
+    "SqlAlchemyPaperFillRepository",
     "SqlAlchemyStrategyDecisionRepository",
     "SqlAlchemyTradeIntentRepository",
 ]

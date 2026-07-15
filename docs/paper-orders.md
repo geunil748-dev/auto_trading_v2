@@ -66,13 +66,15 @@ final race defense through:
 - unique `client_order_id`;
 - filtered unique `(broker_code, broker_order_ref)` when the reference is not null.
 
-The PaperOrder Repository never starts, commits, or rolls back a transaction and exposes no update,
-delete, or upsert API. The Unit of Work owns one root transaction and one connection shared by all
-six repositories. Successful ACCEPTED and REJECTED orders commit once; failures roll back.
+The PaperOrder Repository never starts, commits, or rolls back a transaction and exposes no generic
+update, delete, or upsert API. The Unit of Work owns one root transaction and one connection.
+Successful ACCEPTED and REJECTED orders commit once; failures roll back. PR 9 adds only the dedicated
+fill transition and a seventh, immutable PaperFill Repository.
 
 ## Deliberate limits
 
-This slice does not implement post-submission state transitions, cancellation, expiration,
-partial or full fills, a PaperFill Repository, slippage, fees, positions, events, equity, P&L,
-scheduling, KIS, or notifications. Those state transitions and fill behavior belong to later PRs.
+PR 8 itself did not implement post-submission state transitions. PR 9 now adds deterministic partial
+and full internal fills as documented in [paper fills](paper-fills.md), but still does not implement
+cancellation, expiration, slippage, non-zero fees, positions, events, equity, P&L, scheduling, KIS,
+or notifications.
 No V1 broker implementation was read, copied, adapted, or made compatible with this boundary.

@@ -5,6 +5,7 @@ from typing import Protocol
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DecisionID,
+    FillID,
     FilterEvaluationID,
     OrderID,
     TradeIntentID,
@@ -39,3 +40,9 @@ class OrderIDFactory(Protocol):
     """Create canonical PaperOrder identifiers."""
 
     def new(self) -> OrderID: ...
+
+
+class FillIDFactory(Protocol):
+    """Create canonical PaperFill identifiers."""
+
+    def new(self) -> FillID: ...

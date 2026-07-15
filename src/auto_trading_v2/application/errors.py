@@ -4,8 +4,33 @@ from __future__ import annotations
 
 import re
 
+from auto_trading_v2.application.paper_fill_errors import (
+    InvalidPaperFillHistoryError as InvalidPaperFillHistoryError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperFillConflictError as PaperFillConflictError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperFillSourceError as PaperFillSourceError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderConcurrencyError as PaperOrderConcurrencyError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderNotFillableError as PaperOrderNotFillableError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderNotFoundError as PaperOrderNotFoundError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    UnsupportedPaperOrderBrokerError as UnsupportedPaperOrderBrokerError,
+)
 from auto_trading_v2.domain.filtering.models import FilterSetName
-from auto_trading_v2.domain.primitives import CandidateID, MarketSnapshotID, TradeIntentID
+from auto_trading_v2.domain.primitives import (
+    CandidateID,
+    MarketSnapshotID,
+    TradeIntentID,
+)
 from auto_trading_v2.domain.strategy_decisions.models import StrategyName
 
 _SAFE_LABEL = re.compile(r"^[A-Za-z0-9_]{1,128}$")
@@ -52,6 +77,14 @@ class ForeignKeyViolationError(PersistenceError):
 
 class CheckConstraintViolationError(PersistenceError):
     """Database check-constraint violation."""
+
+
+class PersistenceNotFoundError(PersistenceError):
+    """A guarded persistence mutation found no target row."""
+
+
+class OptimisticConcurrencyError(PersistenceError):
+    """A guarded persistence mutation observed a stale status or version."""
 
 
 class TransactionStateError(PersistenceError):

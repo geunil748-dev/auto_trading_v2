@@ -1,5 +1,11 @@
 """Immutable application boundary contracts."""
 
+from auto_trading_v2.application.contracts.paper_fills import (
+    NewPaperFill,
+    PaperFillExecutionResult,
+    PaperOrderFillTransition,
+    StoredPaperFill,
+)
 from auto_trading_v2.application.contracts.paper_orders import (
     NewPaperOrder,
     PaperOrderSubmissionRequest,
@@ -31,13 +37,17 @@ __all__ = [
     "NewFilterEvaluation",
     "NewMarketSnapshot",
     "NewPaperOrder",
+    "NewPaperFill",
     "NewTradeIntent",
     "PaperOrderSubmissionRequest",
     "PaperOrderSubmissionResult",
+    "PaperFillExecutionResult",
+    "PaperOrderFillTransition",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
     "StoredFilterEvaluation",
     "StoredMarketSnapshot",
     "StoredPaperOrder",
+    "StoredPaperFill",
     "StoredTradeIntent",
 ]
