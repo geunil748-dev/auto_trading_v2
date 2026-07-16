@@ -21,6 +21,14 @@ from auto_trading_v2.application.contracts.persistence import (
     StoredFilterEvaluation,
     StoredMarketSnapshot,
 )
+from auto_trading_v2.application.contracts.position_projection import (
+    NewPaperPosition,
+    NewPositionEvent,
+    PaperPositionBuyTransition,
+    PositionProjectionResult,
+    StoredPaperPosition,
+    StoredPositionEvent,
+)
 from auto_trading_v2.application.contracts.strategy_decisions import (
     NewCandidateStrategyDecision,
     StoredCandidateStrategyDecision,
@@ -38,16 +46,22 @@ __all__ = [
     "NewMarketSnapshot",
     "NewPaperOrder",
     "NewPaperFill",
+    "NewPaperPosition",
+    "NewPositionEvent",
     "NewTradeIntent",
     "PaperOrderSubmissionRequest",
     "PaperOrderSubmissionResult",
     "PaperFillExecutionResult",
     "PaperOrderFillTransition",
+    "PaperPositionBuyTransition",
+    "PositionProjectionResult",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
     "StoredFilterEvaluation",
     "StoredMarketSnapshot",
     "StoredPaperOrder",
     "StoredPaperFill",
+    "StoredPaperPosition",
+    "StoredPositionEvent",
     "StoredTradeIntent",
 ]

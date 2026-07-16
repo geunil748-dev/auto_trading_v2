@@ -7,6 +7,10 @@ from typing import Protocol, Self
 
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
+from auto_trading_v2.application.ports.position_projection import (
+    PaperPositionRepository,
+    PositionEventRepository,
+)
 from auto_trading_v2.application.ports.repositories import (
     CandidateRepository,
     FilterEvaluationRepository,
@@ -24,6 +28,8 @@ class UnitOfWork(Protocol):
     trade_intents: TradeIntentRepository
     paper_orders: PaperOrderRepository
     paper_fills: PaperFillRepository
+    paper_positions: PaperPositionRepository
+    position_events: PositionEventRepository
 
     def __enter__(self) -> Self: ...
 
