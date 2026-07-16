@@ -1,4 +1,4 @@
-"""Candidate strategy-decision repository boundary."""
+"""Candidate and position strategy-decision repository boundary."""
 
 from __future__ import annotations
 
@@ -7,9 +7,17 @@ from typing import Protocol
 
 from auto_trading_v2.application.contracts.strategy_decisions import (
     NewCandidateStrategyDecision,
+    NewPositionStrategyDecision,
     StoredCandidateStrategyDecision,
+    StoredPositionStrategyDecision,
 )
-from auto_trading_v2.domain.primitives import CandidateID, DecisionID, StrategyID
+from auto_trading_v2.domain.primitives import (
+    CandidateID,
+    DecisionID,
+    MarketSnapshotID,
+    PositionID,
+    StrategyID,
+)
 
 
 class StrategyDecisionRepository(Protocol):
@@ -32,3 +40,19 @@ class StrategyDecisionRepository(Protocol):
         self,
         candidate_id: CandidateID,
     ) -> Sequence[StoredCandidateStrategyDecision]: ...
+
+    def add_position(
+        self,
+        decision: NewPositionStrategyDecision,
+    ) -> StoredPositionStrategyDecision: ...
+
+    def get_position(self, decision_id: DecisionID) -> StoredPositionStrategyDecision | None: ...
+
+    def get_by_position_snapshot_strategy(
+        self,
+        *,
+        position_id: PositionID,
+        market_snapshot_id: MarketSnapshotID,
+        strategy_id: StrategyID,
+        strategy_version: str,
+    ) -> StoredPositionStrategyDecision | None: ...

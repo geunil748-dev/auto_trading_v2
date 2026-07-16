@@ -29,6 +29,7 @@ erDiagram
     candidates o|--o{ strategy_decisions : "candidate decision"
     filter_evaluations o|--o{ strategy_decisions : "supports"
     paper_positions o|--o{ strategy_decisions : "position decision"
+    market_snapshots o|--o{ strategy_decisions : "position decision source"
     strategy_decisions ||--o| trade_intents : "creates at most one"
     trade_intents ||--o| paper_orders : "creates at most one"
     paper_orders ||--o{ paper_fills : "receives"
@@ -89,10 +90,12 @@ JSON은 검색 최적화된 정규화 데이터의 대체물이 아니라 확장
 손실되지 않도록 하며 삭제보다 명시적 상태 전이를 사용합니다. PK는 각 table의 타입별 UUID
 ID이고 FK, unique, check와 조회 index는 모두 이름을 가집니다.
 
-MSSQL filtered unique index는 다음 세 개입니다.
+MSSQL filtered unique index는 다음 네 개입니다.
 
 - `ix_paper_positions_open_unique`: strategy, symbol, currency별 `OPEN` position 하나
 - `ix_strategy_decisions_candidate_unique`: candidate, strategy, version별 candidate decision 하나
+- `ix_strategy_decisions_position_snapshot_unique`: position, snapshot, strategy, version별
+  position decision 하나
 - `ix_paper_orders_broker_ref_unique`: broker order reference가 있을 때 broker 내 하나
 
 주요 semantic deduplication key는 다음과 같습니다.
@@ -100,13 +103,20 @@ MSSQL filtered unique index는 다음 세 개입니다.
 - snapshot: `(source, symbol, observed_at)`
 - candidate: `(run_id, market_snapshot_id, candidate_source)`
 - filter evaluation: `(candidate_id, filter_set_id, evaluation_version)`
-- strategy decision: `decision_key`, 그리고 filtered candidate/strategy/version
+- strategy decision: `decision_key`, filtered candidate/strategy/version, 그리고 filtered
+  position/snapshot/strategy/version
 - trade intent: `decision_id`, `idempotency_key`
 - paper order: `trade_intent_id`, `client_order_id`, 그리고 filtered broker reference
 - fill: `execution_key`, `(order_id, fill_sequence)`
 - position event: `fill_id`, `(position_id, sequence_no)`
 - equity snapshot: `snapshot_key`, `(strategy_id, currency, as_of)`
 - trading event: `dedup_key`
+
+Candidate decision은 Candidate의 `market_snapshot_id`를 통해 canonical snapshot에 연결되며
+`strategy_decisions.market_snapshot_id`를 중복 저장하지 않습니다. Position decision은
+`position_id`와 `market_snapshot_id`를 모두 직접 저장하고 두 FK에 `ON DELETE NO ACTION`을
+적용합니다. `trading_events`의 선택적 context FK는 통합 타임라인을 위한 것이며 이 source
+관계의 원본이 아닙니다.
 
 `market_snapshots`, `candidates`, `filter_evaluations`, `strategy_decisions`, `trade_intents`,
 `paper_fills`, `position_events`, `equity_snapshots`, `trading_events`는 기록 후 의미를 바꾸지 않는
@@ -168,6 +178,11 @@ connection URL, server host, login, password는 log, exception, test output, 문
 보고에서 출력하지 않습니다. URL wrapper는 문자열 변환과 `repr`에서도 값을 redaction합니다.
 production backup, 복구, 운영 배포와 data file 관리는 이 PR의 비목표입니다.
 
-다음 PR 권장 범위는 Repository port와 SQLAlchemy Core 구현, Unit of Work 및 명시적
-transaction boundary입니다. 필터, 주문 실행, fill 생성, position projector와 P&L 업무 로직은
-그 경계와 정책이 합의된 뒤 별도 PR에서 구현합니다.
+초기 `0001_mssql_schema`는 수정하지 않습니다. `0002_position_snapshot`은
+`strategy_decisions.market_snapshot_id`, FK, source-shape CHECK, position semantic filtered
+unique index와 최소 조회 index를 additive migration으로 적용합니다. 기존 candidate row는
+신규 column이 `NULL`인 채 그대로 유효합니다.
+
+다음 position-exit PR은 OPEN 상태, symbol, strategy, 통화, snapshot 평가 시각과 stale 여부를
+application level에서 검증해야 합니다. 실제 EXIT_LONG threshold, SELL, position 종료와 P&L은
+이 schema migration의 범위가 아닙니다.

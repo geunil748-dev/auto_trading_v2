@@ -31,7 +31,9 @@ from auto_trading_v2.application.contracts.position_projection import (
 )
 from auto_trading_v2.application.contracts.strategy_decisions import (
     NewCandidateStrategyDecision,
+    NewPositionStrategyDecision,
     StoredCandidateStrategyDecision,
+    StoredPositionStrategyDecision,
 )
 from auto_trading_v2.application.contracts.trade_intents import (
     NewTradeIntent,
@@ -42,6 +44,7 @@ __all__ = [
     "JSONValue",
     "NewCandidate",
     "NewCandidateStrategyDecision",
+    "NewPositionStrategyDecision",
     "NewFilterEvaluation",
     "NewMarketSnapshot",
     "NewPaperOrder",
@@ -57,6 +60,7 @@ __all__ = [
     "PositionProjectionResult",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
+    "StoredPositionStrategyDecision",
     "StoredFilterEvaluation",
     "StoredMarketSnapshot",
     "StoredPaperOrder",

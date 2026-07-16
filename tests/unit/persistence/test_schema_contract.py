@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 
 from auto_trading_v2.adapters.persistence.tables import (
     candidates,
@@ -47,6 +47,7 @@ def test_filtered_unique_indexes_are_explicit_mssql_contracts() -> None:
     expected = {
         "ix_paper_positions_open_unique": "status = 'OPEN'",
         "ix_strategy_decisions_candidate_unique": "candidate_id IS NOT NULL",
+        "ix_strategy_decisions_position_snapshot_unique": "position_id IS NOT NULL",
         "ix_paper_orders_broker_ref_unique": "broker_order_ref IS NOT NULL",
     }
     indexes = {
@@ -57,6 +58,25 @@ def test_filtered_unique_indexes_are_explicit_mssql_contracts() -> None:
     }
 
     assert indexes == expected
+
+
+def test_position_decision_snapshot_fk_and_indexes_are_canonical() -> None:
+    foreign_keys = {
+        constraint.name: tuple(column.name for column in constraint.columns)
+        for constraint in strategy_decisions.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+    }
+    indexes = {
+        index.name: tuple(column.name for column in index.columns)
+        for index in strategy_decisions.indexes
+    }
+
+    assert foreign_keys["fk_strategy_decisions_market_snapshot_id_market_snapshots"] == (
+        "market_snapshot_id",
+    )
+    assert indexes["ix_strategy_decisions_market_snapshot"] == ("market_snapshot_id",)
+    assert indexes["ix_strategy_decisions_position_decided"] == ("position_id", "decided_at")
+    assert "ix_strategy_decisions_position" not in indexes
 
 
 def test_symbol_check_matches_domain_allowed_character_policy() -> None:
@@ -94,5 +114,9 @@ def test_json_shape_checks_and_state_checks_are_present() -> None:
 
     assert "ISJSON(details) = 1" in check_sql["filter_evaluations"]
     assert "ISJSON(reason_codes) = 1" in check_sql["strategy_decisions"]
+    assert "candidate_id IS NULL OR market_snapshot_id IS NULL" in check_sql["strategy_decisions"]
+    assert (
+        "position_id IS NULL OR market_snapshot_id IS NOT NULL" in check_sql["strategy_decisions"]
+    )
     assert "status = 'OPEN'" in check_sql["paper_positions"]
     assert "PARTIALLY_FILLED" in check_sql["paper_orders"]

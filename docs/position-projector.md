@@ -86,6 +86,6 @@ repositories on the same connection and root transaction.
 
 This PR does not process SELL fills, reduce or close positions, calculate realized or unrealized
 P&L, write EquitySnapshots or trading events, call KIS, schedule projection, or send Telegram
-notifications. The next position-focused PR should define a position-based `EXIT_LONG` decision
-policy. That policy must still leave SELL execution and closing projection behind explicit,
-separate boundaries.
+notifications. PR11 adds only the persistence prerequisite that links a position decision directly
+to its canonical MarketSnapshot. The following position-focused PR should define the actual
+`EXIT_LONG` decision policy. SELL execution and closing projection remain separate boundaries.

@@ -4,6 +4,9 @@ PR 6는 이미 저장된 canonical filter evaluation을 읽어 candidate 기반 
 필터는 시장 입력을 평가하고, 전략은 그 저장 결과를 `ENTER_LONG`, `SKIP`, `OBSERVE` 중 하나로
 변환한다. 전략 엔진은 필터 check, threshold 또는 score를 다시 계산하지 않는다.
 
+Python `StrategyAction`에는 position decision persistence를 위한 `EXIT_LONG`도 정의되어
+있지만, 기존 candidate 전략 엔진과 네 built-in 전략은 이를 생성하지 않는다.
+
 ## 경계와 데이터 흐름
 
 Application service는 candidate와 해당 candidate의 filter evaluation을 기존 Repository로
@@ -17,9 +20,11 @@ candidate + canonical filter_evaluations 4개
     → one Unit of Work / one commit
 ```
 
-이번 범위는 candidate 기반 결정만 표현한다. `position_id`는 저장 시 `NULL`이며, position 기반
-`EXIT_LONG` 결정은 포함하지 않는다. 결정은 `filter_evaluation_id`로 세부 필터 근거와 연결되므로
-filter details 전체를 reason code에 복제하지 않는다.
+Candidate 경계에서는 `position_id`와 `market_snapshot_id`가 `NULL`이며 snapshot은 Candidate를
+통해 연결된다. 별도의 position persistence contract는 `position_id`와 `market_snapshot_id`를
+직접 가지지만, 실제 `EXIT_LONG` 정책과 application service는 후속 범위다. Candidate 결정은
+`filter_evaluation_id`로 세부 필터 근거와 연결되므로 filter details 전체를 reason code에
+복제하지 않는다.
 
 ## Built-in 전략과 stable identity
 

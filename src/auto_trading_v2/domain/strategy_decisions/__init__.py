@@ -3,6 +3,7 @@
 from auto_trading_v2.domain.strategy_decisions.catalog import BUILT_IN_STRATEGIES
 from auto_trading_v2.domain.strategy_decisions.decision_keys import (
     candidate_strategy_decision_key,
+    position_strategy_decision_key,
 )
 from auto_trading_v2.domain.strategy_decisions.engine import (
     DeterministicStrategyDecisionEngine,
@@ -24,4 +25,5 @@ __all__ = [
     "StrategyName",
     "StrategySignal",
     "candidate_strategy_decision_key",
+    "position_strategy_decision_key",
 ]

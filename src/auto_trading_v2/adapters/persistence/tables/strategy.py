@@ -54,6 +54,16 @@ strategy_decisions = Table(
         nullable=True,
     ),
     Column(
+        "market_snapshot_id",
+        uuid_type(),
+        ForeignKey(
+            "trading.market_snapshots.market_snapshot_id",
+            name="fk_strategy_decisions_market_snapshot_id_market_snapshots",
+            ondelete="NO ACTION",
+        ),
+        nullable=True,
+    ),
+    Column(
         "filter_evaluation_id",
         uuid_type(),
         ForeignKey(
@@ -91,6 +101,14 @@ strategy_decisions = Table(
         "position_id IS NULL OR filter_evaluation_id IS NULL",
         name="position_without_filter",
     ),
+    CheckConstraint(
+        "candidate_id IS NULL OR market_snapshot_id IS NULL",
+        name="candidate_without_snapshot",
+    ),
+    CheckConstraint(
+        "position_id IS NULL OR market_snapshot_id IS NOT NULL",
+        name="position_requires_snapshot",
+    ),
     CheckConstraint(json_array_check_sql("reason_codes"), name="reason_codes_json_array"),
     UniqueConstraint("decision_key", name="uq_strategy_decisions_decision_key"),
     schema=SCHEMA,
@@ -109,7 +127,21 @@ Index(
     strategy_decisions.c.decided_at,
 )
 Index("ix_strategy_decisions_candidate", strategy_decisions.c.candidate_id)
-Index("ix_strategy_decisions_position", strategy_decisions.c.position_id)
+Index("ix_strategy_decisions_market_snapshot", strategy_decisions.c.market_snapshot_id)
+Index(
+    "ix_strategy_decisions_position_decided",
+    strategy_decisions.c.position_id,
+    strategy_decisions.c.decided_at,
+)
+Index(
+    "ix_strategy_decisions_position_snapshot_unique",
+    strategy_decisions.c.position_id,
+    strategy_decisions.c.market_snapshot_id,
+    strategy_decisions.c.strategy_id,
+    strategy_decisions.c.strategy_version,
+    unique=True,
+    mssql_where=text("position_id IS NOT NULL"),
+)
 Index(
     "ix_strategy_decisions_action_decided",
     strategy_decisions.c.action,

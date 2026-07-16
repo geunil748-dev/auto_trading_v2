@@ -74,6 +74,11 @@ def test_contract_rejects_naive_datetime_and_wrong_identifier_types() -> None:
         replace(decision(), decision_id=uuid4())
 
 
+def test_candidate_contract_does_not_expand_to_exit_actions() -> None:
+    with pytest.raises(ValidationError):
+        replace(decision(), action=StrategyAction.EXIT_LONG)
+
+
 def test_stored_contract_adds_only_recorded_at() -> None:
     new = decision()
     stored = StoredCandidateStrategyDecision(
