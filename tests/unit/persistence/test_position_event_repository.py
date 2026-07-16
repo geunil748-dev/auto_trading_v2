@@ -45,7 +45,12 @@ def test_repository_protocol_has_append_and_identity_reads_only() -> None:
         if not name.startswith("_")
     }
 
-    assert methods == {"add", "get", "get_by_fill_id"}
+    assert methods == {
+        "add",
+        "get",
+        "get_by_fill_id",
+        "get_by_position_sequence",
+    }
     assert not {"commit", "rollback", "update", "delete", "upsert"}.intersection(methods)
 
 

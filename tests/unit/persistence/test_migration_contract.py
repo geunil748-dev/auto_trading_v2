@@ -55,13 +55,20 @@ def _migration_columns() -> dict[str, tuple[str, ...]]:
 
 def test_revision_chain_and_initial_table_creation_set_are_stable() -> None:
     version = MIGRATIONS_ROOT / "versions" / "0001_create_mssql_canonical_schema.py"
-    additive = MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py"
+    snapshot_migration = (
+        MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py"
+    )
+    version_migration = MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py"
     assert version.exists()
-    assert additive.exists()
+    assert snapshot_migration.exists()
+    assert version_migration.exists()
     assert 'revision: str = "0001_mssql_schema"' in version.read_text(encoding="utf-8")
-    additive_text = additive.read_text(encoding="utf-8")
-    assert 'revision: str = "0002_position_snapshot"' in additive_text
-    assert 'down_revision: str | None = "0001_mssql_schema"' in additive_text
+    snapshot_text = snapshot_migration.read_text(encoding="utf-8")
+    version_text = version_migration.read_text(encoding="utf-8")
+    assert 'revision: str = "0002_position_snapshot"' in snapshot_text
+    assert 'down_revision: str | None = "0001_mssql_schema"' in snapshot_text
+    assert 'revision: str = "0003_position_decision_version"' in version_text
+    assert 'down_revision: str | None = "0002_position_snapshot"' in version_text
 
     text = _migration_text()
     created = set(re.findall(r'op\.create_table\(\s*"([a-z_]+)"', text))
@@ -108,30 +115,43 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
     }
     additive_names = {
         "ck_strategy_decisions_candidate_without_snapshot",
+        "ck_strategy_decisions_candidate_without_position_version",
         "ck_strategy_decisions_position_requires_snapshot",
+        "ck_strategy_decisions_position_requires_version",
+        "ck_strategy_decisions_position_version_positive",
     }
     expected_names -= additive_names
     assert all(name in ddl for name in expected_names)
     assert all(f"ck_{table.name}_ck_{table.name}_" not in ddl for table in BUSINESS_TABLES)
-    additive_text = (
-        MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py"
-    ).read_text(encoding="utf-8")
+    additive_text = "\n".join(
+        path.read_text(encoding="utf-8")
+        for path in (
+            MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py",
+            MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py",
+        )
+    )
     assert all(name in additive_text for name in additive_names)
 
 
-def test_initial_migration_columns_plus_additive_column_match_metadata() -> None:
+def test_initial_migration_columns_plus_additive_columns_match_metadata() -> None:
     expected = {
         table.name: tuple(column.name for column in table.columns) for table in BUSINESS_TABLES
     }
     expected["strategy_decisions"] = tuple(
-        name for name in expected["strategy_decisions"] if name != "market_snapshot_id"
+        name
+        for name in expected["strategy_decisions"]
+        if name not in {"market_snapshot_id", "position_version"}
     )
 
     assert _migration_columns() == expected
     additive = (
         MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py"
     ).read_text(encoding="utf-8")
+    version_additive = (
+        MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py"
+    ).read_text(encoding="utf-8")
     assert 'sa.Column("market_snapshot_id", uuid_type(), nullable=True)' in additive
+    assert 'sa.Column("position_version", sa.Integer(), nullable=True)' in version_additive
 
 
 def test_migration_has_no_database_creation_batch_separator_or_seed_data() -> None:

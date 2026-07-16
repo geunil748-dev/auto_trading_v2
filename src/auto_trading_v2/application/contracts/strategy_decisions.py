@@ -96,6 +96,7 @@ class NewPositionStrategyDecision:
     decision_id: DecisionID
     decision_key: str
     position_id: PositionID
+    position_version: int
     market_snapshot_id: MarketSnapshotID
     strategy_id: StrategyID
     strategy_version: str
@@ -108,6 +109,12 @@ class NewPositionStrategyDecision:
         _require_instance(self.position_id, PositionID, "position_id")
         _require_instance(self.market_snapshot_id, MarketSnapshotID, "market_snapshot_id")
         _require_instance(self.strategy_id, StrategyID, "strategy_id")
+        if (
+            isinstance(self.position_version, bool)
+            or not isinstance(self.position_version, int)
+            or self.position_version <= 0
+        ):
+            raise ValidationError("position_version must be a positive integer")
         _validate_action(self.action, _POSITION_ACTIONS)
         if not isinstance(self.reason_codes, tuple):
             raise ValidationError("reason_codes must be a tuple")

@@ -22,6 +22,7 @@ def row() -> dict[str, object]:
         "decision_key": "candidate:key|strategy:key|version:v1",
         "candidate_id": uuid4(),
         "position_id": None,
+        "position_version": None,
         "market_snapshot_id": None,
         "filter_evaluation_id": uuid4(),
         "strategy_id": uuid4(),
@@ -88,6 +89,7 @@ def test_position_mapping_is_separate_and_rejects_candidate_rows() -> None:
     position_row = row()
     position_row["candidate_id"] = None
     position_row["position_id"] = uuid4()
+    position_row["position_version"] = 1
     position_row["market_snapshot_id"] = uuid4()
     position_row["filter_evaluation_id"] = None
     position_row["action"] = "EXIT_LONG"

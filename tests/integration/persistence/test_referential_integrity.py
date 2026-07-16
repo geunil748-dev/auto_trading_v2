@@ -72,6 +72,7 @@ def test_decision_requires_an_existing_candidate_or_position(
         "decision_key": uuid4().hex,
         "candidate_id": uuid4() if reference_kind == "candidate" else None,
         "position_id": uuid4() if reference_kind == "position" else None,
+        "position_version": 1 if reference_kind == "position" else None,
         "market_snapshot_id": uuid4() if reference_kind == "position" else None,
         "strategy_id": uuid4(),
         "strategy_version": "v1",

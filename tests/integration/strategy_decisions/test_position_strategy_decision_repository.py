@@ -32,6 +32,7 @@ def test_add_get_lookup_and_candidate_mapper_separation(
         stored = unit_of_work.strategy_decisions.add_position(decision)
         unit_of_work.commit()
 
+    assert stored.position_version == 1
     with factory() as unit_of_work:
         assert unit_of_work.strategy_decisions.get_position(stored.decision_id) == stored
         assert unit_of_work.strategy_decisions.get(stored.decision_id) is None
@@ -65,12 +66,30 @@ def test_position_repository_translates_foreign_key_violations(
     ):
         unit_of_work.strategy_decisions.add_position(decision)
 
-    expected = (
-        "fk_strategy_decisions_position_id_paper_positions"
-        if missing == "position"
-        else "fk_strategy_decisions_market_snapshot_id_market_snapshots"
-    )
-    assert captured.value.constraint == expected
+    if missing == "position":
+        assert captured.value.constraint in {
+            "fk_strategy_decisions_position_id_paper_positions",
+            "fk_strategy_decisions_position_version_position_events",
+        }
+    else:
+        assert (
+            captured.value.constraint == "fk_strategy_decisions_market_snapshot_id_market_snapshots"
+        )
+
+
+def test_position_version_must_reference_the_exact_position_event(
+    mssql_database: TemporaryMssqlDatabase,
+) -> None:
+    source = prepare_position_source(mssql_database.engine)
+    decision = replace(new_position_decision(source), position_version=2)
+
+    with (
+        SqlAlchemyUnitOfWorkFactory(mssql_database.engine)() as unit_of_work,
+        pytest.raises(ForeignKeyViolationError) as captured,
+    ):
+        unit_of_work.strategy_decisions.add_position(decision)
+
+    assert captured.value.constraint == "fk_strategy_decisions_position_version_position_events"
 
 
 def test_semantic_duplicate_is_rejected_and_failed_batch_rolls_back(

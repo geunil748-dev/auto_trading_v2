@@ -152,6 +152,18 @@ class SqlAlchemyPositionEventRepository:
     def get_by_fill_id(self, fill_id: FillID) -> StoredPositionEvent | None:
         return self._read(lambda: self._select_one(position_events.c.fill_id == fill_id.value))
 
+    def get_by_position_sequence(
+        self,
+        position_id: PositionID,
+        sequence_no: int,
+    ) -> StoredPositionEvent | None:
+        return self._read(
+            lambda: self._select_one(
+                (position_events.c.position_id == position_id.value)
+                & (position_events.c.sequence_no == sequence_no)
+            )
+        )
+
     def _read(
         self, operation: Callable[[], StoredPositionEvent | None]
     ) -> StoredPositionEvent | None:

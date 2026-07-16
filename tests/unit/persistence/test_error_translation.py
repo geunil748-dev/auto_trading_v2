@@ -134,6 +134,41 @@ def test_position_strategy_constraints_translate_to_safe_categories() -> None:
     )
 
 
+def test_position_version_constraints_translate_to_safe_categories() -> None:
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint fk_strategy_decisions_position_version_position_events (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "CHECK constraint ck_strategy_decisions_position_version_positive (547)",
+        ),
+    )
+
+    translated_fk = translate_persistence_error(
+        foreign_key,
+        entity="strategy_decision",
+        operation="insert",
+    )
+    translated_check = translate_persistence_error(
+        check,
+        entity="strategy_decision",
+        operation="insert",
+    )
+
+    assert isinstance(translated_fk, ForeignKeyViolationError)
+    assert translated_fk.constraint == "fk_strategy_decisions_position_version_position_events"
+    assert isinstance(translated_check, CheckConstraintViolationError)
+    assert translated_check.constraint == "ck_strategy_decisions_position_version_positive"
+
+
 def test_trade_intent_constraints_translate_without_payloads() -> None:
     sentinel = "SHOULD_NEVER_APPEAR_PR7_782c1f"
     duplicate = IntegrityError(

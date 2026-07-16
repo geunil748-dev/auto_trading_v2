@@ -5,7 +5,9 @@ from sqlalchemy import (
     CheckConstraint,
     Column,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
+    Integer,
     Table,
     UniqueConstraint,
     text,
@@ -53,6 +55,7 @@ strategy_decisions = Table(
         ),
         nullable=True,
     ),
+    Column("position_version", Integer(), nullable=True),
     Column(
         "market_snapshot_id",
         uuid_type(),
@@ -109,7 +112,25 @@ strategy_decisions = Table(
         "position_id IS NULL OR market_snapshot_id IS NOT NULL",
         name="position_requires_snapshot",
     ),
+    CheckConstraint(
+        "candidate_id IS NULL OR position_version IS NULL",
+        name="candidate_without_position_version",
+    ),
+    CheckConstraint(
+        "position_id IS NULL OR position_version IS NOT NULL",
+        name="position_requires_version",
+    ),
+    CheckConstraint(
+        "position_version IS NULL OR position_version > 0",
+        name="position_version_positive",
+    ),
     CheckConstraint(json_array_check_sql("reason_codes"), name="reason_codes_json_array"),
+    ForeignKeyConstraint(
+        ["position_id", "position_version"],
+        ["trading.position_events.position_id", "trading.position_events.sequence_no"],
+        name="fk_strategy_decisions_position_version_position_events",
+        ondelete="NO ACTION",
+    ),
     UniqueConstraint("decision_key", name="uq_strategy_decisions_decision_key"),
     schema=SCHEMA,
 )
@@ -132,6 +153,11 @@ Index(
     "ix_strategy_decisions_position_decided",
     strategy_decisions.c.position_id,
     strategy_decisions.c.decided_at,
+)
+Index(
+    "ix_strategy_decisions_position_version",
+    strategy_decisions.c.position_id,
+    strategy_decisions.c.position_version,
 )
 Index(
     "ix_strategy_decisions_position_snapshot_unique",

@@ -44,6 +44,7 @@ def insert_decision(connection: Connection, ids: dict[str, Any], *, suffix: str)
             "decision_id": decision_id,
             "decision_key": f"decision-{suffix}",
             "position_id": ids["position_id"],
+            "position_version": 1,
             "market_snapshot_id": ids["market_snapshot_id"],
             "strategy_id": ids["strategy_id"],
             "strategy_version": f"test-{suffix}",

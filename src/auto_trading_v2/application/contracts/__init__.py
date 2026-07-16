@@ -21,6 +21,10 @@ from auto_trading_v2.application.contracts.persistence import (
     StoredFilterEvaluation,
     StoredMarketSnapshot,
 )
+from auto_trading_v2.application.contracts.position_exit_decisions import (
+    PositionExitDecisionOutcome,
+    PositionExitDecisionResult,
+)
 from auto_trading_v2.application.contracts.position_projection import (
     NewPaperPosition,
     NewPositionEvent,
@@ -58,6 +62,8 @@ __all__ = [
     "PaperOrderFillTransition",
     "PaperPositionBuyTransition",
     "PositionProjectionResult",
+    "PositionExitDecisionOutcome",
+    "PositionExitDecisionResult",
     "StoredCandidate",
     "StoredCandidateStrategyDecision",
     "StoredPositionStrategyDecision",

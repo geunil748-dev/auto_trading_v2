@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -57,8 +58,10 @@ class TemporaryMssqlDatabase:
                 self.alembic_config.attributes.pop("connection", None)
 
 
-@pytest.fixture(scope="session")
-def mssql_database() -> Iterator[TemporaryMssqlDatabase]:
+@contextmanager
+def temporary_mssql_database() -> Iterator[TemporaryMssqlDatabase]:
+    """Create and always remove one guarded temporary MSSQL database."""
+
     database_settings = load_settings().database
     protected_admin_url = database_settings.test_admin_url or database_settings.admin_url
     if protected_admin_url is None:
@@ -96,3 +99,9 @@ def mssql_database() -> Iterator[TemporaryMssqlDatabase]:
         if database_created:
             drop_test_database(admin_engine, database_name)
         admin_engine.dispose()
+
+
+@pytest.fixture(scope="session")
+def mssql_database() -> Iterator[TemporaryMssqlDatabase]:
+    with temporary_mssql_database() as database:
+        yield database

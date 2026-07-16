@@ -67,6 +67,7 @@ def new_position_decision(
             strategy_version,
         ),
         position_id=source.position_id,
+        position_version=1,
         market_snapshot_id=snapshot_id,
         strategy_id=effective_strategy_id,
         strategy_version=strategy_version,
