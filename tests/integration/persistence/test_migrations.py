@@ -15,7 +15,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
         revision = connection.execute(
             text("SELECT version_num FROM dbo.alembic_version")
         ).scalar_one()
-    assert revision == "0001_mssql_schema"
+    assert revision == "0002_position_snapshot"
     mssql_database.run_check()
 
 
@@ -158,7 +158,7 @@ def test_sql_server_catalog_contract(mssql_database: object) -> None:
     assert table_count == 11
     assert pk_count == 11
     assert wrong_delete_actions == 0
-    assert filtered_count == 3
+    assert filtered_count == 4
     assert constraint_counts["fk_count"] == expected_fk_count
     assert constraint_counts["check_count"] == expected_check_count
     assert constraint_counts["unique_count"] == expected_unique_count
@@ -173,8 +173,10 @@ def test_sql_server_catalog_contract(mssql_database: object) -> None:
     assert set(filtered_indexes) == {
         "ix_paper_positions_open_unique",
         "ix_strategy_decisions_candidate_unique",
+        "ix_strategy_decisions_position_snapshot_unique",
         "ix_paper_orders_broker_ref_unique",
     }
     assert "status" in filtered_indexes["ix_paper_positions_open_unique"]
     assert "candidate_id" in filtered_indexes["ix_strategy_decisions_candidate_unique"]
+    assert "position_id" in filtered_indexes["ix_strategy_decisions_position_snapshot_unique"]
     assert "broker_order_ref" in filtered_indexes["ix_paper_orders_broker_ref_unique"]

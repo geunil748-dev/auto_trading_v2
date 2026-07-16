@@ -27,6 +27,7 @@ class StrategyName(StrEnum):
 
 class StrategyAction(StrEnum):
     ENTER_LONG = "ENTER_LONG"
+    EXIT_LONG = "EXIT_LONG"
     SKIP = "SKIP"
     OBSERVE = "OBSERVE"
 

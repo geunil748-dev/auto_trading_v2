@@ -66,6 +66,7 @@ def test_decision_key_is_unique_independently_of_candidate_filter(mssql_database
                 "decision_id": uuid4(),
                 "decision_key": f"decision-{ids['suffix']}",
                 "position_id": ids["position_id"],
+                "market_snapshot_id": ids["market_snapshot_id"],
                 "strategy_id": ids["strategy_id"],
                 "strategy_version": "v2",
                 "action": "EXIT_LONG",

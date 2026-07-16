@@ -16,8 +16,8 @@ source precedence, KIS paper 및 Telegram disabled 규칙은
 
 `auto_trading_v2`는 기존 `auto_trading`과 코드, 데이터베이스, 런타임 상태를 공유하지 않는
 독립 프로젝트입니다. Microsoft SQL Server canonical schema 위에서 filter evaluation, strategy
-decision과 TradeIntent application use case까지 구현되어 있습니다. 실제 주문 실행은 포함하지
-않습니다.
+decision, TradeIntent, internal paper fill과 BUY position projection 경계를 구현합니다. 실제
+주문 실행은 포함하지 않습니다.
 
 ## 개발 환경
 
@@ -94,7 +94,7 @@ python -m pytest tests/integration -m integration
 
 현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
 Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
-Alembic 초기 마이그레이션입니다. 브로커, 외부 API, 스케줄러와 실제 매매는 포함하지 않습니다.
+additive Alembic 마이그레이션입니다. 외부 API, 스케줄러와 실제 매매는 포함하지 않습니다.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
 
@@ -156,3 +156,15 @@ optimistically update quantity, weighted average cost, and version. Fill-level i
 protected by lookup and existing MSSQL unique constraints. SELL, closing, P&L, equity, KIS, and
 scheduling remain outside this slice. See
 [canonical BUY Fill projection](docs/position-projector.md) for calculation and rollback rules.
+
+## PR 11 position decision canonical snapshot source
+
+Position-based StrategyDecision persistence now stores both the canonical `position_id` and the
+exact `market_snapshot_id` used as its source. Additive migration `0002_position_snapshot` adds the
+snapshot FK, source-shape checks, semantic filtered uniqueness, and lookup indexes while preserving
+existing candidate decisions. The immutable position contract accepts only `EXIT_LONG` or `SKIP`,
+and the existing StrategyDecision Repository gains position-specific add/get/semantic lookup
+methods without increasing the Unit of Work's nine repositories.
+
+This slice does not calculate take-profit, stop-loss, time-exit, stale-snapshot policy, or create
+SELL intents. See [position decision source boundary](docs/position-decision-source.md).

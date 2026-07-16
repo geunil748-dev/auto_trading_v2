@@ -93,6 +93,47 @@ def test_strategy_constraints_translate_to_safe_categories() -> None:
     )
 
 
+def test_position_strategy_constraints_translate_to_safe_categories() -> None:
+    duplicate = IntegrityError(
+        None,
+        None,
+        Exception("23000", "ix_strategy_decisions_position_snapshot_unique (2601)"),
+    )
+    foreign_key = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "FOREIGN KEY constraint "
+            "fk_strategy_decisions_market_snapshot_id_market_snapshots (547)",
+        ),
+    )
+    check = IntegrityError(
+        None,
+        None,
+        Exception(
+            "23000",
+            "CHECK constraint ck_strategy_decisions_position_requires_snapshot (547)",
+        ),
+    )
+
+    translated = translate_persistence_error(
+        duplicate,
+        entity="strategy_decision",
+        operation="insert",
+    )
+    assert isinstance(translated, DuplicateRecordError)
+    assert translated.constraint == "ix_strategy_decisions_position_snapshot_unique"
+    assert isinstance(
+        translate_persistence_error(foreign_key, entity="strategy_decision", operation="insert"),
+        ForeignKeyViolationError,
+    )
+    assert isinstance(
+        translate_persistence_error(check, entity="strategy_decision", operation="insert"),
+        CheckConstraintViolationError,
+    )
+
+
 def test_trade_intent_constraints_translate_without_payloads() -> None:
     sentinel = "SHOULD_NEVER_APPEAR_PR7_782c1f"
     duplicate = IntegrityError(
