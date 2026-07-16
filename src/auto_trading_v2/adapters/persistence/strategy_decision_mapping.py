@@ -56,7 +56,11 @@ def map_strategy_decision(row: Mapping[Any, Any]) -> StoredCandidateStrategyDeci
     try:
         if row["candidate_id"] is None or row["filter_evaluation_id"] is None:
             raise TypeError
-        if row["position_id"] is not None or row["market_snapshot_id"] is not None:
+        if (
+            row["position_id"] is not None
+            or row["position_version"] is not None
+            or row["market_snapshot_id"] is not None
+        ):
             raise TypeError
         return StoredCandidateStrategyDecision(
             decision_id=DecisionID(_uuid(row["decision_id"])),
@@ -82,12 +86,17 @@ def map_position_strategy_decision(
     try:
         if row["candidate_id"] is not None or row["filter_evaluation_id"] is not None:
             raise TypeError
-        if row["position_id"] is None or row["market_snapshot_id"] is None:
+        if (
+            row["position_id"] is None
+            or row["position_version"] is None
+            or row["market_snapshot_id"] is None
+        ):
             raise TypeError
         return StoredPositionStrategyDecision(
             decision_id=DecisionID(_uuid(row["decision_id"])),
             decision_key=str(row["decision_key"]),
             position_id=PositionID(_uuid(row["position_id"])),
+            position_version=_integer(row["position_version"]),
             market_snapshot_id=MarketSnapshotID(_uuid(row["market_snapshot_id"])),
             strategy_id=StrategyID(_uuid(row["strategy_id"])),
             strategy_version=str(row["strategy_version"]),
@@ -106,5 +115,11 @@ def _uuid(value: object) -> UUID:
 
 def _datetime(value: object) -> datetime:
     if not isinstance(value, datetime):
+        raise TypeError
+    return value
+
+
+def _integer(value: object) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
         raise TypeError
     return value

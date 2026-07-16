@@ -116,6 +116,7 @@ def test_json_shape_constraints_reject_wrong_top_level_values(mssql_database: ob
                 "decision_id": uuid4(),
                 "decision_key": uuid4().hex,
                 "position_id": ids["position_id"],
+                "position_version": 1,
                 "market_snapshot_id": ids["market_snapshot_id"],
                 "strategy_id": ids["strategy_id"],
                 "strategy_version": "wrong-shape",

@@ -20,9 +20,9 @@ candidate + canonical filter_evaluations 4개
     → one Unit of Work / one commit
 ```
 
-Candidate 경계에서는 `position_id`와 `market_snapshot_id`가 `NULL`이며 snapshot은 Candidate를
-통해 연결된다. 별도의 position persistence contract는 `position_id`와 `market_snapshot_id`를
-직접 가지지만, 실제 `EXIT_LONG` 정책과 application service는 후속 범위다. Candidate 결정은
+Candidate 경계에서는 `position_id`, `position_version`, `market_snapshot_id`가 `NULL`이며
+snapshot은 Candidate를 통해 연결된다. 별도의 position persistence contract는 `position_id`,
+`position_version`, `market_snapshot_id`를 직접 가진다. Candidate 결정은
 `filter_evaluation_id`로 세부 필터 근거와 연결되므로 filter details 전체를 reason code에
 복제하지 않는다.
 
@@ -74,6 +74,35 @@ Reason code는 `^[A-Z][A-Z0-9_]{0,63}$` 형식이다. Filter details의 top-leve
 손상된 것으로 처리한다. 오류에는 details 또는 reason-code JSON 전체를 포함하지 않는다.
 
 `OBSERVATION_ONLY`의 reason code는 항상 `OBSERVATION_ONLY` 하나다.
+
+## FIXED_POSITION_EXIT/v1
+
+PR 12의 position 정책은 `STRICT_ENTRY v1`, `BALANCED_ENTRY v1`, `SCORE_ONLY_ENTRY v1`로 생성된
+OPEN USD position에 공통으로 적용된다. `OBSERVATION_ONLY`는 대상이 아니다. 평가 가격은
+canonical `MarketSnapshot.last_price`, 원가는 exact position version의
+`PositionEvent.average_cost_after`다.
+
+- stop loss: return rate `<= -0.05`
+- take profit: return rate `>= 0.10`
+- time exit: `snapshot.observed_at - position.opened_at >= 6 hours`
+- snapshot maximum age: 5 minutes, inclusive
+- future clock-skew tolerance: 30 seconds, inclusive
+
+하나 이상의 조건이 충족되면 reason code는 stop loss, take profit, time exit 순서로 담은 뒤
+`EXIT_LONG_ALLOWED`를 추가한다. 조건이 없으면 `EXIT_CONDITIONS_NOT_MET`,
+`POSITION_HOLD` 순서의 `SKIP`이다. 계산은 `Decimal`, `Price`, `Rate`만 사용하고 중간
+quantize를 하지 않는다.
+
+Position decision key는 다음 exact 형식을 유지한다.
+
+```text
+position:{position_id}|snapshot:{market_snapshot_id}|strategy:{strategy_id}|version:{strategy_version}
+```
+
+`position_version`은 재현 가능한 source pin이지만 semantic key에는 포함하지 않는다. 같은
+position/snapshot/strategy/version 평가는 기존 immutable row를 `ALREADY_DECIDED`로 반환한다.
+자세한 source 검증과 향후 SELL stale-version 규칙은
+[position decision source boundary](position-decision-source.md)를 참고한다.
 
 ## Deterministic decision key
 

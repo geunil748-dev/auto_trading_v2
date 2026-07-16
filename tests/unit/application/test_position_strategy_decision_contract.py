@@ -38,6 +38,7 @@ def decision(
             "v1",
         ),
         position_id=POSITION_ID,
+        position_version=1,
         market_snapshot_id=SNAPSHOT_ID,
         strategy_id=STRATEGY_ID,
         strategy_version="v1",
@@ -74,6 +75,8 @@ def test_position_contract_rejects_candidate_actions(action: StrategyAction) -> 
     [
         ("decision_id", uuid4()),
         ("position_id", uuid4()),
+        ("position_version", 0),
+        ("position_version", True),
         ("market_snapshot_id", uuid4()),
         ("strategy_id", uuid4()),
         ("decision_key", ""),

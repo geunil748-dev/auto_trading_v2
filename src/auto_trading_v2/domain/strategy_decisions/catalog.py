@@ -1,5 +1,7 @@
-"""Stable immutable built-in strategy catalog."""
+"""Stable immutable built-in strategy and position-exit policy catalog."""
 
+from datetime import timedelta
+from decimal import Decimal
 from uuid import UUID
 
 from auto_trading_v2.domain.filtering.catalog import (
@@ -8,11 +10,12 @@ from auto_trading_v2.domain.filtering.catalog import (
     SCORE_ONLY,
     STRICT,
 )
-from auto_trading_v2.domain.primitives import StrategyID
+from auto_trading_v2.domain.primitives import Currency, Rate, StrategyID
 from auto_trading_v2.domain.strategy_decisions.models import (
     StrategyDefinition,
     StrategyName,
 )
+from auto_trading_v2.domain.strategy_decisions.position_exit import PositionExitPolicy
 
 STRATEGY_VERSION = "v1"
 
@@ -62,3 +65,35 @@ BUILT_IN_STRATEGIES = (
     SCORE_ONLY_ENTRY,
     OBSERVATION_ONLY,
 )
+
+FIXED_POSITION_EXIT = PositionExitPolicy(
+    name="FIXED_POSITION_EXIT",
+    version="v1",
+    currency=Currency("USD"),
+    stop_loss_rate=Rate(Decimal("-0.05")),
+    take_profit_rate=Rate(Decimal("0.10")),
+    maximum_holding_duration=timedelta(hours=6),
+    snapshot_maximum_age=timedelta(minutes=5),
+    future_clock_skew_tolerance=timedelta(seconds=30),
+)
+
+POSITION_EXIT_STRATEGIES = (
+    STRICT_ENTRY,
+    BALANCED_ENTRY,
+    SCORE_ONLY_ENTRY,
+)
+
+
+def position_exit_policy_for(
+    strategy_id: StrategyID,
+    strategy_version: str,
+) -> PositionExitPolicy | None:
+    """Return the pinned exit policy for an eligible entry strategy version."""
+
+    if not isinstance(strategy_id, StrategyID) or not isinstance(strategy_version, str):
+        return None
+    supported = any(
+        definition.strategy_id == strategy_id and definition.strategy_version == strategy_version
+        for definition in POSITION_EXIT_STRATEGIES
+    )
+    return FIXED_POSITION_EXIT if supported else None

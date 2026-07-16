@@ -44,3 +44,9 @@ class PositionEventRepository(Protocol):
     def get(self, position_event_id: PositionEventID) -> StoredPositionEvent | None: ...
 
     def get_by_fill_id(self, fill_id: FillID) -> StoredPositionEvent | None: ...
+
+    def get_by_position_sequence(
+        self,
+        position_id: PositionID,
+        sequence_no: int,
+    ) -> StoredPositionEvent | None: ...

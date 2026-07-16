@@ -48,3 +48,5 @@ def test_filtered_indexes_compile_with_where_clauses() -> None:
     assert "WHERE broker_order_ref IS NOT NULL" in ddl
     assert "ISJSON(details) = 1" in ddl
     assert "ISJSON(payload) = 1" in ddl
+    assert "FOREIGN KEY(position_id, position_version)" in ddl
+    assert "REFERENCES trading.position_events (position_id, sequence_no)" in ddl

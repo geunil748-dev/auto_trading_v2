@@ -67,6 +67,7 @@ class SqlAlchemyStrategyDecisionRepository:
                 "decision_key": decision.decision_key,
                 "candidate_id": decision.candidate_id.value,
                 "position_id": None,
+                "position_version": None,
                 "market_snapshot_id": None,
                 "filter_evaluation_id": decision.filter_evaluation_id.value,
                 "strategy_id": decision.strategy_id.value,
@@ -102,6 +103,7 @@ class SqlAlchemyStrategyDecisionRepository:
                 "decision_key": decision.decision_key,
                 "candidate_id": None,
                 "position_id": decision.position_id.value,
+                "position_version": decision.position_version,
                 "market_snapshot_id": decision.market_snapshot_id.value,
                 "filter_evaluation_id": None,
                 "strategy_id": decision.strategy_id.value,
@@ -282,6 +284,7 @@ class SqlAlchemyStrategyDecisionRepository:
                     strategy_decisions.c.decision_id == decision_id.value,
                     strategy_decisions.c.candidate_id.is_(None),
                     strategy_decisions.c.position_id.is_not(None),
+                    strategy_decisions.c.position_version.is_not(None),
                     strategy_decisions.c.market_snapshot_id.is_not(None),
                 )
             )

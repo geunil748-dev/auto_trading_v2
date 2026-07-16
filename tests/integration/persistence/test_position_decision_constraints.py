@@ -21,6 +21,7 @@ def _position_values(ids: dict[str, object], **changes: object) -> dict[str, obj
         "decision_key": f"position-{uuid4().hex}",
         "candidate_id": None,
         "position_id": ids["position_id"],
+        "position_version": 1,
         "market_snapshot_id": ids["market_snapshot_id"],
         "filter_evaluation_id": None,
         "strategy_id": ids["strategy_id"],

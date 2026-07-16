@@ -30,6 +30,7 @@ erDiagram
     filter_evaluations o|--o{ strategy_decisions : "supports"
     paper_positions o|--o{ strategy_decisions : "position decision"
     market_snapshots o|--o{ strategy_decisions : "position decision source"
+    position_events o|--o{ strategy_decisions : "pinned position version"
     strategy_decisions ||--o| trade_intents : "creates at most one"
     trade_intents ||--o| paper_orders : "creates at most one"
     paper_orders ||--o{ paper_fills : "receives"
@@ -113,10 +114,12 @@ MSSQL filtered unique index는 다음 네 개입니다.
 - trading event: `dedup_key`
 
 Candidate decision은 Candidate의 `market_snapshot_id`를 통해 canonical snapshot에 연결되며
-`strategy_decisions.market_snapshot_id`를 중복 저장하지 않습니다. Position decision은
-`position_id`와 `market_snapshot_id`를 모두 직접 저장하고 두 FK에 `ON DELETE NO ACTION`을
-적용합니다. `trading_events`의 선택적 context FK는 통합 타임라인을 위한 것이며 이 source
-관계의 원본이 아닙니다.
+`strategy_decisions.market_snapshot_id`와 `position_version`을 중복 저장하지 않습니다.
+Position decision은 `position_id`, `position_version`, `market_snapshot_id`를 직접 저장합니다.
+`(position_id, position_version)`은
+`position_events(position_id, sequence_no)`를 참조하여 mutable PaperPosition의 exact canonical
+version을 고정합니다. 관련 FK는 모두 `ON DELETE NO ACTION`입니다. `trading_events`의 선택적
+context FK는 통합 타임라인을 위한 것이며 이 source 관계의 원본이 아닙니다.
 
 `market_snapshots`, `candidates`, `filter_evaluations`, `strategy_decisions`, `trade_intents`,
 `paper_fills`, `position_events`, `equity_snapshots`, `trading_events`는 기록 후 의미를 바꾸지 않는
@@ -183,6 +186,11 @@ production backup, 복구, 운영 배포와 data file 관리는 이 PR의 비목
 unique index와 최소 조회 index를 additive migration으로 적용합니다. 기존 candidate row는
 신규 column이 `NULL`인 채 그대로 유효합니다.
 
-다음 position-exit PR은 OPEN 상태, symbol, strategy, 통화, snapshot 평가 시각과 stale 여부를
-application level에서 검증해야 합니다. 실제 EXIT_LONG threshold, SELL, position 종료와 P&L은
-이 schema migration의 범위가 아닙니다.
+`0003_position_decision_version`은 `strategy_decisions.position_version`, positive/source-shape
+CHECK, `(position_id, position_version)` composite FK와 조회 index를 additive migration으로
+적용합니다. 기존 candidate row는 `NULL`로 보존됩니다. 기존 position decision이 있으면
+임의 backfill하지 않고 sanitized blocker로 upgrade를 중단합니다.
+
+Application은 OPEN 상태, exact PositionEvent version, symbol, strategy, USD 통화, snapshot
+평가 시각과 freshness를 검증하고 `FIXED_POSITION_EXIT/v1` 결정을 저장합니다. SELL, position
+종료와 P&L은 여전히 이 schema migration과 PR 12의 범위가 아닙니다.

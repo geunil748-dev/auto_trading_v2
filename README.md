@@ -168,3 +168,17 @@ methods without increasing the Unit of Work's nine repositories.
 
 This slice does not calculate take-profit, stop-loss, time-exit, stale-snapshot policy, or create
 SELL intents. See [position decision source boundary](docs/position-decision-source.md).
+
+## PR 12 version-pinned deterministic EXIT_LONG decisions
+
+Position exit evaluation now pins each decision to the exact canonical PositionEvent version and
+the exact MarketSnapshot. `FIXED_POSITION_EXIT/v1` uses Decimal return calculations with inclusive
+-5% stop-loss, +10% take-profit, and six-hour elapsed-time thresholds. Snapshot age is limited to
+five minutes with 30 seconds of future clock-skew tolerance, and the initial policy supports USD
+positions from `STRICT_ENTRY`, `BALANCED_ENTRY`, and `SCORE_ONLY_ENTRY`.
+
+Repeated evaluation of the same position/snapshot/strategy tuple returns the immutable existing
+decision. This slice does not create SELL intents or orders, reduce or close positions, calculate
+P&L/equity, write trading events, schedule work, or call KIS. See
+[version-pinned EXIT_LONG decisions](docs/position-exit-decisions.md) and
+[position decision source boundary](docs/position-decision-source.md).

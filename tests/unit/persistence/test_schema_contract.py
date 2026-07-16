@@ -74,8 +74,16 @@ def test_position_decision_snapshot_fk_and_indexes_are_canonical() -> None:
     assert foreign_keys["fk_strategy_decisions_market_snapshot_id_market_snapshots"] == (
         "market_snapshot_id",
     )
+    assert foreign_keys["fk_strategy_decisions_position_version_position_events"] == (
+        "position_id",
+        "position_version",
+    )
     assert indexes["ix_strategy_decisions_market_snapshot"] == ("market_snapshot_id",)
     assert indexes["ix_strategy_decisions_position_decided"] == ("position_id", "decided_at")
+    assert indexes["ix_strategy_decisions_position_version"] == (
+        "position_id",
+        "position_version",
+    )
     assert "ix_strategy_decisions_position" not in indexes
 
 
@@ -118,5 +126,8 @@ def test_json_shape_checks_and_state_checks_are_present() -> None:
     assert (
         "position_id IS NULL OR market_snapshot_id IS NOT NULL" in check_sql["strategy_decisions"]
     )
+    assert "candidate_id IS NULL OR position_version IS NULL" in check_sql["strategy_decisions"]
+    assert "position_id IS NULL OR position_version IS NOT NULL" in check_sql["strategy_decisions"]
+    assert "position_version IS NULL OR position_version > 0" in check_sql["strategy_decisions"]
     assert "status = 'OPEN'" in check_sql["paper_positions"]
     assert "PARTIALLY_FILLED" in check_sql["paper_orders"]
