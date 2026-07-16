@@ -100,7 +100,7 @@ class FillID(_UUIDIdentifier):
 
 
 class PositionID(_UUIDIdentifier):
-    """Identifier reserved for a future position."""
+    """Identifier for a canonical PaperPosition."""
 
     __slots__ = ()
 

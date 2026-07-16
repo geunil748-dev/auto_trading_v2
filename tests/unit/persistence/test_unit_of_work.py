@@ -27,13 +27,15 @@ def test_normal_exit_without_commit_rolls_back_and_closes() -> None:
         assert uow.trade_intents is not None
         assert uow.paper_orders is not None
         assert uow.paper_fills is not None
+        assert uow.paper_positions is not None
+        assert uow.position_events is not None
 
     transaction.rollback.assert_called_once_with()
     transaction.commit.assert_not_called()
     connection.close.assert_called_once_with()
 
 
-def test_seven_repositories_share_the_same_connection() -> None:
+def test_nine_repositories_share_the_same_connection() -> None:
     uow, connection, _ = _uow()
 
     with uow:
@@ -45,8 +47,10 @@ def test_seven_repositories_share_the_same_connection() -> None:
             uow.trade_intents,
             uow.paper_orders,
             uow.paper_fills,
+            uow.paper_positions,
+            uow.position_events,
         )
-        assert len(repositories) == 7
+        assert len(repositories) == 9
         assert all(repository._connection is connection for repository in repositories)
 
 

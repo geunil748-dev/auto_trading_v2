@@ -18,6 +18,8 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyMarketSnapshotRepository,
     SqlAlchemyPaperFillRepository,
     SqlAlchemyPaperOrderRepository,
+    SqlAlchemyPaperPositionRepository,
+    SqlAlchemyPositionEventRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
 )
@@ -48,6 +50,8 @@ class SqlAlchemyUnitOfWork:
         self._trade_intents: SqlAlchemyTradeIntentRepository | None = None
         self._paper_orders: SqlAlchemyPaperOrderRepository | None = None
         self._paper_fills: SqlAlchemyPaperFillRepository | None = None
+        self._paper_positions: SqlAlchemyPaperPositionRepository | None = None
+        self._position_events: SqlAlchemyPositionEventRepository | None = None
 
     @property
     def market_snapshots(self) -> SqlAlchemyMarketSnapshotRepository:
@@ -98,6 +102,20 @@ class SqlAlchemyUnitOfWork:
             raise TransactionStateError("repository_access")
         return self._paper_fills
 
+    @property
+    def paper_positions(self) -> SqlAlchemyPaperPositionRepository:
+        self._ensure_repository_operation()
+        if self._paper_positions is None:
+            raise TransactionStateError("repository_access")
+        return self._paper_positions
+
+    @property
+    def position_events(self) -> SqlAlchemyPositionEventRepository:
+        self._ensure_repository_operation()
+        if self._position_events is None:
+            raise TransactionStateError("repository_access")
+        return self._position_events
+
     def __enter__(self) -> SqlAlchemyUnitOfWork:
         if self._state is not _State.NEW:
             raise TransactionStateError("enter", "instance_reuse_forbidden")
@@ -124,6 +142,8 @@ class SqlAlchemyUnitOfWork:
         self._trade_intents = SqlAlchemyTradeIntentRepository(*repository_args)
         self._paper_orders = SqlAlchemyPaperOrderRepository(*repository_args)
         self._paper_fills = SqlAlchemyPaperFillRepository(*repository_args)
+        self._paper_positions = SqlAlchemyPaperPositionRepository(*repository_args)
+        self._position_events = SqlAlchemyPositionEventRepository(*repository_args)
         return self
 
     def commit(self) -> None:

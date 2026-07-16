@@ -10,6 +10,8 @@ from auto_trading_v2.domain.primitives import (
     FilterEvaluationID,
     IdentifierFactory,
     OrderID,
+    PositionEventID,
+    PositionID,
     TradeIntentID,
 )
 
@@ -74,3 +76,23 @@ class UuidFillIDFactory:
 
     def new(self) -> FillID:
         return self.identifier_factory.new(FillID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidPositionIDFactory:
+    """Adapt the existing UUID policy to canonical PaperPosition IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> PositionID:
+        return self.identifier_factory.new(PositionID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidPositionEventIDFactory:
+    """Adapt the existing UUID policy to immutable PositionEvent IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> PositionEventID:
+        return self.identifier_factory.new(PositionEventID)

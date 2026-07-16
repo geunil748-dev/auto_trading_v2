@@ -146,3 +146,13 @@ atomically advances its PaperOrder with optimistic status/version guards. Quanti
 larger quantities split deterministically into two fills using the source snapshot's last price and
 zero fee. Positions, events, equity, P&L, KIS, and scheduling remain unimplemented. See
 [deterministic paper fills](docs/paper-fills.md) for policy, identity, history, and rollback rules.
+
+## PR 10 canonical BUY Fill Position Projector
+
+The Position Projector now accepts one canonical `fill_id` and derives strategy, symbol, currency,
+quantity, and price through the existing Fill-to-snapshot chain. A first BUY fill atomically creates
+an OPEN PaperPosition and `OPENED` PositionEvent; later BUY fills append `INCREASED` events and
+optimistically update quantity, weighted average cost, and version. Fill-level idempotency is
+protected by lookup and existing MSSQL unique constraints. SELL, closing, P&L, equity, KIS, and
+scheduling remain outside this slice. See
+[canonical BUY Fill projection](docs/position-projector.md) for calculation and rollback rules.

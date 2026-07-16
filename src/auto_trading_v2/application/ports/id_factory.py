@@ -8,6 +8,8 @@ from auto_trading_v2.domain.primitives import (
     FillID,
     FilterEvaluationID,
     OrderID,
+    PositionEventID,
+    PositionID,
     TradeIntentID,
 )
 
@@ -46,3 +48,15 @@ class FillIDFactory(Protocol):
     """Create canonical PaperFill identifiers."""
 
     def new(self) -> FillID: ...
+
+
+class PositionIDFactory(Protocol):
+    """Create canonical PaperPosition identifiers."""
+
+    def new(self) -> PositionID: ...
+
+
+class PositionEventIDFactory(Protocol):
+    """Create immutable PositionEvent identifiers."""
+
+    def new(self) -> PositionEventID: ...
