@@ -23,7 +23,7 @@ from auto_trading_v2.config.loader import (
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_ENABLED_KEY,
 )
-from auto_trading_v2.config.validation import parse_boolean
+from auto_trading_v2.config.validation import parse_boolean, validate_mssql_url
 
 from .helpers import ADMIN_URL, RUNTIME_URL, valid_process_environment
 
@@ -68,14 +68,14 @@ def test_invalid_application_choices_are_rejected(tmp_path: Path, key: str, valu
     assert value not in str(caught.value)
 
 
-def test_database_urls_accept_only_canonical_dialect_and_database(tmp_path: Path) -> None:
+def test_application_settings_use_only_the_dotnet_database_provider(tmp_path: Path) -> None:
     settings = load_settings(
         tmp_path / "missing.env",
         process_environ=valid_process_environment(),
     )
-    assert settings.database.database_url.reveal() == RUNTIME_URL
-    assert settings.database.admin_url is not None
-    assert settings.database.test_admin_url is not None
+    assert settings.database.provider == "dotnet"
+    assert settings.database.database == "auto_trading_v2"
+    assert settings.database.data_source == "tcp:localhost,1433"
 
 
 @pytest.mark.parametrize(
@@ -88,25 +88,24 @@ def test_database_urls_accept_only_canonical_dialect_and_database(tmp_path: Path
     ],
 )
 def test_invalid_database_urls_are_rejected_without_echo(
-    tmp_path: Path,
     key: str,
     value: str,
 ) -> None:
     sentinel = "SHOULD_NEVER_APPEAR_7f82d9"
-    process = valid_process_environment(**{key: f"{value}?password={sentinel}"})
+    expected_database = "auto_trading_v2" if key == DATABASE_URL_KEY else "master"
+    raw = f"{value}?password={sentinel}"
     with pytest.raises(InvalidSettingError) as caught:
-        load_settings(tmp_path / "missing.env", process_environ=process)
+        validate_mssql_url(key, raw, expected_database=expected_database)
     assert caught.value.key == key
     assert sentinel not in str(caught.value)
     assert value not in str(caught.value)
 
 
-def test_database_parse_error_never_echoes_raw_url(tmp_path: Path) -> None:
+def test_database_parse_error_never_echoes_raw_url() -> None:
     sentinel = "SHOULD_NEVER_APPEAR_7f82d9"
     raw = f"://{sentinel}"
-    process = valid_process_environment(**{DATABASE_URL_KEY: raw})
     with pytest.raises(InvalidSettingError) as caught:
-        load_settings(tmp_path / "missing.env", process_environ=process)
+        validate_mssql_url(DATABASE_URL_KEY, raw, expected_database="auto_trading_v2")
     assert raw not in str(caught.value)
     assert sentinel not in repr(caught.value)
 

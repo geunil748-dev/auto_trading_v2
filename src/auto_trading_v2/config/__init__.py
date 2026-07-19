@@ -1,5 +1,12 @@
 """Explicit, secret-safe application configuration boundary."""
 
+from auto_trading_v2.config.dotnet_database import (
+    DOTNET_DATABASE_KEYS,
+    DotNetDatabaseInventory,
+    DotNetDatabaseSettings,
+    inspect_dotnet_database_settings,
+    load_dotnet_database_settings,
+)
 from auto_trading_v2.config.errors import (
     ConfigurationError,
     InvalidSettingError,
@@ -17,6 +24,7 @@ from auto_trading_v2.config.models import (
     AppSettings,
     ConfigurationDiagnostics,
     ConfigurationInventory,
+    DatabaseProvider,
     DatabaseSettings,
     KisSettings,
     SecretValue,
@@ -32,6 +40,10 @@ __all__ = [
     "ConfigurationError",
     "ConfigurationInventory",
     "DatabaseSettings",
+    "DatabaseProvider",
+    "DOTNET_DATABASE_KEYS",
+    "DotNetDatabaseInventory",
+    "DotNetDatabaseSettings",
     "InvalidSettingError",
     "KisSettings",
     "MissingSettingError",
@@ -41,6 +53,8 @@ __all__ = [
     "TelegramSettings",
     "UnsafeSettingError",
     "inspect_environment_file",
+    "inspect_dotnet_database_settings",
+    "load_dotnet_database_settings",
     "load_settings",
     "load_settings_with_diagnostics",
     "repository_env_file",

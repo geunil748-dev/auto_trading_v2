@@ -30,6 +30,15 @@ from auto_trading_v2.config.validation import (
 
 ENVIRONMENT_KEY = "AUTO_TRADING_V2_ENVIRONMENT"
 LOG_LEVEL_KEY = "AUTO_TRADING_V2_LOG_LEVEL"
+DB_PROVIDER_KEY = "AUTO_TRADING_V2_DB_PROVIDER"
+MSSQL_HOST_KEY = "AUTO_TRADING_V2_MSSQL_HOST"
+MSSQL_PORT_KEY = "AUTO_TRADING_V2_MSSQL_PORT"
+MSSQL_DATABASE_KEY = "AUTO_TRADING_V2_MSSQL_DATABASE"
+MSSQL_USERNAME_KEY = "AUTO_TRADING_V2_MSSQL_USERNAME"
+MSSQL_PASSWORD_KEY = "AUTO_TRADING_V2_MSSQL_PASSWORD"
+MSSQL_ENCRYPT_KEY = "AUTO_TRADING_V2_MSSQL_ENCRYPT"
+MSSQL_TRUST_CERTIFICATE_KEY = "AUTO_TRADING_V2_MSSQL_TRUST_SERVER_CERTIFICATE"
+MSSQL_CONNECT_TIMEOUT_KEY = "AUTO_TRADING_V2_MSSQL_CONNECT_TIMEOUT"
 MSSQL_ADMIN_URL_KEY = "AUTO_TRADING_V2_MSSQL_ADMIN_URL"
 DATABASE_URL_KEY = "AUTO_TRADING_V2_DATABASE_URL"
 MSSQL_TEST_ADMIN_URL_KEY = "AUTO_TRADING_V2_TEST_ADMIN_URL"
@@ -48,6 +57,15 @@ CANONICAL_KEYS = frozenset(
     {
         ENVIRONMENT_KEY,
         LOG_LEVEL_KEY,
+        DB_PROVIDER_KEY,
+        MSSQL_HOST_KEY,
+        MSSQL_PORT_KEY,
+        MSSQL_DATABASE_KEY,
+        MSSQL_USERNAME_KEY,
+        MSSQL_PASSWORD_KEY,
+        MSSQL_ENCRYPT_KEY,
+        MSSQL_TRUST_CERTIFICATE_KEY,
+        MSSQL_CONNECT_TIMEOUT_KEY,
         MSSQL_ADMIN_URL_KEY,
         DATABASE_URL_KEY,
         MSSQL_TEST_ADMIN_URL_KEY,
@@ -240,10 +258,23 @@ def load_settings_with_diagnostics(
     log_level = normalize_choice(
         LOG_LEVEL_KEY, log_level_raw, {"CRITICAL", "DEBUG", "ERROR", "INFO", "WARNING"}
     )
+    from auto_trading_v2.config.dotnet_database import (
+        DOTNET_DATABASE_KEYS,
+        load_dotnet_database_settings,
+    )
+
+    dotnet_values = {
+        key: value for key in DOTNET_DATABASE_KEYS if (value := resolver.get(key)) is not None
+    }
+    database = load_dotnet_database_settings(
+        selected,
+        dotnet_values,
+        process_environ={},
+    )
     settings = AppSettings(
         environment=environment,
         log_level=log_level,
-        database=_build_database_settings(resolver),
+        database=database,
         kis=_build_kis_settings(resolver),
         telegram=_build_telegram_settings(resolver),
     )

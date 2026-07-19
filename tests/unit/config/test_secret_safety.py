@@ -8,15 +8,14 @@ import pytest
 
 from auto_trading_v2.config import InvalidSettingError, load_settings
 from auto_trading_v2.config.loader import (
-    DATABASE_URL_KEY,
     KIS_ACCOUNT_NUMBER_KEY,
     KIS_ACCOUNT_PRODUCT_CODE_KEY,
     KIS_APP_KEY,
     KIS_APP_SECRET_KEY,
     KIS_BASE_URL_KEY,
     KIS_ENABLED_KEY,
-    MSSQL_ADMIN_URL_KEY,
-    MSSQL_TEST_ADMIN_URL_KEY,
+    MSSQL_PASSWORD_KEY,
+    MSSQL_USERNAME_KEY,
     TELEGRAM_BOT_TOKEN_KEY,
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_ENABLED_KEY,
@@ -28,16 +27,10 @@ SENTINEL = "SHOULD_NEVER_APPEAR_7f82d9"
 
 
 def _secret_environment() -> dict[str, str]:
-    runtime = (
-        f"mssql+pyodbc://user:{SENTINEL}@localhost/auto_trading_v2?"
-        "driver=ODBC+Driver+18+for+SQL+Server"
-    )
-    admin = f"mssql+pyodbc://user:{SENTINEL}@localhost/master?driver=ODBC+Driver+18+for+SQL+Server"
     return valid_process_environment(
         **{
-            DATABASE_URL_KEY: runtime,
-            MSSQL_ADMIN_URL_KEY: admin,
-            MSSQL_TEST_ADMIN_URL_KEY: admin,
+            MSSQL_USERNAME_KEY: SENTINEL,
+            MSSQL_PASSWORD_KEY: SENTINEL,
             KIS_ENABLED_KEY: "true",
             KIS_BASE_URL_KEY: "https://paper.example.test/api",
             KIS_APP_KEY: SENTINEL,

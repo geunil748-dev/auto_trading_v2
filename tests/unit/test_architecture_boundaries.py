@@ -60,7 +60,7 @@ def test_source_has_no_forbidden_runtime_packages() -> None:
 
 
 def test_application_and_domain_do_not_import_persistence_libraries() -> None:
-    forbidden = {"sqlalchemy", "alembic", "pyodbc"}
+    forbidden = {"sqlalchemy", "alembic", "pyodbc", "pythonnet", "clr", "System"}
     discovered: set[str] = set()
 
     for layer in ("application", "domain"):
@@ -73,6 +73,29 @@ def test_application_and_domain_do_not_import_persistence_libraries() -> None:
                     discovered.add(node.module.split(".")[0])
 
     assert discovered.isdisjoint(forbidden)
+
+
+def test_pythonnet_and_system_data_imports_are_confined_to_dotnet_adapter() -> None:
+    import_paths: set[str] = set()
+    reference_paths: set[str] = set()
+
+    for path in _python_files():
+        source = path.read_text(encoding="utf-8")
+        if any(name in source for name in ("pythonnet", '"clr"', '"System.Data')):
+            reference_paths.add(path.relative_to(SOURCE_ROOT).as_posix())
+        tree = ast.parse(source, filename=str(path))
+        for node in ast.walk(tree):
+            roots: set[str] = set()
+            if isinstance(node, ast.Import):
+                roots.update(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                roots.add(node.module.split(".")[0])
+            if roots.intersection({"pythonnet", "clr", "System"}):
+                import_paths.add(path.relative_to(SOURCE_ROOT).as_posix())
+
+    assert reference_paths
+    assert all(path.startswith("adapters/persistence/dotnet/") for path in import_paths)
+    assert all(path.startswith("adapters/persistence/dotnet/") for path in reference_paths)
 
 
 def test_source_has_no_environment_access_or_domain_wall_clock() -> None:
@@ -97,6 +120,7 @@ def test_project_declares_only_approved_runtime_dependencies() -> None:
         "alembic==1.18.5",
         "pyodbc==5.3.0",
         "python-dotenv==1.2.2",
+        "pythonnet==3.1.0",
         "SQLAlchemy==2.0.51",
     }
 
