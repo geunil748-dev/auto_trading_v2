@@ -18,9 +18,15 @@ from auto_trading_v2.config import (  # noqa: E402
     load_settings_with_diagnostics,
 )
 from auto_trading_v2.config.loader import (  # noqa: E402
-    DATABASE_URL_KEY,
-    MSSQL_ADMIN_URL_KEY,
-    MSSQL_TEST_ADMIN_URL_KEY,
+    DB_PROVIDER_KEY,
+    MSSQL_CONNECT_TIMEOUT_KEY,
+    MSSQL_DATABASE_KEY,
+    MSSQL_ENCRYPT_KEY,
+    MSSQL_HOST_KEY,
+    MSSQL_PASSWORD_KEY,
+    MSSQL_PORT_KEY,
+    MSSQL_TRUST_CERTIFICATE_KEY,
+    MSSQL_USERNAME_KEY,
 )
 
 
@@ -55,17 +61,18 @@ def _write_valid(result: SettingsLoadResult, output: TextIO) -> None:
     print(f"Environment: {settings.environment}", file=output)
     print("", file=output)
     print("Database:", file=output)
-    print(f"  runtime URL: configured (source={_source(result, DATABASE_URL_KEY)})", file=output)
-    print(
-        f"  admin URL: {_setting_status(settings.database.admin_url)} "
-        f"(source={_source(result, MSSQL_ADMIN_URL_KEY)})",
-        file=output,
-    )
-    print(
-        f"  test admin URL: {_setting_status(settings.database.test_admin_url)} "
-        f"(source={_source(result, MSSQL_TEST_ADMIN_URL_KEY)})",
-        file=output,
-    )
+    print(f"  provider: dotnet (source={_source(result, DB_PROVIDER_KEY)})", file=output)
+    for label, key in (
+        ("host", MSSQL_HOST_KEY),
+        ("port", MSSQL_PORT_KEY),
+        ("database", MSSQL_DATABASE_KEY),
+        ("username", MSSQL_USERNAME_KEY),
+        ("password", MSSQL_PASSWORD_KEY),
+        ("encrypt", MSSQL_ENCRYPT_KEY),
+        ("trust certificate", MSSQL_TRUST_CERTIFICATE_KEY),
+        ("connect timeout", MSSQL_CONNECT_TIMEOUT_KEY),
+    ):
+        print(f"  {label}: configured (source={_source(result, key)})", file=output)
     print("", file=output)
     print("KIS:", file=output)
     print(f"  enabled: {str(settings.kis.enabled).lower()}", file=output)
@@ -85,7 +92,7 @@ def _write_valid(result: SettingsLoadResult, output: TextIO) -> None:
 
 
 def _section_for(key: str) -> str:
-    if key.startswith("AUTO_TRADING_V2_MSSQL") or key == DATABASE_URL_KEY:
+    if key.startswith("AUTO_TRADING_V2_MSSQL") or key == DB_PROVIDER_KEY:
         return "Database"
     if key.startswith("AUTO_TRADING_V2_KIS"):
         return "KIS"

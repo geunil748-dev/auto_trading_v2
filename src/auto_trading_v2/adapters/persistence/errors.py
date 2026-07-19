@@ -127,22 +127,37 @@ def translate_persistence_error(
     """Return a sanitized error without retaining SQL, parameters, or credentials."""
 
     fragments = _safe_fragments(exc)
+    categorical = set(fragments)
     internal_text = " ".join(fragments)
     code_match = _MSSQL_ERROR_CODE.search(internal_text)
     code = None if code_match is None else code_match.group(1)
     constraint = _known_constraint(internal_text)
 
+    if categorical & {"AUTHENTICATION", "CONNECTION_FAILURE", "DATABASE_UNAVAILABLE"}:
+        return PersistenceUnavailableError(
+            entity=entity,
+            operation=operation,
+            reason="database_unavailable",
+        )
+    if "TIMEOUT" in categorical:
+        return PersistenceError(entity=entity, operation=operation, reason="timeout")
+    if "DEADLOCK" in categorical:
+        return PersistenceError(entity=entity, operation=operation, reason="deadlock")
+
     if isinstance(exc, IntegrityError):
-        if code in {"2601", "2627"}:
+        if "UNIQUE_VIOLATION" in categorical or code in {"2601", "2627"}:
             return DuplicateRecordError(
                 entity=entity,
                 operation=operation,
                 reason="duplicate_record",
                 constraint=constraint,
             )
-        if code == "547" and (
-            constraint in _FOREIGN_KEY_CONSTRAINTS
-            or "foreign key constraint" in internal_text.casefold()
+        if "FOREIGN_KEY_VIOLATION" in categorical or (
+            code == "547"
+            and (
+                constraint in _FOREIGN_KEY_CONSTRAINTS
+                or "foreign key constraint" in internal_text.casefold()
+            )
         ):
             return ForeignKeyViolationError(
                 entity=entity,
@@ -150,8 +165,9 @@ def translate_persistence_error(
                 reason="foreign_key_violation",
                 constraint=constraint,
             )
-        if code == "547" and (
-            constraint in _CHECK_CONSTRAINTS or "check constraint" in internal_text.casefold()
+        if "CHECK_CONSTRAINT_VIOLATION" in categorical or (
+            code == "547"
+            and (constraint in _CHECK_CONSTRAINTS or "check constraint" in internal_text.casefold())
         ):
             return CheckConstraintViolationError(
                 entity=entity,

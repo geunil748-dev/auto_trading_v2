@@ -6,13 +6,12 @@ from pathlib import Path
 import pytest
 
 from auto_trading_v2.config.loader import (
-    DATABASE_URL_KEY,
     KIS_APP_SECRET_KEY,
     KIS_ENABLED_KEY,
 )
 from scripts.check_config import run_check
 
-from .helpers import RUNTIME_URL, valid_process_environment, write_env
+from .helpers import DOTNET_DATABASE_ENVIRONMENT, valid_process_environment, write_env
 
 
 def test_valid_diagnostic_prints_only_status_sources_and_counts(tmp_path: Path) -> None:
@@ -21,7 +20,7 @@ def test_valid_diagnostic_prints_only_status_sources_and_counts(tmp_path: Path) 
     write_env(
         env_file,
         {
-            DATABASE_URL_KEY: RUNTIME_URL,
+            **DOTNET_DATABASE_ENVIRONMENT,
             "UNKNOWN_CREDENTIAL_NAME": sentinel,
         },
     )
@@ -32,11 +31,11 @@ def test_valid_diagnostic_prints_only_status_sources_and_counts(tmp_path: Path) 
     rendered = output.getvalue()
     assert exit_code == 0
     assert "Configuration: VALID" in rendered
-    assert "runtime URL: configured (source=dotenv)" in rendered
+    assert "provider: dotnet (source=dotenv)" in rendered
     assert "Unknown keys: 1" in rendered
     assert "UNKNOWN_CREDENTIAL_NAME" not in rendered
     assert sentinel not in rendered
-    assert RUNTIME_URL not in rendered
+    assert "localhost" not in rendered
 
 
 def test_invalid_diagnostic_identifies_missing_canonical_key_without_value(
@@ -71,7 +70,7 @@ def test_explicit_mapping_is_reported_without_printing_its_value(tmp_path: Path)
 
     exit_code = run_check(
         env_file=env_file,
-        environ={DATABASE_URL_KEY: RUNTIME_URL},
+        environ=DOTNET_DATABASE_ENVIRONMENT,
         process_environ={},
         output=output,
     )
@@ -79,7 +78,7 @@ def test_explicit_mapping_is_reported_without_printing_its_value(tmp_path: Path)
     rendered = output.getvalue()
     assert exit_code == 0
     assert "source=explicit" in rendered
-    assert RUNTIME_URL not in rendered
+    assert "localhost" not in rendered
 
 
 def test_diagnostic_never_writes_secrets_to_stdout_or_stderr(
@@ -88,7 +87,7 @@ def test_diagnostic_never_writes_secrets_to_stdout_or_stderr(
 ) -> None:
     sentinel = "SHOULD_NEVER_APPEAR_7f82d9"
     env_file = tmp_path / ".env"
-    write_env(env_file, {DATABASE_URL_KEY: RUNTIME_URL, "UNKNOWN_SECRET": sentinel})
+    write_env(env_file, {**DOTNET_DATABASE_ENVIRONMENT, "UNKNOWN_SECRET": sentinel})
 
     exit_code = run_check(env_file=env_file, process_environ={})
     captured = capsys.readouterr()

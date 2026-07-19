@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from auto_trading_v2.config.dotnet_database import DotNetDatabaseSettings
 
 
 class SecretValue:
@@ -47,6 +51,12 @@ class DatabaseSettings:
     test_admin_url: SecretValue | None
 
 
+class DatabaseProvider(StrEnum):
+    """Explicit runtime persistence provider."""
+
+    DOTNET = "dotnet"
+
+
 @dataclass(frozen=True, slots=True)
 class KisSettings:
     """KIS paper configuration without HTTP client or token behavior."""
@@ -75,7 +85,7 @@ class AppSettings:
 
     environment: str
     log_level: str
-    database: DatabaseSettings
+    database: DotNetDatabaseSettings
     kis: KisSettings
     telegram: TelegramSettings
 

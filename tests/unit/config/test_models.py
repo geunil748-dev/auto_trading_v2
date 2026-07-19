@@ -4,9 +4,10 @@ from dataclasses import FrozenInstanceError, asdict
 
 import pytest
 
+from auto_trading_v2.config.dotnet_database import DotNetDatabaseSettings
 from auto_trading_v2.config.models import (
     AppSettings,
-    DatabaseSettings,
+    DatabaseProvider,
     KisSettings,
     SecretValue,
     TelegramSettings,
@@ -17,7 +18,18 @@ def _settings(secret: str) -> AppSettings:
     return AppSettings(
         environment="development",
         log_level="INFO",
-        database=DatabaseSettings(SecretValue(secret), None, None),
+        database=DotNetDatabaseSettings(
+            provider=DatabaseProvider.DOTNET,
+            environment="development",
+            host="localhost",
+            port=1433,
+            database="auto_trading_v2",
+            username=SecretValue("v2-test-user"),
+            password=SecretValue(secret),
+            encrypt=False,
+            trust_server_certificate=True,
+            connect_timeout=5,
+        ),
         kis=KisSettings(False, "paper", None, None, None, None, None),
         telegram=TelegramSettings(False, None, None),
     )
@@ -55,4 +67,4 @@ def test_dataclass_serialization_keeps_secret_wrapper_redacted() -> None:
     serialized = asdict(_settings(secret))
 
     assert secret not in repr(serialized)
-    assert isinstance(serialized["database"]["database_url"], SecretValue)
+    assert isinstance(serialized["database"]["password"], SecretValue)
