@@ -23,7 +23,7 @@ from auto_trading_v2.adapters.persistence.database_admin import (
     validate_server_info,
     verify_target_connection,
 )
-from auto_trading_v2.config import load_settings
+from auto_trading_v2.config import load_mssql_administration_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -62,8 +62,8 @@ class TemporaryMssqlDatabase:
 def temporary_mssql_database() -> Iterator[TemporaryMssqlDatabase]:
     """Create and always remove one guarded temporary MSSQL database."""
 
-    database_settings = load_settings().database
-    protected_admin_url = database_settings.test_admin_url or database_settings.admin_url
+    administration = load_mssql_administration_settings()
+    protected_admin_url = administration.selected_admin_url
     if protected_admin_url is None:
         pytest.skip(
             "AUTO_TRADING_V2_TEST_ADMIN_URL 또는 명시적 ADMIN_URL이 없어 "

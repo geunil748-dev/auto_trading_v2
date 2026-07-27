@@ -51,6 +51,30 @@ class DatabaseSettings:
     test_admin_url: SecretValue | None
 
 
+@dataclass(frozen=True, slots=True, repr=False)
+class MssqlAdministrationSettings:
+    """Protected MSSQL administration URLs for migrations and temporary tests."""
+
+    admin_url: SecretValue | None
+    test_admin_url: SecretValue | None
+
+    @property
+    def selected_admin_url(self) -> SecretValue | None:
+        """Prefer the dedicated test-admin URL over the administration fallback."""
+
+        return self.test_admin_url or self.admin_url
+
+    def __repr__(self) -> str:
+        return (
+            "MssqlAdministrationSettings("
+            f"admin_configured={self.admin_url is not None!r}, "
+            f"test_admin_configured={self.test_admin_url is not None!r})"
+        )
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
 class DatabaseProvider(StrEnum):
     """Explicit runtime persistence provider."""
 

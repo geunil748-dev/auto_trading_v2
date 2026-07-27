@@ -27,10 +27,14 @@ from auto_trading_v2.config.models import (
     DatabaseProvider,
     DatabaseSettings,
     KisSettings,
+    MssqlAdministrationSettings,
     SecretValue,
     SettingsLoadResult,
     SettingSource,
     TelegramSettings,
+)
+from auto_trading_v2.config.mssql_administration import (
+    load_mssql_administration_settings,
 )
 
 __all__ = [
@@ -47,6 +51,7 @@ __all__ = [
     "InvalidSettingError",
     "KisSettings",
     "MissingSettingError",
+    "MssqlAdministrationSettings",
     "SecretValue",
     "SettingSource",
     "SettingsLoadResult",
@@ -55,6 +60,7 @@ __all__ = [
     "inspect_environment_file",
     "inspect_dotnet_database_settings",
     "load_dotnet_database_settings",
+    "load_mssql_administration_settings",
     "load_settings",
     "load_settings_with_diagnostics",
     "repository_env_file",
