@@ -8,20 +8,21 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 12개 table입니다.
+canonical source of truth는 다음 13개 table입니다.
 
 1. `market_snapshots`
 2. `feature_snapshots`
-3. `candidates`
-4. `filter_evaluations`
-5. `paper_positions`
-6. `strategy_decisions`
-7. `trade_intents`
-8. `paper_orders`
-9. `paper_fills`
-10. `position_events`
-11. `equity_snapshots`
-12. `trading_events`
+3. `recommendations`
+4. `candidates`
+5. `filter_evaluations`
+6. `paper_positions`
+7. `strategy_decisions`
+8. `trade_intents`
+9. `paper_orders`
+10. `paper_fills`
+11. `position_events`
+12. `equity_snapshots`
+13. `trading_events`
 
 ```mermaid
 erDiagram
@@ -33,6 +34,15 @@ erDiagram
         int horizon_trading_days
         datetime as_of
     }
+    recommendations {
+        uuid recommendation_id PK
+        string recommendation_key UK
+        string content_digest
+        uuid feature_snapshot_id FK
+        string disposition
+        datetime generated_at
+    }
+    feature_snapshots ||--o{ recommendations : "supports"
     market_snapshots ||--o{ candidates : "observed as"
     candidates ||--o{ filter_evaluations : "evaluated by"
     candidates o|--o{ strategy_decisions : "candidate decision"
@@ -108,6 +118,20 @@ DB는 horizon 범위, `generated_at >= as_of`, `latest_input_available_at <= as_
 unique입니다. `content_digest`는 비교·감사용 non-unique index입니다. 조회 index는 symbol/cutoff,
 feature set/cutoff, quality/cutoff 조합을 제공합니다.
 
+## Canonical Recommendation
+
+`trading.recommendations`는 하나의 `feature_snapshot_id`를 `ON DELETE NO ACTION` FK로 참조하는
+immutable 사용자 판단 fact입니다. `RECOMMEND`와 `CONDITIONAL`만 actionable이며 USD 가격
+계획·1~5 거래일 보유 기간·Decimal 확률/기대값/손익비/신뢰도·UTC 만료 시각을 모두 가집니다.
+`WATCH`, `NO_RECOMMENDATION`, `DATA_INSUFFICIENT`, `MARKET_RISK`는 모든 plan column을 `NULL`로
+저장합니다.
+
+`recommendation_key`는 FeatureSnapshot ID와 generator code/version만 포함한 semantic identity
+hash이고, `content_digest`는 disposition·plan·정렬된 reason/risk/invalidation code만 포함합니다.
+두 key의 분리로 exact retry와 same-identity/different-content conflict를 구분합니다. key 및
+`(feature_snapshot_id, generator_code, generator_version)`는 unique이고 content digest는
+non-unique입니다. 이 table은 StrategyDecision·TradeIntent·주문·체결·포지션 FK를 갖지 않습니다.
+
 ## 정합성과 중복 방지
 
 모든 FK는 `ON DELETE NO ACTION`입니다. 체결·이벤트 같은 감사 사실이 부모 삭제로 연쇄
@@ -127,6 +151,8 @@ MSSQL filtered unique index는 다음 네 개입니다.
 - snapshot: `(source, symbol, observed_at)`
 - feature snapshot: `snapshot_key`, 그리고
   `(symbol, feature_set_code, feature_set_version, horizon_trading_days, as_of)`
+- recommendation: `recommendation_key`, 그리고
+  `(feature_snapshot_id, generator_code, generator_version)`
 - candidate: `(run_id, market_snapshot_id, candidate_source)`
 - filter evaluation: `(candidate_id, filter_set_id, evaluation_version)`
 - strategy decision: `decision_key`, filtered candidate/strategy/version, 그리고 filtered
@@ -146,7 +172,7 @@ Position decision은 `position_id`, `position_version`, `market_snapshot_id`를 
 version을 고정합니다. 관련 FK는 모두 `ON DELETE NO ACTION`입니다. `trading_events`의 선택적
 context FK는 통합 타임라인을 위한 것이며 이 source 관계의 원본이 아닙니다.
 
-`market_snapshots`, `feature_snapshots`, `candidates`, `filter_evaluations`,
+`market_snapshots`, `feature_snapshots`, `recommendations`, `candidates`, `filter_evaluations`,
 `strategy_decisions`, `trade_intents`, `paper_fills`, `position_events`, `equity_snapshots`,
 `trading_events`는 기록 후 의미를 바꾸지 않는 immutable fact입니다. `paper_positions`와
 `paper_orders`는 optimistic `version`과 `updated_at`을 가진 current-state table입니다.
@@ -198,9 +224,9 @@ fixture는 실행 중 자신이 생성한 정확한 이름만 삭제하며, 삭�
 연결 정보가 없으면 통합 테스트는 실패 대신 skip됩니다.
 
 `alembic downgrade base`와 재-upgrade 검증은 이 임시 test DB에서만 수행합니다. 개발 또는
-운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 독립 `feature_snapshots`를 제거한
-뒤 reverse dependency 순서로 기존 11개 table과 비어 있는 `trading` schema만 제거하며
-database 자체는 절대 삭제하지 않습니다.
+운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 `recommendations`, 이어 독립
+`feature_snapshots`를 제거한 뒤 reverse dependency 순서로 기존 11개 table과 비어 있는
+`trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
 
 connection URL, server host, login, password는 log, exception, test output, 문서와 최종
 보고에서 출력하지 않습니다. URL wrapper는 문자열 변환과 `repr`에서도 값을 redaction합니다.
@@ -219,6 +245,10 @@ CHECK, `(position_id, position_version)` composite FK와 조회 index를 additiv
 `0004_feature_snapshots`는 기존 table이나 data를 변경하지 않고
 `trading.feature_snapshots` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
 기존 `0001`~`0003` 파일과 기존 11개 table definition은 변경하지 않습니다.
+
+`0005_recommendations`는 기존 12개 table이나 data를 변경하지 않고
+`trading.recommendations` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+기존 `0001`~`0004` 파일과 기존 12개 table definition은 변경하지 않습니다.
 
 아래 기존 Application 설명은 optional shadow simulation 기반의 역사적 범위입니다.
 Application은 OPEN 상태, exact PositionEvent version, symbol, strategy, USD 통화, snapshot

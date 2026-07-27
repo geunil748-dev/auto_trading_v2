@@ -2,7 +2,11 @@ import pytest
 from sqlalchemy import CheckConstraint, Numeric, UniqueConstraint, inspect, text
 from sqlalchemy.dialects import mssql
 
-from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES, feature_snapshots
+from auto_trading_v2.adapters.persistence.tables import (
+    BUSINESS_TABLES,
+    feature_snapshots,
+    recommendations,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -71,7 +75,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
     expected = {table.name for table in BUSINESS_TABLES}
     inspector = inspect(mssql_database.engine)
     assert set(inspector.get_table_names(schema="trading")) == expected
-    assert _revision(mssql_database) == "0004_feature_snapshots"
+    assert _revision(mssql_database) == "0005_recommendations"
     mssql_database.run_check()
 
 
@@ -93,8 +97,8 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
     mssql_database: object,
 ) -> None:
     expected_tables = {table.name for table in BUSINESS_TABLES}
-    prior_tables = expected_tables - {feature_snapshots.name}
-    assert _revision(mssql_database) == "0004_feature_snapshots"
+    prior_tables = expected_tables - {feature_snapshots.name, recommendations.name}
+    assert _revision(mssql_database) == "0005_recommendations"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
 
@@ -106,7 +110,29 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
 
     mssql_database.run_upgrade("head")
 
+    assert _revision(mssql_database) == "0005_recommendations"
+    assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
+    assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
+    mssql_database.run_check()
+
+
+def test_recommendation_revision_round_trip_preserves_prior_schema(
+    mssql_database: object,
+) -> None:
+    expected_tables = {table.name for table in BUSINESS_TABLES}
+    prior_tables = expected_tables - {recommendations.name}
+    assert _revision(mssql_database) == "0005_recommendations"
+    signature_before = _table_catalog_signature(mssql_database, prior_tables)
+
+    mssql_database.run_downgrade("0004_feature_snapshots")
+
     assert _revision(mssql_database) == "0004_feature_snapshots"
+    assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
+    assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
+
+    mssql_database.run_upgrade("head")
+
+    assert _revision(mssql_database) == "0005_recommendations"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()

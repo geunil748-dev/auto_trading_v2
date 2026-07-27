@@ -24,6 +24,9 @@ from auto_trading_v2.adapters.persistence.repositories.paper_positions import (
 from auto_trading_v2.adapters.persistence.repositories.position_events import (
     SqlAlchemyPositionEventRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.recommendations import (
+    SqlAlchemyRecommendationRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.strategy_decisions import (
     SqlAlchemyStrategyDecisionRepository,
 )
@@ -40,6 +43,7 @@ __all__ = [
     "SqlAlchemyPaperFillRepository",
     "SqlAlchemyPaperPositionRepository",
     "SqlAlchemyPositionEventRepository",
+    "SqlAlchemyRecommendationRepository",
     "SqlAlchemyStrategyDecisionRepository",
     "SqlAlchemyTradeIntentRepository",
 ]

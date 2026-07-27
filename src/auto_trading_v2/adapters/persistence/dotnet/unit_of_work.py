@@ -26,6 +26,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetPaperOrderRepository,
     DotNetPaperPositionRepository,
     DotNetPositionEventRepository,
+    DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
 )
@@ -48,7 +49,7 @@ _Repository = TypeVar("_Repository")
 
 
 class DotNetUnitOfWork:
-    """Provide ten repositories inside exactly one caller-owned transaction."""
+    """Provide eleven repositories inside exactly one caller-owned transaction."""
 
     def __init__(
         self,
@@ -62,6 +63,7 @@ class DotNetUnitOfWork:
         self._connection: object | None = None
         self._transaction: DotNetTransaction | None = None
         self._feature_snapshots: DotNetFeatureSnapshotRepository | None = None
+        self._recommendations: DotNetRecommendationRepository | None = None
         self._market_snapshots: DotNetMarketSnapshotRepository | None = None
         self._candidates: DotNetCandidateRepository | None = None
         self._filter_evaluations: DotNetFilterEvaluationRepository | None = None
@@ -75,6 +77,10 @@ class DotNetUnitOfWork:
     @property
     def feature_snapshots(self) -> DotNetFeatureSnapshotRepository:
         return self._repository(self._feature_snapshots)
+
+    @property
+    def recommendations(self) -> DotNetRecommendationRepository:
+        return self._repository(self._recommendations)
 
     @property
     def market_snapshots(self) -> DotNetMarketSnapshotRepository:
@@ -134,6 +140,7 @@ class DotNetUnitOfWork:
             self._mark_failed,
         )
         self._feature_snapshots = DotNetFeatureSnapshotRepository(*repository_args)
+        self._recommendations = DotNetRecommendationRepository(*repository_args)
         self._market_snapshots = DotNetMarketSnapshotRepository(*repository_args)
         self._candidates = DotNetCandidateRepository(*repository_args)
         self._filter_evaluations = DotNetFilterEvaluationRepository(*repository_args)

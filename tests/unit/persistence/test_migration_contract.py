@@ -15,6 +15,7 @@ from migrations.ddl import (
     create_feature_snapshot_table,
     create_market_tables,
     create_portfolio_tables,
+    create_recommendations_table,
     create_strategy_tables,
     create_trading_events,
 )
@@ -62,20 +63,25 @@ def test_revision_chain_and_initial_table_creation_set_are_stable() -> None:
     )
     version_migration = MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py"
     feature_migration = MIGRATIONS_ROOT / "versions" / "0004_add_feature_snapshots.py"
+    recommendation_migration = MIGRATIONS_ROOT / "versions" / "0005_add_recommendations.py"
     assert version.exists()
     assert snapshot_migration.exists()
     assert version_migration.exists()
     assert feature_migration.exists()
+    assert recommendation_migration.exists()
     assert 'revision: str = "0001_mssql_schema"' in version.read_text(encoding="utf-8")
     snapshot_text = snapshot_migration.read_text(encoding="utf-8")
     version_text = version_migration.read_text(encoding="utf-8")
     feature_text = feature_migration.read_text(encoding="utf-8")
+    recommendation_text = recommendation_migration.read_text(encoding="utf-8")
     assert 'revision: str = "0002_position_snapshot"' in snapshot_text
     assert 'down_revision: str | None = "0001_mssql_schema"' in snapshot_text
     assert 'revision: str = "0003_position_decision_version"' in version_text
     assert 'down_revision: str | None = "0002_position_snapshot"' in version_text
     assert 'revision: str = "0004_feature_snapshots"' in feature_text
     assert 'down_revision: str | None = "0003_position_decision_version"' in feature_text
+    assert 'revision: str = "0005_recommendations"' in recommendation_text
+    assert 'down_revision: str | None = "0004_feature_snapshots"' in recommendation_text
 
     text = _migration_text()
     created = set(re.findall(r'op\.create_table\(\s*"([a-z_]+)"', text))
@@ -94,7 +100,15 @@ def test_migration_contains_every_metadata_constraint_and_index_name() -> None:
         if name is not None
     }
 
-    missing = {name for name in expected_names if f'"{name}"' not in text}
+    missing = {
+        name
+        for name in expected_names
+        if f'"{name}"' not in text
+        and not (
+            name.startswith("ck_recommendations_")
+            and f'"{name.removeprefix("ck_recommendations_")}"' in text
+        )
+    }
     assert missing == set()
 
 
@@ -108,6 +122,7 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
 
     create_market_tables(operations)
     create_feature_snapshot_table(operations)
+    create_recommendations_table(operations)
     create_portfolio_tables(operations, positions_only=True)
     create_strategy_tables(operations)
     create_execution_tables(operations)
@@ -185,6 +200,9 @@ def test_legacy_migrations_are_byte_for_byte_unchanged_from_exact_base() -> None
         "0003_add_position_decision_version.py": (
             "b291fd408601f7a4216af0fa00510f6e1668314095b2e450c58a08655674ff9f"
         ),
+        "0004_add_feature_snapshots.py": (
+            "ac9da953ebe4e94b6b94baa11a5a66812bd1b8a490e8dc2ba5cf2767a8379562"
+        ),
     }
 
     for name, digest in expected.items():
@@ -198,6 +216,18 @@ def test_0004_upgrade_and_downgrade_touch_only_feature_snapshots() -> None:
 
     assert "create_feature_snapshot_table(op)" in text
     assert 'op.drop_table("feature_snapshots", schema="trading")' in text
+    assert "alter_column" not in text
+    assert "add_column" not in text
+    assert "drop_column" not in text
+    assert "execute(" not in text
+
+
+def test_0005_upgrade_and_downgrade_touch_only_recommendations() -> None:
+    migration = MIGRATIONS_ROOT / "versions" / "0005_add_recommendations.py"
+    text = migration.read_text(encoding="utf-8")
+
+    assert "create_recommendations_table(op)" in text
+    assert 'op.drop_table("recommendations", schema="trading")' in text
     assert "alter_column" not in text
     assert "add_column" not in text
     assert "drop_column" not in text

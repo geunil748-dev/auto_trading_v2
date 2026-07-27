@@ -12,6 +12,7 @@ from auto_trading_v2.application.ports.position_projection import (
     PaperPositionRepository,
     PositionEventRepository,
 )
+from auto_trading_v2.application.ports.recommendations import RecommendationRepository
 from auto_trading_v2.application.ports.repositories import (
     CandidateRepository,
     FilterEvaluationRepository,
@@ -23,6 +24,7 @@ from auto_trading_v2.application.ports.trade_intents import TradeIntentRepositor
 
 class UnitOfWork(Protocol):
     feature_snapshots: FeatureSnapshotRepository
+    recommendations: RecommendationRepository
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository
     filter_evaluations: FilterEvaluationRepository

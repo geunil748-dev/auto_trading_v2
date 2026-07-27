@@ -6,9 +6,9 @@ PR 4 introduced the first V2 persistence vertical slice:
 market_snapshots -> candidates -> filter_evaluations
 ```
 
-That paragraph is historical. The current foundation exposes ten repositories and adds the
-independent `feature_snapshots` repository for the recommendation pivot. Existing trade and paper
-repositories remain optional shadow simulation infrastructure.
+That paragraph is historical. The current foundation exposes eleven repositories, including
+independent `feature_snapshots` and `recommendations` repositories for the recommendation pivot.
+Existing trade and paper repositories remain optional shadow simulation infrastructure.
 
 ## Dependency direction
 
@@ -35,7 +35,7 @@ generation time, and database `recorded_at`.
 ## Transaction lifecycle
 
 `SqlAlchemyUnitOfWorkFactory` creates a fresh one-shot Unit of Work. Entering it checks out one
-connection, starts one root transaction, and supplies that connection to all ten repositories.
+connection, starts one root transaction, and supplies that connection to all eleven repositories.
 Only the Unit of Work may commit or roll back.
 
 - `commit()` persists the whole slice atomically.
@@ -54,6 +54,13 @@ the Clock exactly once, reads by deterministic `snapshot_key`, and commits exact
 new insert. Exact retry returns `ALREADY_EXISTS` without ID generation, insert, or commit. A same-key
 different-digest request raises a payload-safe conflict. Unique races rollback and recheck in a new
 Unit of Work; no path overwrites an existing row.
+
+`RecommendationCreationService` calls the Clock once, then reads the referenced FeatureSnapshot and
+the Recommendation identity in the same Unit of Work. It rejects missing sources, actionable
+recommendations from DEGRADED sources, generation before the source cutoff, and plans beyond the
+source horizon. New content receives one ID and one commit. Exact retry performs no ID generation,
+insert, or commit; conflicts and unique-race rechecks remain payload-safe. Recommendation creation
+does not call TradeIntent, broker, order, fill, position, KIS, or Telegram paths.
 
 ## Safe errors
 
@@ -76,7 +83,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 12 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 13 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -91,3 +98,9 @@ fixture's `auto_trading_v2_test_*` name. Tests cover the 0004-to-0003-to-0004 ro
 catalog and constraints, commit and rollback visibility, canonical Unicode/Decimal/UTC round trips,
 idempotent retry and conflict behavior, and bidirectional SQLAlchemy/DotNet reads. No write or DDL
 test targets the development database.
+
+Recommendation live integration uses the same guarded fixture and common Core repository statements
+for SQLAlchemy and DotNet. It covers the `0005`-to-`0004`-to-`0005` round trip while preserving the
+prior 12-table catalog, actionable and NULL-plan shapes, invalid constraint rollback residue,
+idempotent retry/conflict, commit/implicit rollback visibility, list/get operations, and
+bidirectional full canonical equality. No provider-specific raw SQL repository is used.

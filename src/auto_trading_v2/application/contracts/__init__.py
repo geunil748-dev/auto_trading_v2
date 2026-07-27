@@ -39,6 +39,12 @@ from auto_trading_v2.application.contracts.position_projection import (
     StoredPaperPosition,
     StoredPositionEvent,
 )
+from auto_trading_v2.application.contracts.recommendations import (
+    CreateRecommendationCommand,
+    NewRecommendation,
+    RecommendationCreationOutcome,
+    RecommendationCreationResult,
+)
 from auto_trading_v2.application.contracts.strategy_decisions import (
     NewCandidateStrategyDecision,
     NewPositionStrategyDecision,
@@ -53,6 +59,7 @@ from auto_trading_v2.application.contracts.trade_intents import (
 __all__ = [
     "JSONValue",
     "CreateFeatureSnapshotCommand",
+    "CreateRecommendationCommand",
     "FeatureSnapshotCreationOutcome",
     "FeatureSnapshotCreationResult",
     "NewCandidate",
@@ -61,6 +68,7 @@ __all__ = [
     "NewFilterEvaluation",
     "NewFeatureSnapshot",
     "NewMarketSnapshot",
+    "NewRecommendation",
     "NewPaperOrder",
     "NewPaperFill",
     "NewPaperPosition",
@@ -72,6 +80,8 @@ __all__ = [
     "PaperOrderFillTransition",
     "PaperPositionBuyTransition",
     "PositionProjectionResult",
+    "RecommendationCreationOutcome",
+    "RecommendationCreationResult",
     "PositionExitDecisionOutcome",
     "PositionExitDecisionResult",
     "StoredCandidate",

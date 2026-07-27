@@ -69,6 +69,12 @@ class FeatureSnapshotID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class RecommendationID(_UUIDIdentifier):
+    """Identifier for a canonical user-facing recommendation."""
+
+    __slots__ = ()
+
+
 class FilterEvaluationID(_UUIDIdentifier):
     """Identifier for a canonical filter evaluation."""
 

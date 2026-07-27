@@ -9,6 +9,7 @@ from auto_trading_v2.adapters.identifiers.uuid_factory import (
     UuidOrderIDFactory,
     UuidPositionEventIDFactory,
     UuidPositionIDFactory,
+    UuidRecommendationIDFactory,
     UuidTradeIntentIDFactory,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "UuidOrderIDFactory",
     "UuidPositionEventIDFactory",
     "UuidPositionIDFactory",
+    "UuidRecommendationIDFactory",
     "UuidTradeIntentIDFactory",
 ]

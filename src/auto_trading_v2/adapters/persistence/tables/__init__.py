@@ -14,6 +14,7 @@ from auto_trading_v2.adapters.persistence.tables.portfolio import (
     paper_positions,
     position_events,
 )
+from auto_trading_v2.adapters.persistence.tables.recommendations import recommendations
 from auto_trading_v2.adapters.persistence.tables.strategy import (
     strategy_decisions,
     trade_intents,
@@ -22,6 +23,7 @@ from auto_trading_v2.adapters.persistence.tables.strategy import (
 BUSINESS_TABLES = (
     market_snapshots,
     feature_snapshots,
+    recommendations,
     candidates,
     filter_evaluations,
     paper_positions,
@@ -46,6 +48,7 @@ __all__ = [
     "paper_orders",
     "paper_positions",
     "position_events",
+    "recommendations",
     "strategy_decisions",
     "trade_intents",
     "trading_events",

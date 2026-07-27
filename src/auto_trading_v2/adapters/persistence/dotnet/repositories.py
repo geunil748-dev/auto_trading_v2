@@ -9,6 +9,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyPaperOrderRepository,
     SqlAlchemyPaperPositionRepository,
     SqlAlchemyPositionEventRepository,
+    SqlAlchemyRecommendationRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
 )
@@ -20,6 +21,10 @@ class DotNetMarketSnapshotRepository(SqlAlchemyMarketSnapshotRepository):
 
 class DotNetFeatureSnapshotRepository(SqlAlchemyFeatureSnapshotRepository):
     """FeatureSnapshot contract backed by the DotNet Core compiler adapter."""
+
+
+class DotNetRecommendationRepository(SqlAlchemyRecommendationRepository):
+    """Recommendation contract backed by the DotNet Core compiler adapter."""
 
 
 class DotNetCandidateRepository(SqlAlchemyCandidateRepository):
@@ -63,6 +68,7 @@ __all__ = [
     "DotNetPaperOrderRepository",
     "DotNetPaperPositionRepository",
     "DotNetPositionEventRepository",
+    "DotNetRecommendationRepository",
     "DotNetStrategyDecisionRepository",
     "DotNetTradeIntentRepository",
 ]
