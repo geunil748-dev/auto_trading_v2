@@ -3,6 +3,9 @@
 from auto_trading_v2.adapters.persistence.repositories.candidates import (
     SqlAlchemyCandidateRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.feature_snapshots import (
+    SqlAlchemyFeatureSnapshotRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.filter_evaluations import (
     SqlAlchemyFilterEvaluationRepository,
 )
@@ -31,6 +34,7 @@ from auto_trading_v2.adapters.persistence.repositories.trade_intents import (
 __all__ = [
     "SqlAlchemyCandidateRepository",
     "SqlAlchemyFilterEvaluationRepository",
+    "SqlAlchemyFeatureSnapshotRepository",
     "SqlAlchemyMarketSnapshotRepository",
     "SqlAlchemyPaperOrderRepository",
     "SqlAlchemyPaperFillRepository",

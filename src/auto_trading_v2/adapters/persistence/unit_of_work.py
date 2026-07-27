@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from auto_trading_v2.adapters.persistence.errors import translate_persistence_error
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
+    SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
     SqlAlchemyMarketSnapshotRepository,
     SqlAlchemyPaperFillRepository,
@@ -43,6 +44,7 @@ class SqlAlchemyUnitOfWork:
         self._rollback_only = False
         self._connection: Connection | None = None
         self._transaction: RootTransaction | None = None
+        self._feature_snapshots: SqlAlchemyFeatureSnapshotRepository | None = None
         self._market_snapshots: SqlAlchemyMarketSnapshotRepository | None = None
         self._candidates: SqlAlchemyCandidateRepository | None = None
         self._filter_evaluations: SqlAlchemyFilterEvaluationRepository | None = None
@@ -52,6 +54,13 @@ class SqlAlchemyUnitOfWork:
         self._paper_fills: SqlAlchemyPaperFillRepository | None = None
         self._paper_positions: SqlAlchemyPaperPositionRepository | None = None
         self._position_events: SqlAlchemyPositionEventRepository | None = None
+
+    @property
+    def feature_snapshots(self) -> SqlAlchemyFeatureSnapshotRepository:
+        self._ensure_repository_operation()
+        if self._feature_snapshots is None:
+            raise TransactionStateError("repository_access")
+        return self._feature_snapshots
 
     @property
     def market_snapshots(self) -> SqlAlchemyMarketSnapshotRepository:
@@ -135,6 +144,7 @@ class SqlAlchemyUnitOfWork:
         self._transaction = transaction
         self._state = _State.ACTIVE
         repository_args = (connection, self._ensure_repository_operation, self._mark_failed)
+        self._feature_snapshots = SqlAlchemyFeatureSnapshotRepository(*repository_args)
         self._market_snapshots = SqlAlchemyMarketSnapshotRepository(*repository_args)
         self._candidates = SqlAlchemyCandidateRepository(*repository_args)
         self._filter_evaluations = SqlAlchemyFilterEvaluationRepository(*repository_args)

@@ -1,13 +1,14 @@
 # Persistence boundary
 
-PR 4 introduces the first V2 persistence vertical slice:
+PR 4 introduced the first V2 persistence vertical slice:
 
 ```text
 market_snapshots -> candidates -> filter_evaluations
 ```
 
-It deliberately does not implement market-data collection, filtering, strategy decisions, orders,
-fills, positions, P&L, broker behavior, scheduling, or the remaining canonical repositories.
+That paragraph is historical. The current foundation exposes ten repositories and adds the
+independent `feature_snapshots` repository for the recommendation pivot. Existing trade and paper
+repositories remain optional shadow simulation infrastructure.
 
 ## Dependency direction
 
@@ -25,10 +26,16 @@ lists, and nested mappings. Input is copied into a deeply immutable representati
 Callers must convert decimal values to strings explicitly. Storage uses compact, Unicode-preserving,
 stable-key JSON serialization.
 
+FeatureSnapshot uses a stricter separate JSON contract. It accepts nested finite Decimal values and
+canonicalizes them to fixed non-scientific strings, while rejecting Python float at every depth.
+Provenance is sorted, payload mappings are key-sorted, and quality reason codes are sorted. The
+semantic snapshot key excludes content and generation time; the content digest excludes ID,
+generation time, and database `recorded_at`.
+
 ## Transaction lifecycle
 
 `SqlAlchemyUnitOfWorkFactory` creates a fresh one-shot Unit of Work. Entering it checks out one
-connection, starts one root transaction, and supplies that connection to all three repositories.
+connection, starts one root transaction, and supplies that connection to all ten repositories.
 Only the Unit of Work may commit or roll back.
 
 - `commit()` persists the whole slice atomically.
@@ -41,6 +48,12 @@ Only the Unit of Work may commit or roll back.
 
 Repositories provide only the specified add/get/list operations. They do not start transactions,
 commit, roll back, read configuration, construct engines, update, delete, or upsert.
+
+`FeatureSnapshotCreationService` validates Point-in-Time input before opening a Unit of Work, calls
+the Clock exactly once, reads by deterministic `snapshot_key`, and commits exactly once only for a
+new insert. Exact retry returns `ALREADY_EXISTS` without ID generation, insert, or commit. A same-key
+different-digest request raises a payload-safe conflict. Unique races rollback and recheck in a new
+Unit of Work; no path overwrites an existing row.
 
 ## Safe errors
 
@@ -63,7 +76,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 11 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 12 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.

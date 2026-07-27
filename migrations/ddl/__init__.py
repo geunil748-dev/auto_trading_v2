@@ -2,12 +2,14 @@
 
 from migrations.ddl.events import create_trading_events
 from migrations.ddl.execution import create_execution_tables
+from migrations.ddl.features import create_feature_snapshot_table
 from migrations.ddl.market import create_market_tables
 from migrations.ddl.portfolio import create_portfolio_tables
 from migrations.ddl.strategy import create_strategy_tables
 
 __all__ = [
     "create_execution_tables",
+    "create_feature_snapshot_table",
     "create_market_tables",
     "create_portfolio_tables",
     "create_strategy_tables",

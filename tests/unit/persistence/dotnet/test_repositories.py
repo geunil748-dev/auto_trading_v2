@@ -4,6 +4,7 @@ import pytest
 
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
+    DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
     DotNetMarketSnapshotRepository,
     DotNetPaperFillRepository,
@@ -15,6 +16,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
 )
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
+    SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
     SqlAlchemyMarketSnapshotRepository,
     SqlAlchemyPaperFillRepository,
@@ -30,6 +32,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     ("dotnet_repository", "contract_implementation"),
     [
         (DotNetMarketSnapshotRepository, SqlAlchemyMarketSnapshotRepository),
+        (DotNetFeatureSnapshotRepository, SqlAlchemyFeatureSnapshotRepository),
         (DotNetCandidateRepository, SqlAlchemyCandidateRepository),
         (DotNetFilterEvaluationRepository, SqlAlchemyFilterEvaluationRepository),
         (DotNetStrategyDecisionRepository, SqlAlchemyStrategyDecisionRepository),

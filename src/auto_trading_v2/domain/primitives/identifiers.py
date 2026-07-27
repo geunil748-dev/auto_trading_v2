@@ -63,6 +63,12 @@ class MarketSnapshotID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class FeatureSnapshotID(_UUIDIdentifier):
+    """Identifier for a canonical Point-in-Time feature bundle."""
+
+    __slots__ = ()
+
+
 class FilterEvaluationID(_UUIDIdentifier):
     """Identifier for a canonical filter evaluation."""
 

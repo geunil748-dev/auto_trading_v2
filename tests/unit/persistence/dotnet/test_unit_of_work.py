@@ -76,11 +76,12 @@ def test_factory_and_unit_of_work_are_lazy_until_context_entry() -> None:
         assert raw_factory.connections[0].begins == 1
 
 
-def test_nine_repositories_share_exactly_one_connection_and_transaction() -> None:
+def test_ten_repositories_share_exactly_one_connection_and_transaction() -> None:
     uow, factory = _uow()
 
     with uow:
         repositories = (
+            uow.feature_snapshots,
             uow.market_snapshots,
             uow.candidates,
             uow.filter_evaluations,
@@ -94,7 +95,7 @@ def test_nine_repositories_share_exactly_one_connection_and_transaction() -> Non
         adapters = [
             cast(DotNetCoreConnection, repository._connection) for repository in repositories
         ]
-        assert len(repositories) == 9
+        assert len(repositories) == 10
         assert len({id(adapter) for adapter in adapters}) == 1
         assert adapters[0].connection is factory.connections[0]
         assert adapters[0].transaction is factory.connections[0].transaction

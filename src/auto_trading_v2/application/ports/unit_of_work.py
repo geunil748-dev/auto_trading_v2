@@ -5,6 +5,7 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
+from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
 from auto_trading_v2.application.ports.position_projection import (
@@ -21,6 +22,7 @@ from auto_trading_v2.application.ports.trade_intents import TradeIntentRepositor
 
 
 class UnitOfWork(Protocol):
+    feature_snapshots: FeatureSnapshotRepository
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository
     filter_evaluations: FilterEvaluationRepository

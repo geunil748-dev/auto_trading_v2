@@ -1,4 +1,5 @@
 import ast
+import hashlib
 import re
 from io import StringIO
 from pathlib import Path
@@ -11,6 +12,7 @@ from sqlalchemy.dialects import mssql
 from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES, metadata
 from migrations.ddl import (
     create_execution_tables,
+    create_feature_snapshot_table,
     create_market_tables,
     create_portfolio_tables,
     create_strategy_tables,
@@ -59,16 +61,21 @@ def test_revision_chain_and_initial_table_creation_set_are_stable() -> None:
         MIGRATIONS_ROOT / "versions" / "0002_add_position_decision_market_snapshot.py"
     )
     version_migration = MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py"
+    feature_migration = MIGRATIONS_ROOT / "versions" / "0004_add_feature_snapshots.py"
     assert version.exists()
     assert snapshot_migration.exists()
     assert version_migration.exists()
+    assert feature_migration.exists()
     assert 'revision: str = "0001_mssql_schema"' in version.read_text(encoding="utf-8")
     snapshot_text = snapshot_migration.read_text(encoding="utf-8")
     version_text = version_migration.read_text(encoding="utf-8")
+    feature_text = feature_migration.read_text(encoding="utf-8")
     assert 'revision: str = "0002_position_snapshot"' in snapshot_text
     assert 'down_revision: str | None = "0001_mssql_schema"' in snapshot_text
     assert 'revision: str = "0003_position_decision_version"' in version_text
     assert 'down_revision: str | None = "0002_position_snapshot"' in version_text
+    assert 'revision: str = "0004_feature_snapshots"' in feature_text
+    assert 'down_revision: str | None = "0003_position_decision_version"' in feature_text
 
     text = _migration_text()
     created = set(re.findall(r'op\.create_table\(\s*"([a-z_]+)"', text))
@@ -100,6 +107,7 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
     operations = Operations(context)
 
     create_market_tables(operations)
+    create_feature_snapshot_table(operations)
     create_portfolio_tables(operations, positions_only=True)
     create_strategy_tables(operations)
     create_execution_tables(operations)
@@ -164,6 +172,36 @@ def test_migration_has_no_database_creation_batch_separator_or_seed_data() -> No
     assert re.search(r"(?m)^\s*USE\s+", text, flags=re.IGNORECASE) is None
     assert "INSERT INTO" not in upper
     assert "METADATA.CREATE_ALL" not in upper
+
+
+def test_legacy_migrations_are_byte_for_byte_unchanged_from_exact_base() -> None:
+    expected = {
+        "0001_create_mssql_canonical_schema.py": (
+            "15f489b9052128ff085f3ef7519ba809199bde6d1a34886f41f8f72198ac9a0b"
+        ),
+        "0002_add_position_decision_market_snapshot.py": (
+            "7c13c288b088f5aa78f99880153bc5edf2aa2e0a94cab7f41a882d19c9be276a"
+        ),
+        "0003_add_position_decision_version.py": (
+            "b291fd408601f7a4216af0fa00510f6e1668314095b2e450c58a08655674ff9f"
+        ),
+    }
+
+    for name, digest in expected.items():
+        raw = (MIGRATIONS_ROOT / "versions" / name).read_bytes()
+        assert hashlib.sha256(raw).hexdigest() == digest
+
+
+def test_0004_upgrade_and_downgrade_touch_only_feature_snapshots() -> None:
+    migration = MIGRATIONS_ROOT / "versions" / "0004_add_feature_snapshots.py"
+    text = migration.read_text(encoding="utf-8")
+
+    assert "create_feature_snapshot_table(op)" in text
+    assert 'op.drop_table("feature_snapshots", schema="trading")' in text
+    assert "alter_column" not in text
+    assert "add_column" not in text
+    assert "drop_column" not in text
+    assert "execute(" not in text
 
 
 def test_alembic_environment_has_no_hardcoded_connection_url() -> None:

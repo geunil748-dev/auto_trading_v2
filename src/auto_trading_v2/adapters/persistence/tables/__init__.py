@@ -3,6 +3,7 @@
 from auto_trading_v2.adapters.persistence.metadata import metadata
 from auto_trading_v2.adapters.persistence.tables.events import trading_events
 from auto_trading_v2.adapters.persistence.tables.execution import paper_fills, paper_orders
+from auto_trading_v2.adapters.persistence.tables.features import feature_snapshots
 from auto_trading_v2.adapters.persistence.tables.market import (
     candidates,
     filter_evaluations,
@@ -20,6 +21,7 @@ from auto_trading_v2.adapters.persistence.tables.strategy import (
 
 BUSINESS_TABLES = (
     market_snapshots,
+    feature_snapshots,
     candidates,
     filter_evaluations,
     paper_positions,
@@ -37,6 +39,7 @@ __all__ = [
     "candidates",
     "equity_snapshots",
     "filter_evaluations",
+    "feature_snapshots",
     "market_snapshots",
     "metadata",
     "paper_fills",

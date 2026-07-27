@@ -8,22 +8,31 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 11개 table입니다.
+canonical source of truth는 다음 12개 table입니다.
 
 1. `market_snapshots`
-2. `candidates`
-3. `filter_evaluations`
-4. `paper_positions`
-5. `strategy_decisions`
-6. `trade_intents`
-7. `paper_orders`
-8. `paper_fills`
-9. `position_events`
-10. `equity_snapshots`
-11. `trading_events`
+2. `feature_snapshots`
+3. `candidates`
+4. `filter_evaluations`
+5. `paper_positions`
+6. `strategy_decisions`
+7. `trade_intents`
+8. `paper_orders`
+9. `paper_fills`
+10. `position_events`
+11. `equity_snapshots`
+12. `trading_events`
 
 ```mermaid
 erDiagram
+    feature_snapshots {
+        uuid feature_snapshot_id PK
+        string snapshot_key UK
+        string content_digest
+        string symbol
+        int horizon_trading_days
+        datetime as_of
+    }
     market_snapshots ||--o{ candidates : "observed as"
     candidates ||--o{ filter_evaluations : "evaluated by"
     candidates o|--o{ strategy_decisions : "candidate decision"
@@ -82,8 +91,22 @@ ID는 MSSQL `UNIQUEIDENTIFIER`와 domain의 타입별 UUID 값 객체를 대응�
 생성기는 UUID4이며 UUIDv7은 비목표입니다.
 
 JSON column은 `NVARCHAR(MAX)`에 저장하고 `ISJSON(column) = 1`을 강제합니다. `details`와
-`payload`는 JSON object, `reason_codes`는 JSON array 형태까지 check constraint로 제한합니다.
+`payload`, `feature_values`는 JSON object, `reason_codes`, `quality_reason_codes`,
+`provenance`는 JSON array 형태까지 check constraint로 제한합니다.
 JSON은 검색 최적화된 정규화 데이터의 대체물이 아니라 확장 가능한 설명·감사 payload입니다.
+
+## Point-in-Time FeatureSnapshot
+
+`trading.feature_snapshots`는 기존 11개 table과 FK가 없는 독립 aggregate입니다. 최소 column은
+ID, semantic `snapshot_key`, 독립 `content_digest`, symbol, feature set code/version, 1~5
+trading-day horizon, `as_of`, `generated_at`, 계산된 `latest_input_available_at`, READY/DEGRADED
+quality, reason JSON, feature JSON, provenance JSON과 DB 생성 `recorded_at`입니다.
+
+DB는 horizon 범위, `generated_at >= as_of`, `latest_input_available_at <= as_of`, quality 상태,
+비어 있지 않은 feature/provenance JSON 형태를 검사합니다. `snapshot_key`와
+`(symbol, feature_set_code, feature_set_version, horizon_trading_days, as_of)`는 각각
+unique입니다. `content_digest`는 비교·감사용 non-unique index입니다. 조회 index는 symbol/cutoff,
+feature set/cutoff, quality/cutoff 조합을 제공합니다.
 
 ## 정합성과 중복 방지
 
@@ -102,6 +125,8 @@ MSSQL filtered unique index는 다음 네 개입니다.
 주요 semantic deduplication key는 다음과 같습니다.
 
 - snapshot: `(source, symbol, observed_at)`
+- feature snapshot: `snapshot_key`, 그리고
+  `(symbol, feature_set_code, feature_set_version, horizon_trading_days, as_of)`
 - candidate: `(run_id, market_snapshot_id, candidate_source)`
 - filter evaluation: `(candidate_id, filter_set_id, evaluation_version)`
 - strategy decision: `decision_key`, filtered candidate/strategy/version, 그리고 filtered
@@ -121,11 +146,10 @@ Position decision은 `position_id`, `position_version`, `market_snapshot_id`를 
 version을 고정합니다. 관련 FK는 모두 `ON DELETE NO ACTION`입니다. `trading_events`의 선택적
 context FK는 통합 타임라인을 위한 것이며 이 source 관계의 원본이 아닙니다.
 
-`market_snapshots`, `candidates`, `filter_evaluations`, `strategy_decisions`, `trade_intents`,
-`paper_fills`, `position_events`, `equity_snapshots`, `trading_events`는 기록 후 의미를 바꾸지 않는
-immutable fact입니다. `paper_positions`와 `paper_orders`는 optimistic `version`과 `updated_at`을
-가진 current-state table입니다. 이 PR은 해당 갱신이나 projection 업무 로직을 구현하지
-않습니다.
+`market_snapshots`, `feature_snapshots`, `candidates`, `filter_evaluations`,
+`strategy_decisions`, `trade_intents`, `paper_fills`, `position_events`, `equity_snapshots`,
+`trading_events`는 기록 후 의미를 바꾸지 않는 immutable fact입니다. `paper_positions`와
+`paper_orders`는 optimistic `version`과 `updated_at`을 가진 current-state table입니다.
 
 ## 생성과 마이그레이션
 
@@ -174,8 +198,9 @@ fixture는 실행 중 자신이 생성한 정확한 이름만 삭제하며, 삭�
 연결 정보가 없으면 통합 테스트는 실패 대신 skip됩니다.
 
 `alembic downgrade base`와 재-upgrade 검증은 이 임시 test DB에서만 수행합니다. 개발 또는
-운영 DB에서 downgrade하지 않습니다. downgrade는 reverse dependency 순서로 11개 table과
-비어 있는 `trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
+운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 독립 `feature_snapshots`를 제거한
+뒤 reverse dependency 순서로 기존 11개 table과 비어 있는 `trading` schema만 제거하며
+database 자체는 절대 삭제하지 않습니다.
 
 connection URL, server host, login, password는 log, exception, test output, 문서와 최종
 보고에서 출력하지 않습니다. URL wrapper는 문자열 변환과 `repr`에서도 값을 redaction합니다.
@@ -191,6 +216,11 @@ CHECK, `(position_id, position_version)` composite FK와 조회 index를 additiv
 적용합니다. 기존 candidate row는 `NULL`로 보존됩니다. 기존 position decision이 있으면
 임의 backfill하지 않고 sanitized blocker로 upgrade를 중단합니다.
 
+`0004_feature_snapshots`는 기존 table이나 data를 변경하지 않고
+`trading.feature_snapshots` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+기존 `0001`~`0003` 파일과 기존 11개 table definition은 변경하지 않습니다.
+
+아래 기존 Application 설명은 optional shadow simulation 기반의 역사적 범위입니다.
 Application은 OPEN 상태, exact PositionEvent version, symbol, strategy, USD 통화, snapshot
 평가 시각과 freshness를 검증하고 `FIXED_POSITION_EXIT/v1` 결정을 저장합니다. SELL, position
 종료와 P&L은 여전히 이 schema migration과 PR 12의 범위가 아닙니다.

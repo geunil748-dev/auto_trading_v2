@@ -1,0 +1,1 @@
+"""FeatureSnapshot domain tests."""
