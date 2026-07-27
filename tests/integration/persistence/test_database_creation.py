@@ -1,6 +1,8 @@
 import pytest
 from sqlalchemy import inspect, text
 
+from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES
+
 pytestmark = pytest.mark.integration
 
 
@@ -23,4 +25,4 @@ def test_server_meets_supported_capabilities(mssql_database: object) -> None:
 def test_trading_schema_and_all_business_tables_exist(mssql_database: object) -> None:
     inspector = inspect(mssql_database.engine)
     assert inspector.has_schema("trading")
-    assert len(inspector.get_table_names(schema="trading")) == 11
+    assert len(inspector.get_table_names(schema="trading")) == len(BUSINESS_TABLES)

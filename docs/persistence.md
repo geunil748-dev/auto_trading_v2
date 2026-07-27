@@ -83,3 +83,11 @@ details.
 
 All write integration tests reuse the guarded `auto_trading_v2_test_*` temporary database fixture.
 The development database remains read-only during persistence verification.
+
+FeatureSnapshot live integration exercises the same temporary database through both providers.
+SQLAlchemy supplies guarded migration administration and one persistence implementation; DotNet
+uses a test-only copy of the validated runtime settings with only the database name replaced by the
+fixture's `auto_trading_v2_test_*` name. Tests cover the 0004-to-0003-to-0004 round trip, the live
+catalog and constraints, commit and rollback visibility, canonical Unicode/Decimal/UTC round trips,
+idempotent retry and conflict behavior, and bidirectional SQLAlchemy/DotNet reads. No write or DDL
+test targets the development database.

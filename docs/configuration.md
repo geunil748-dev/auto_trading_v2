@@ -24,6 +24,18 @@ python scripts/check_config.py
 진단 명령은 DB, KIS, Telegram에 연결하지 않는다. URL이나 credential 값, unknown key 이름도
 출력하지 않고 `configured`, `missing`, source 종류와 개수만 표시한다.
 
+## MSSQL runtime and administration boundary
+
+`load_settings()` keeps the application runtime on
+`AppSettings.database -> DotNetDatabaseSettings -> System.Data.SqlClient`. The SQLAlchemy URLs are
+not part of the DotNet settings and are never used as a runtime fallback.
+
+Migration and temporary-database tooling must explicitly call
+`load_mssql_administration_settings()`. It accepts only protected `master` database URLs and prefers
+`AUTO_TRADING_V2_TEST_ADMIN_URL` over `AUTO_TRADING_V2_MSSQL_ADMIN_URL`. Loading these settings does
+not connect to SQL Server. URL values remain wrapped in `SecretValue` and are not included in
+representations or diagnostics.
+
 ## Source precedence
 
 각 key는 다음 순서로 한 번만 선택한다.
