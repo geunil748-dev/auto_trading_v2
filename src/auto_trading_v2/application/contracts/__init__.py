@@ -1,5 +1,11 @@
 """Immutable application boundary contracts."""
 
+from auto_trading_v2.application.contracts.feature_snapshots import (
+    CreateFeatureSnapshotCommand,
+    FeatureSnapshotCreationOutcome,
+    FeatureSnapshotCreationResult,
+    NewFeatureSnapshot,
+)
 from auto_trading_v2.application.contracts.paper_fills import (
     NewPaperFill,
     PaperFillExecutionResult,
@@ -46,10 +52,14 @@ from auto_trading_v2.application.contracts.trade_intents import (
 
 __all__ = [
     "JSONValue",
+    "CreateFeatureSnapshotCommand",
+    "FeatureSnapshotCreationOutcome",
+    "FeatureSnapshotCreationResult",
     "NewCandidate",
     "NewCandidateStrategyDecision",
     "NewPositionStrategyDecision",
     "NewFilterEvaluation",
+    "NewFeatureSnapshot",
     "NewMarketSnapshot",
     "NewPaperOrder",
     "NewPaperFill",

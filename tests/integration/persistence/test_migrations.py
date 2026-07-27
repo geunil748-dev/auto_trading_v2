@@ -15,7 +15,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
         revision = connection.execute(
             text("SELECT version_num FROM dbo.alembic_version")
         ).scalar_one()
-    assert revision == "0003_position_decision_version"
+    assert revision == "0004_feature_snapshots"
     mssql_database.run_check()
 
 

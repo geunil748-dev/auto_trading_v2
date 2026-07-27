@@ -1,5 +1,16 @@
 # auto_trading_v2
 
+## 현재 목표: 해외 주식 투자 추천
+
+최종 사용자 출력은 자동 주문이 아니라 canonical `Recommendation`이며, 사용자가 실제 매매를
+직접 결정합니다. 현재 P0는 미래 정보 누수를 차단하는 불변 Point-in-Time `FeatureSnapshot`
+도메인·계약·영속성 기반을 추가합니다. 기존 TradeIntent→PaperOrder→PaperFill→PaperPosition
+경로는 삭제하지 않고 선택적 shadow simulation 기반으로 유지합니다.
+
+자세한 결정은 [추천 시스템 전환 ADR](docs/adr/0002-investment-recommendation-pivot.md)과
+[Point-in-Time FeatureSnapshot ADR](docs/adr/0003-point-in-time-feature-snapshots.md)을
+참고하십시오.
+
 ## 로컬 설정
 
 V2 로컬 설정은 repository root의 `.env`를 명시적으로 로드하며 Git에 포함하지 않습니다.
@@ -94,9 +105,14 @@ python -m pytest tests/integration -m integration
 
 현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
 Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
-additive Alembic 마이그레이션입니다. 외부 API, 스케줄러와 실제 매매는 포함하지 않습니다.
+additive Alembic 마이그레이션, Point-in-Time FeatureSnapshot 생성·저장 기반입니다. 외부 데이터
+수집, feature engineering, 모델, Recommendation, Outcome, 알림, 스케줄러와 실제 매매는
+포함하지 않습니다.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
+
+아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
+simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 
 ## PR 5 deterministic filtering
 

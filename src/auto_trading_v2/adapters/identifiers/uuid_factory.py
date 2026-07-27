@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DecisionID,
+    FeatureSnapshotID,
     FillID,
     FilterEvaluationID,
     IdentifierFactory,
@@ -27,6 +28,16 @@ class UuidFilterEvaluationIDFactory:
 
     def new(self) -> FilterEvaluationID:
         return self.identifier_factory.new(FilterEvaluationID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidFeatureSnapshotIDFactory:
+    """Adapt the existing UUID policy to canonical FeatureSnapshot IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> FeatureSnapshotID:
+        return self.identifier_factory.new(FeatureSnapshotID)
 
 
 @dataclass(frozen=True, slots=True)

@@ -1,8 +1,10 @@
 """Application ports implemented by external adapters."""
 
+from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
 from auto_trading_v2.application.ports.id_factory import (
     ClientOrderIDFactory,
     DecisionIDFactory,
+    FeatureSnapshotIDFactory,
     FillIDFactory,
     FilterEvaluationIDFactory,
     OrderIDFactory,
@@ -30,6 +32,8 @@ __all__ = [
     "CandidateRepository",
     "ClientOrderIDFactory",
     "DecisionIDFactory",
+    "FeatureSnapshotIDFactory",
+    "FeatureSnapshotRepository",
     "FilterEvaluationIDFactory",
     "FilterEvaluationRepository",
     "FillIDFactory",

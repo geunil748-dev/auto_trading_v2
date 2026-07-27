@@ -2,6 +2,7 @@
 
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
+    SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
     SqlAlchemyMarketSnapshotRepository,
     SqlAlchemyPaperFillRepository,
@@ -15,6 +16,10 @@ from auto_trading_v2.adapters.persistence.repositories import (
 
 class DotNetMarketSnapshotRepository(SqlAlchemyMarketSnapshotRepository):
     """MarketSnapshot contract backed by the DotNet Core compiler adapter."""
+
+
+class DotNetFeatureSnapshotRepository(SqlAlchemyFeatureSnapshotRepository):
+    """FeatureSnapshot contract backed by the DotNet Core compiler adapter."""
 
 
 class DotNetCandidateRepository(SqlAlchemyCandidateRepository):
@@ -51,6 +56,7 @@ class DotNetPositionEventRepository(SqlAlchemyPositionEventRepository):
 
 __all__ = [
     "DotNetCandidateRepository",
+    "DotNetFeatureSnapshotRepository",
     "DotNetFilterEvaluationRepository",
     "DotNetMarketSnapshotRepository",
     "DotNetPaperFillRepository",

@@ -156,7 +156,20 @@ def test_project_text_is_utf8_without_bom_or_replacement_characters() -> None:
 
 def test_package_import_smoke() -> None:
     import auto_trading_v2
-    from auto_trading_v2.domain import primitives
+    from auto_trading_v2.domain import feature_snapshots, primitives
 
     assert auto_trading_v2.__version__ == "0.1.0"
     assert primitives.Symbol("AAPL").serialize() == "AAPL"
+    assert feature_snapshots.TradingDayHorizon(1).unit == "TRADING_DAY"
+
+
+def test_feature_snapshot_python_modules_stay_focused_and_below_300_lines() -> None:
+    feature_files = [
+        path
+        for path in _python_files()
+        if "feature_snapshot" in path.name or "feature_snapshots" in path.parts
+    ]
+
+    assert feature_files
+    for path in feature_files:
+        assert len(path.read_text(encoding="utf-8").splitlines()) <= 300, path

@@ -1,5 +1,8 @@
 """Application orchestration services."""
 
+from auto_trading_v2.application.services.feature_snapshot import (
+    FeatureSnapshotCreationService,
+)
 from auto_trading_v2.application.services.filter_evaluation import (
     CandidateFilterEvaluationService,
     EvaluationBatchResult,
@@ -21,6 +24,7 @@ __all__ = [
     "CandidateStrategyDecisionService",
     "CandidateTradeIntentService",
     "EvaluationBatchResult",
+    "FeatureSnapshotCreationService",
     "PositionExitDecisionService",
     "StrategyDecisionBatchResult",
     "TradeIntentBatchResult",
