@@ -19,9 +19,11 @@ one technical `FeatureSnapshot` reads bars from only one source. There is no aut
 cross-provider averaging, or provider-specific Recommendation/order path.
 
 The first actual adapter is the official Twelve Data `/time_series` API under source code
-`TWELVE_DATA_TIME_SERIES`. It supports XNAS, XNYS, and XASE, rejects other MICs before network I/O,
-and requests `interval=1day` with an explicit `mic_code`. `adjust=splits` maps to
-`SPLIT_ADJUSTED`; `adjust=none` maps to storable `RAW`.
+`TWELVE_DATA_TIME_SERIES`. It supports listing MICs XNGS, XNGM, XNCM, XNYS, and XASE, rejects
+other MICs before network I/O, and does not alias the XNAS operating MIC to a listing MIC. It
+requests `interval=1day` with an explicit `mic_code` and sends the API key only in the
+Authorization header. `adjust=splits` maps to `SPLIT_ADJUSTED`; `adjust=none` maps to storable
+`RAW`.
 
 Twelve Data does not provide a historical first-published timestamp in this response contract.
 On first successful observation, `observed_at` and `available_at` both use that UTC observation

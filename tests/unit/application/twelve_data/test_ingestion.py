@@ -30,6 +30,7 @@ from auto_trading_v2.domain.daily_market_bars import (
     DailyMarketBar,
     DailyMarketBarAdjustmentBasis,
     DailyMarketBarInput,
+    DailyMarketBarValidationError,
 )
 from auto_trading_v2.domain.primitives import (
     IdentifierFactory,
@@ -143,14 +144,27 @@ def observations(
     )
 
 
-def command(count: int = 30) -> TwelveDataDailyMarketBarIngestionCommand:
+def command(
+    count: int = 30,
+    mic_code: str = "XNGS",
+) -> TwelveDataDailyMarketBarIngestionCommand:
     return TwelveDataDailyMarketBarIngestionCommand(
         symbol=Symbol("AAPL"),
-        mic_code="XNAS",
+        mic_code=mic_code,
         adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
         completed_through_session_date=SessionDate.parse("2026-07-01"),
         requested_session_count=count,
     )
+
+
+@pytest.mark.parametrize("mic_code", ("XNGS", "XNGM", "XNCM", "XNYS", "XASE"))
+def test_listing_mic_contract_is_explicit(mic_code: str) -> None:
+    assert command(mic_code=mic_code).mic_code == mic_code
+
+
+def test_operating_mic_is_not_implicitly_aliased() -> None:
+    with pytest.raises(DailyMarketBarValidationError):
+        command(mic_code="XNAS")
 
 
 def service(

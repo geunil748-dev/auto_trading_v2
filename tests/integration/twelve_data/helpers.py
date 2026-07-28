@@ -76,7 +76,7 @@ def time_series_payload(*, revised_index: int | None = None) -> dict[str, object
             "symbol": "AAPL",
             "currency": "USD",
             "exchange": "NASDAQ",
-            "mic_code": "XNAS",
+            "mic_code": "XNGS",
             "exchange_timezone": "America/New_York",
             "interval": "1day",
         },
@@ -88,7 +88,7 @@ def time_series_payload(*, revised_index: int | None = None) -> dict[str, object
 def ingestion_command() -> TwelveDataDailyMarketBarIngestionCommand:
     return TwelveDataDailyMarketBarIngestionCommand(
         symbol=Symbol("AAPL"),
-        mic_code="XNAS",
+        mic_code="XNGS",
         adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
         completed_through_session_date=SessionDate(CUTOFF),
         requested_session_count=21,

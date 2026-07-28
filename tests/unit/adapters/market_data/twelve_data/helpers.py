@@ -41,7 +41,7 @@ def settings(**changes: object) -> TwelveDataMarketDataSettings:
 
 def fetch_request(
     *,
-    mic_code: str = "XNAS",
+    mic_code: str = "XNGS",
     adjustment_basis: DailyMarketBarAdjustmentBasis = (
         DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED
     ),
@@ -61,7 +61,7 @@ def fetch_request(
 
 def payload(
     *,
-    mic_code: str = "XNAS",
+    mic_code: str = "XNGS",
     symbol: str = "AAPL",
     currency: str = "USD",
     interval: str = "1day",
