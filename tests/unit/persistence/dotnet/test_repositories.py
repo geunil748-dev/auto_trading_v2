@@ -11,6 +11,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetPaperOrderRepository,
     DotNetPaperPositionRepository,
     DotNetPositionEventRepository,
+    DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
 )
@@ -23,6 +24,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyPaperOrderRepository,
     SqlAlchemyPaperPositionRepository,
     SqlAlchemyPositionEventRepository,
+    SqlAlchemyRecommendationRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
 )
@@ -33,6 +35,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     [
         (DotNetMarketSnapshotRepository, SqlAlchemyMarketSnapshotRepository),
         (DotNetFeatureSnapshotRepository, SqlAlchemyFeatureSnapshotRepository),
+        (DotNetRecommendationRepository, SqlAlchemyRecommendationRepository),
         (DotNetCandidateRepository, SqlAlchemyCandidateRepository),
         (DotNetFilterEvaluationRepository, SqlAlchemyFilterEvaluationRepository),
         (DotNetStrategyDecisionRepository, SqlAlchemyStrategyDecisionRepository),

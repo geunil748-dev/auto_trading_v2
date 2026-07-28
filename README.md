@@ -4,12 +4,14 @@
 
 최종 사용자 출력은 자동 주문이 아니라 canonical `Recommendation`이며, 사용자가 실제 매매를
 직접 결정합니다. 현재 P0는 미래 정보 누수를 차단하는 불변 Point-in-Time `FeatureSnapshot`
-도메인·계약·영속성 기반을 추가합니다. 기존 TradeIntent→PaperOrder→PaperFill→PaperPosition
-경로는 삭제하지 않고 선택적 shadow simulation 기반으로 유지합니다.
+도메인·계약·영속성 기반을 제공하고, P1은 이를 필수 근거로 참조하는 immutable
+`Recommendation` 도메인·생성 계약·영속성 기반을 추가합니다. 기존
+TradeIntent→PaperOrder→PaperFill→PaperPosition 경로는 Recommendation과 연결하지 않고 선택적
+shadow simulation 기반으로 유지합니다.
 
 자세한 결정은 [추천 시스템 전환 ADR](docs/adr/0002-investment-recommendation-pivot.md)과
-[Point-in-Time FeatureSnapshot ADR](docs/adr/0003-point-in-time-feature-snapshots.md)을
-참고하십시오.
+[Point-in-Time FeatureSnapshot ADR](docs/adr/0003-point-in-time-feature-snapshots.md),
+[canonical Recommendation ADR](docs/adr/0004-canonical-recommendations.md)을 참고하십시오.
 
 ## 로컬 설정
 
@@ -105,9 +107,11 @@ python -m pytest tests/integration -m integration
 
 현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
 Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
-additive Alembic 마이그레이션, Point-in-Time FeatureSnapshot 생성·저장 기반입니다. 외부 데이터
-수집, feature engineering, 모델, Recommendation, Outcome, 알림, 스케줄러와 실제 매매는
-포함하지 않습니다.
+additive Alembic 마이그레이션, Point-in-Time FeatureSnapshot과 canonical Recommendation
+생성·저장 기반입니다. Recommendation은 사용자에게 제공할 추천 또는 비추천 결과를 검증·보존할
+뿐 실제 값을 계산하지 않습니다. 외부 데이터 수집, feature engineering, 모델, ranking/run,
+Outcome, 알림, 스케줄러와 실제 매매는 포함하지 않습니다. 상세 계약은
+[Recommendation 문서](docs/recommendations.md)를 참고하세요.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
 

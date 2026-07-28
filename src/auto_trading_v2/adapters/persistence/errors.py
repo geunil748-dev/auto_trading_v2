@@ -34,6 +34,8 @@ _UNIQUE_CONSTRAINTS = frozenset(
         "ix_paper_positions_open_unique",
         "uq_position_events_fill_id",
         "uq_position_events_position_sequence",
+        "uq_recommendations_recommendation_key",
+        "uq_recommendations_semantic_identity",
     }
 )
 _FOREIGN_KEY_CONSTRAINTS = frozenset(
@@ -50,6 +52,7 @@ _FOREIGN_KEY_CONSTRAINTS = frozenset(
         "fk_paper_fills_order_id_paper_orders",
         "fk_position_events_position_id_paper_positions",
         "fk_position_events_fill_id_paper_fills",
+        "fk_recommendations_feature_snapshot_id_feature_snapshots",
     }
 )
 _CHECK_CONSTRAINTS = frozenset(
@@ -100,6 +103,30 @@ _CHECK_CONSTRAINTS = frozenset(
         "ck_position_events_quantity_delta_nonzero",
         "ck_position_events_quantity_after_nonnegative",
         "ck_position_events_average_cost_nonnegative",
+        "ck_recommendations_generator_code_nonempty",
+        "ck_recommendations_generator_version_nonempty",
+        "ck_recommendations_disposition",
+        "ck_recommendations_reason_codes_json_array",
+        "ck_recommendations_risk_codes_json_array",
+        "ck_recommendations_invalidation_codes_json_array",
+        "ck_recommendations_reason_codes_nonempty",
+        "ck_recommendations_plan_shape",
+        "ck_recommendations_currency_usd",
+        "ck_recommendations_prices_positive",
+        "ck_recommendations_price_order",
+        "ck_recommendations_holding_days",
+        "ck_recommendations_probabilities",
+        "ck_recommendations_target_stop_probability",
+        "ck_recommendations_expected_value_positive",
+        "ck_recommendations_reward_risk_positive",
+        "ck_recommendations_confidence",
+        "ck_recommendations_valid_until",
+        "ck_recommendations_actionable_risk_nonempty",
+        "ck_recommendations_actionable_invalidation_nonempty",
+        "ck_recommendations_non_actionable_invalidation_empty",
+        "ck_recommendations_market_risk_nonempty",
+        "ck_recommendations_recommendation_key_format",
+        "ck_recommendations_content_digest_format",
     }
 )
 _KNOWN_CONSTRAINTS = _UNIQUE_CONSTRAINTS | _FOREIGN_KEY_CONSTRAINTS | _CHECK_CONSTRAINTS

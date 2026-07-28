@@ -36,6 +36,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetPaperOrderRepository,
     DotNetPaperPositionRepository,
     DotNetPositionEventRepository,
+    DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
 )
@@ -70,6 +71,7 @@ __all__ = [
     "DotNetProbeResult",
     "DotNetResultConversionError",
     "DotNetPositionEventRepository",
+    "DotNetRecommendationRepository",
     "DotNetRow",
     "DotNetRows",
     "DotNetRuntimeError",

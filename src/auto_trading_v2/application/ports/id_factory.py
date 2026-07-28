@@ -11,6 +11,7 @@ from auto_trading_v2.domain.primitives import (
     OrderID,
     PositionEventID,
     PositionID,
+    RecommendationID,
     TradeIntentID,
 )
 
@@ -25,6 +26,12 @@ class FeatureSnapshotIDFactory(Protocol):
     """Create canonical FeatureSnapshot identifiers only for new content."""
 
     def new(self) -> FeatureSnapshotID: ...
+
+
+class RecommendationIDFactory(Protocol):
+    """Create canonical Recommendation identifiers only for new content."""
+
+    def new(self) -> RecommendationID: ...
 
 
 class DecisionIDFactory(Protocol):

@@ -13,6 +13,7 @@ from auto_trading_v2.domain.primitives import (
     OrderID,
     PositionEventID,
     PositionID,
+    RecommendationID,
     TradeIntentID,
 )
 
@@ -38,6 +39,16 @@ class UuidFeatureSnapshotIDFactory:
 
     def new(self) -> FeatureSnapshotID:
         return self.identifier_factory.new(FeatureSnapshotID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidRecommendationIDFactory:
+    """Adapt the existing UUID policy to canonical Recommendation IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> RecommendationID:
+        return self.identifier_factory.new(RecommendationID)
 
 
 @dataclass(frozen=True, slots=True)

@@ -8,6 +8,7 @@ EXPECTED_TABLES = {
     "candidates",
     "filter_evaluations",
     "feature_snapshots",
+    "recommendations",
     "strategy_decisions",
     "trade_intents",
     "paper_orders",
@@ -20,7 +21,7 @@ EXPECTED_TABLES = {
 
 
 def test_business_table_registry_is_exact_and_schema_qualified() -> None:
-    assert len(BUSINESS_TABLES) == 12
+    assert len(BUSINESS_TABLES) == 13
     assert {table.name for table in BUSINESS_TABLES} == EXPECTED_TABLES
     assert {table.schema for table in BUSINESS_TABLES} == {"trading"}
 

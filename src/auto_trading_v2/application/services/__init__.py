@@ -10,6 +10,9 @@ from auto_trading_v2.application.services.filter_evaluation import (
 from auto_trading_v2.application.services.position_exit_decision import (
     PositionExitDecisionService,
 )
+from auto_trading_v2.application.services.recommendation import (
+    RecommendationCreationService,
+)
 from auto_trading_v2.application.services.strategy_decision import (
     CandidateStrategyDecisionService,
     StrategyDecisionBatchResult,
@@ -26,6 +29,7 @@ __all__ = [
     "EvaluationBatchResult",
     "FeatureSnapshotCreationService",
     "PositionExitDecisionService",
+    "RecommendationCreationService",
     "StrategyDecisionBatchResult",
     "TradeIntentBatchResult",
 ]
