@@ -18,6 +18,13 @@ class DailyMarketBarRepository(Protocol):
 
     def get_by_bar_key(self, bar_key: str) -> DailyMarketBar | None: ...
 
+    def get_by_source_identity(
+        self,
+        source_code: str,
+        source_record_key: str,
+        source_version: str,
+    ) -> DailyMarketBar | None: ...
+
     def list_latest_available(
         self,
         source_code: str,

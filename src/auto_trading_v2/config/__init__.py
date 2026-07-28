@@ -36,6 +36,11 @@ from auto_trading_v2.config.models import (
 from auto_trading_v2.config.mssql_administration import (
     load_mssql_administration_settings,
 )
+from auto_trading_v2.config.twelve_data import (
+    TwelveDataMarketDataSettings,
+    load_twelve_data_market_data_settings,
+)
+from auto_trading_v2.config.twelve_data_keys import TWELVE_DATA_KEYS
 
 __all__ = [
     "CANONICAL_KEYS",
@@ -56,6 +61,8 @@ __all__ = [
     "SettingSource",
     "SettingsLoadResult",
     "TelegramSettings",
+    "TWELVE_DATA_KEYS",
+    "TwelveDataMarketDataSettings",
     "UnsafeSettingError",
     "inspect_environment_file",
     "inspect_dotnet_database_settings",
@@ -63,5 +70,6 @@ __all__ = [
     "load_mssql_administration_settings",
     "load_settings",
     "load_settings_with_diagnostics",
+    "load_twelve_data_market_data_settings",
     "repository_env_file",
 ]

@@ -4,6 +4,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import pytest
 from alembic import command
@@ -23,7 +24,14 @@ from auto_trading_v2.adapters.persistence.database_admin import (
     validate_server_info,
     verify_target_connection,
 )
+from auto_trading_v2.adapters.persistence.dotnet import (
+    DotNetConnectionFactory,
+    DotNetUnitOfWorkFactory,
+)
+from auto_trading_v2.adapters.persistence.dotnet.runtime import DotNetBindings
 from auto_trading_v2.config import load_mssql_administration_settings
+from auto_trading_v2.config.dotnet_database import DotNetDatabaseSettings
+from auto_trading_v2.config.models import DatabaseProvider, SecretValue
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -105,3 +113,52 @@ def temporary_mssql_database() -> Iterator[TemporaryMssqlDatabase]:
 def mssql_database() -> Iterator[TemporaryMssqlDatabase]:
     with temporary_mssql_database() as database:
         yield database
+
+
+@contextmanager
+def temporary_dotnet_uow_factory(
+    database: TemporaryMssqlDatabase,
+) -> Iterator[DotNetUnitOfWorkFactory]:
+    """Create an integrated-security SqlClient boundary for one temporary database."""
+
+    yield DotNetUnitOfWorkFactory(integrated_security_dotnet_connection_factory(database))
+
+
+def integrated_security_dotnet_connection_factory(
+    database: TemporaryMssqlDatabase,
+) -> DotNetConnectionFactory:
+    url = database.engine.url
+    query = {str(key).casefold(): str(value) for key, value in url.query.items()}
+    if not url.host:
+        pytest.fail("temporary MSSQL URL does not declare a local host")
+    settings = DotNetDatabaseSettings(
+        provider=DatabaseProvider.DOTNET,
+        environment="test",
+        host=url.host,
+        port=url.port or 1433,
+        database=database.name,
+        username=SecretValue("unused-integrated-security"),
+        password=SecretValue("unused-integrated-security"),
+        encrypt=_boolean(query.get("encrypt"), default=False),
+        trust_server_certificate=_boolean(
+            query.get("trustservercertificate"),
+            default=True,
+        ),
+        connect_timeout=5,
+    )
+    return _IntegratedSecurityDotNetConnectionFactory(settings)
+
+
+class _IntegratedSecurityDotNetConnectionFactory(DotNetConnectionFactory):
+    def _new_builder(self, bindings: DotNetBindings) -> Any:
+        builder = super()._new_builder(bindings)
+        builder.UserID = ""
+        builder.Password = ""
+        builder.IntegratedSecurity = True
+        return builder
+
+
+def _boolean(value: str | None, *, default: bool) -> bool:
+    if value is None:
+        return default
+    return value.strip().casefold() in {"true", "yes", "1"}

@@ -27,6 +27,12 @@ python scripts/check_config.py
 source precedence, KIS paper 및 Telegram disabled 규칙은
 [설정 문서](docs/configuration.md)를 참고하십시오.
 
+Twelve Data는 최초 실제 일봉 provider이며 기본적으로 disabled입니다. 로컬 ignored `.env`에
+명시적으로 enable/key를 구성한 경우에만 네트워크를 사용합니다. provider 선택은 항상
+명시적이고 자동 fallback은 없습니다. 상세 운영 계약은
+[Twelve Data 문서](docs/providers/twelve-data.md)와
+[provider matrix](docs/providers/provider-matrix.md)를 참고하십시오.
+
 `auto_trading_v2`는 기존 `auto_trading`과 코드, 데이터베이스, 런타임 상태를 공유하지 않는
 독립 프로젝트입니다. Microsoft SQL Server canonical schema 위에서 filter evaluation, strategy
 decision, TradeIntent, internal paper fill과 BUY position projection 경계를 구현합니다. 실제
@@ -107,10 +113,11 @@ python -m pytest tests/integration -m integration
 
 현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
 Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
-additive Alembic 마이그레이션, immutable DailyMarketBar, 21-session daily technical
+additive Alembic 마이그레이션, immutable DailyMarketBar, Twelve Data 일봉 adapter,
+21-session daily technical
 FeatureSnapshot과 canonical Recommendation 생성·저장 기반입니다. Recommendation은 사용자에게
 제공할 추천 또는 비추천 결과를 검증·보존할 뿐 실제 값을 계산하지 않습니다. 실제 외부 데이터
-provider, 모델, ranking/run,
+기반 중 구현된 범위는 Twelve Data completed daily bars뿐이며, 모델, ranking/run,
 Outcome, 알림, 스케줄러와 실제 매매는 포함하지 않습니다. 상세 계약은
 [Recommendation 문서](docs/recommendations.md)를 참고하세요.
 
@@ -121,12 +128,14 @@ Outcome, 알림, 스케줄러와 실제 매매는 포함하지 않습니다. 상
 완료된 미국주식 일봉은 기존 `MarketSnapshot`과 분리된 immutable `DailyMarketBar`로 저장됩니다.
 Point-in-Time 조회는 `available_at <= as_of`인 session별 최신 revision만 선택합니다.
 `US_EQUITY_DAILY_TECHNICAL/v1` builder는 최신 21개 `SPLIT_ADJUSTED` bar에서 Decimal 기반
-17개 기술 feature를 계산하며 READY, DEGRADED, DATA_INSUFFICIENT를 구분합니다. 실제 provider
-API와 Recommendation 계산은 아직 구현하지 않습니다.
+17개 기술 feature를 계산하며 READY, DEGRADED, DATA_INSUFFICIENT를 구분합니다.
+`TWELVE_DATA_TIME_SERIES`는 공식 `/time_series` API에서 split-adjusted OHLC를 적재합니다.
+조정 거래량 의미는 미검증이므로 volume은 `None`, snapshot은
+`DEGRADED / VOLUME_DATA_INCOMPLETE`입니다. Recommendation 계산은 구현하지 않습니다.
 
 상세 계약은 [DailyMarketBar](docs/daily-market-bars.md),
-[feature building](docs/feature-building.md), [ADR 0005](docs/adr/0005-canonical-daily-market-bars.md)를
-참고하세요.
+[feature building](docs/feature-building.md), [ADR 0005](docs/adr/0005-canonical-daily-market-bars.md),
+[multi-provider ADR](docs/adr/0006-multi-provider-market-data.md)를 참고하세요.
 
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.

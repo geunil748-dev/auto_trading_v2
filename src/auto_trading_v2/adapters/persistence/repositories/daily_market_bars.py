@@ -76,6 +76,21 @@ class SqlAlchemyDailyMarketBarRepository:
         self._ensure_active()
         return self._read(select(daily_market_bars).where(daily_market_bars.c.bar_key == bar_key))
 
+    def get_by_source_identity(
+        self,
+        source_code: str,
+        source_record_key: str,
+        source_version: str,
+    ) -> DailyMarketBar | None:
+        self._ensure_active()
+        return self._read(
+            select(daily_market_bars).where(
+                daily_market_bars.c.source_code == source_code,
+                daily_market_bars.c.source_record_key == source_record_key,
+                daily_market_bars.c.source_version == source_version,
+            )
+        )
+
     def list_latest_available(
         self,
         source_code: str,
