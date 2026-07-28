@@ -2,6 +2,7 @@ from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 
 from auto_trading_v2.adapters.persistence.tables import (
     candidates,
+    daily_market_bars,
     feature_snapshots,
     filter_evaluations,
     paper_orders,
@@ -50,6 +51,19 @@ def test_required_semantic_unique_constraints_are_present() -> None:
         "horizon_trading_days",
         "as_of",
     ) in _constraint_columns(feature_snapshots, UniqueConstraint)
+    assert ("bar_key",) in _constraint_columns(daily_market_bars, UniqueConstraint)
+    assert (
+        "source_code",
+        "source_record_key",
+        "source_version",
+    ) in _constraint_columns(daily_market_bars, UniqueConstraint)
+    assert (
+        "source_code",
+        "symbol",
+        "adjustment_basis",
+        "session_date",
+        "available_at",
+    ) in _constraint_columns(daily_market_bars, UniqueConstraint)
 
 
 def test_filtered_unique_indexes_are_explicit_mssql_contracts() -> None:
@@ -170,4 +184,34 @@ def test_feature_snapshot_indexes_are_exact_and_content_digest_is_not_unique() -
             False,
         ),
         "ix_feature_snapshots_symbol_as_of": (("symbol", "as_of"), False),
+    }
+
+
+def test_daily_market_bar_checks_and_indexes_are_exact() -> None:
+    checks = " ".join(
+        str(constraint.sqltext)
+        for constraint in daily_market_bars.constraints
+        if isinstance(constraint, CheckConstraint)
+    )
+    indexes = {
+        index.name: (tuple(column.name for column in index.columns), index.unique)
+        for index in daily_market_bars.indexes
+    }
+
+    assert "currency = 'USD'" in checks
+    assert "observed_at <= available_at" in checks
+    assert "SPLIT_ADJUSTED" in checks
+    assert "high_price >= close_price" in checks
+    assert "volume IS NULL OR volume >= 0" in checks
+    assert indexes == {
+        "ix_daily_market_bars_available": (("available_at",), False),
+        "ix_daily_market_bars_source_symbol_available": (
+            ("source_code", "symbol", "available_at"),
+            False,
+        ),
+        "ix_daily_market_bars_source_symbol_basis_session": (
+            ("source_code", "symbol", "adjustment_basis", "session_date"),
+            False,
+        ),
+        "ix_daily_market_bars_symbol_session": (("symbol", "session_date"), False),
     }

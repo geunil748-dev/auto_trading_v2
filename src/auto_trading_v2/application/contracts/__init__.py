@@ -1,5 +1,11 @@
 """Immutable application boundary contracts."""
 
+from auto_trading_v2.application.contracts.daily_market_bars import (
+    CreateDailyMarketBarCommand,
+    DailyMarketBarCreationOutcome,
+    DailyMarketBarCreationResult,
+    NewDailyMarketBar,
+)
 from auto_trading_v2.application.contracts.feature_snapshots import (
     CreateFeatureSnapshotCommand,
     FeatureSnapshotCreationOutcome,
@@ -58,11 +64,15 @@ from auto_trading_v2.application.contracts.trade_intents import (
 
 __all__ = [
     "JSONValue",
+    "CreateDailyMarketBarCommand",
     "CreateFeatureSnapshotCommand",
     "CreateRecommendationCommand",
     "FeatureSnapshotCreationOutcome",
     "FeatureSnapshotCreationResult",
+    "DailyMarketBarCreationOutcome",
+    "DailyMarketBarCreationResult",
     "NewCandidate",
+    "NewDailyMarketBar",
     "NewCandidateStrategyDecision",
     "NewPositionStrategyDecision",
     "NewFilterEvaluation",

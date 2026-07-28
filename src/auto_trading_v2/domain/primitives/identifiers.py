@@ -63,6 +63,12 @@ class MarketSnapshotID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class DailyMarketBarID(_UUIDIdentifier):
+    """Identifier for a canonical completed daily market bar."""
+
+    __slots__ = ()
+
+
 class FeatureSnapshotID(_UUIDIdentifier):
     """Identifier for a canonical Point-in-Time feature bundle."""
 

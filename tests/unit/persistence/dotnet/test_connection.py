@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import cast
 
@@ -95,7 +96,20 @@ def test_builder_uses_explicit_safe_properties_and_fresh_connection() -> None:
     assert builder.PersistSecurityInfo is False
     assert builder.ApplicationName == "auto_trading_v2"
     assert builder.MultipleActiveResultSets is False
+    assert builder.Pooling is True
     assert SENTINEL not in repr(factory)
+
+
+def test_test_environment_disables_pooling_for_temporary_database_cleanup() -> None:
+    factory = DotNetConnectionFactory(
+        replace(_settings(), environment="test"),
+        _bindings,
+    )
+
+    factory.create_connection()
+
+    assert FakeBuilder.last is not None
+    assert FakeBuilder.last.Pooling is False
 
 
 def test_opened_connection_closes_and_disposes() -> None:

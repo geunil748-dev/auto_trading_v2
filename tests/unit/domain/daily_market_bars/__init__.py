@@ -1,0 +1,1 @@
+"""DailyMarketBar domain unit tests."""

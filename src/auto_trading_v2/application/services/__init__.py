@@ -1,5 +1,11 @@
 """Application orchestration services."""
 
+from auto_trading_v2.application.services.daily_market_bar import (
+    DailyMarketBarCreationService,
+)
+from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
+    DailyTechnicalFeatureSnapshotService,
+)
 from auto_trading_v2.application.services.feature_snapshot import (
     FeatureSnapshotCreationService,
 )
@@ -26,6 +32,8 @@ __all__ = [
     "CandidateFilterEvaluationService",
     "CandidateStrategyDecisionService",
     "CandidateTradeIntentService",
+    "DailyMarketBarCreationService",
+    "DailyTechnicalFeatureSnapshotService",
     "EvaluationBatchResult",
     "FeatureSnapshotCreationService",
     "PositionExitDecisionService",

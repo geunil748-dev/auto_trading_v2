@@ -1,6 +1,7 @@
 """Canonical table registry in dependency creation order."""
 
 from auto_trading_v2.adapters.persistence.metadata import metadata
+from auto_trading_v2.adapters.persistence.tables.daily_market_bars import daily_market_bars
 from auto_trading_v2.adapters.persistence.tables.events import trading_events
 from auto_trading_v2.adapters.persistence.tables.execution import paper_fills, paper_orders
 from auto_trading_v2.adapters.persistence.tables.features import feature_snapshots
@@ -22,6 +23,7 @@ from auto_trading_v2.adapters.persistence.tables.strategy import (
 
 BUSINESS_TABLES = (
     market_snapshots,
+    daily_market_bars,
     feature_snapshots,
     recommendations,
     candidates,
@@ -39,6 +41,7 @@ BUSINESS_TABLES = (
 __all__ = [
     "BUSINESS_TABLES",
     "candidates",
+    "daily_market_bars",
     "equity_snapshots",
     "filter_evaluations",
     "feature_snapshots",

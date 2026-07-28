@@ -19,6 +19,7 @@ from auto_trading_v2.adapters.persistence.dotnet.errors import (
 )
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
+    DotNetDailyMarketBarRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
     DotNetMarketSnapshotRepository,
@@ -49,7 +50,7 @@ _Repository = TypeVar("_Repository")
 
 
 class DotNetUnitOfWork:
-    """Provide eleven repositories inside exactly one caller-owned transaction."""
+    """Provide twelve repositories inside exactly one caller-owned transaction."""
 
     def __init__(
         self,
@@ -62,6 +63,7 @@ class DotNetUnitOfWork:
         self._rollback_only = False
         self._connection: object | None = None
         self._transaction: DotNetTransaction | None = None
+        self._daily_market_bars: DotNetDailyMarketBarRepository | None = None
         self._feature_snapshots: DotNetFeatureSnapshotRepository | None = None
         self._recommendations: DotNetRecommendationRepository | None = None
         self._market_snapshots: DotNetMarketSnapshotRepository | None = None
@@ -73,6 +75,10 @@ class DotNetUnitOfWork:
         self._paper_fills: DotNetPaperFillRepository | None = None
         self._paper_positions: DotNetPaperPositionRepository | None = None
         self._position_events: DotNetPositionEventRepository | None = None
+
+    @property
+    def daily_market_bars(self) -> DotNetDailyMarketBarRepository:
+        return self._repository(self._daily_market_bars)
 
     @property
     def feature_snapshots(self) -> DotNetFeatureSnapshotRepository:
@@ -139,6 +145,7 @@ class DotNetUnitOfWork:
             self._ensure_repository_operation,
             self._mark_failed,
         )
+        self._daily_market_bars = DotNetDailyMarketBarRepository(*repository_args)
         self._feature_snapshots = DotNetFeatureSnapshotRepository(*repository_args)
         self._recommendations = DotNetRecommendationRepository(*repository_args)
         self._market_snapshots = DotNetMarketSnapshotRepository(*repository_args)

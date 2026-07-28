@@ -3,6 +3,7 @@
 from auto_trading_v2.domain.primitives.identifiers import (
     CandidateID,
     ClientOrderID,
+    DailyMarketBarID,
     DecisionID,
     EquitySnapshotID,
     EventID,
@@ -30,6 +31,7 @@ __all__ = [
     "CandidateID",
     "ClientOrderID",
     "Currency",
+    "DailyMarketBarID",
     "DecisionID",
     "EquitySnapshotID",
     "EventID",

@@ -8,24 +8,33 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 13개 table입니다.
+canonical source of truth는 다음 14개 table입니다.
 
 1. `market_snapshots`
-2. `feature_snapshots`
-3. `recommendations`
-4. `candidates`
-5. `filter_evaluations`
-6. `paper_positions`
-7. `strategy_decisions`
-8. `trade_intents`
-9. `paper_orders`
-10. `paper_fills`
-11. `position_events`
-12. `equity_snapshots`
-13. `trading_events`
+2. `daily_market_bars`
+3. `feature_snapshots`
+4. `recommendations`
+5. `candidates`
+6. `filter_evaluations`
+7. `paper_positions`
+8. `strategy_decisions`
+9. `trade_intents`
+10. `paper_orders`
+11. `paper_fills`
+12. `position_events`
+13. `equity_snapshots`
+14. `trading_events`
 
 ```mermaid
 erDiagram
+    daily_market_bars {
+        uuid daily_market_bar_id PK
+        string bar_key UK
+        string content_digest
+        string source_code
+        date session_date
+        datetime available_at
+    }
     feature_snapshots {
         uuid feature_snapshot_id PK
         string snapshot_key UK
@@ -224,9 +233,9 @@ fixture는 실행 중 자신이 생성한 정확한 이름만 삭제하며, 삭�
 연결 정보가 없으면 통합 테스트는 실패 대신 skip됩니다.
 
 `alembic downgrade base`와 재-upgrade 검증은 이 임시 test DB에서만 수행합니다. 개발 또는
-운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 `recommendations`, 이어 독립
-`feature_snapshots`를 제거한 뒤 reverse dependency 순서로 기존 11개 table과 비어 있는
-`trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
+운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 `daily_market_bars`, 이어
+`recommendations`와 독립 `feature_snapshots`를 제거한 뒤 reverse dependency 순서로 기존
+11개 table과 비어 있는 `trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
 
 connection URL, server host, login, password는 log, exception, test output, 문서와 최종
 보고에서 출력하지 않습니다. URL wrapper는 문자열 변환과 `repr`에서도 값을 redaction합니다.
@@ -249,6 +258,11 @@ CHECK, `(position_id, position_version)` composite FK와 조회 index를 additiv
 `0005_recommendations`는 기존 12개 table이나 data를 변경하지 않고
 `trading.recommendations` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
 기존 `0001`~`0004` 파일과 기존 12개 table definition은 변경하지 않습니다.
+
+`0006_daily_market_bars`는 기존 13개 table이나 data를 변경하지 않고 독립
+`trading.daily_market_bars` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+bar에는 FK가 없으며 provider identity, session revision uniqueness, PIT 조회 index를
+제공합니다. 기존 `0001`~`0005` 파일과 기존 13개 table definition은 변경하지 않습니다.
 
 아래 기존 Application 설명은 optional shadow simulation 기반의 역사적 범위입니다.
 Application은 OPEN 상태, exact PositionEvent version, symbol, strategy, USD 통화, snapshot

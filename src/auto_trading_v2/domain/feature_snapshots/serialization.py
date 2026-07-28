@@ -111,7 +111,8 @@ def _freeze_value(value: object) -> CanonicalJSONValue:
             raise FeatureSnapshotValidationError("Decimal feature 값은 유한해야 합니다.")
         if value == 0:
             return "0"
-        return format(value.normalize(), "f")
+        rendered = format(value, "f")
+        return rendered.rstrip("0").rstrip(".") if "." in rendered else rendered
     if isinstance(value, float):
         raise FeatureSnapshotValidationError("Python float feature 값은 허용되지 않습니다.")
     if isinstance(value, list):
