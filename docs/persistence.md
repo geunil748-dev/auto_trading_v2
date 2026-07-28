@@ -6,8 +6,8 @@ PR 4 introduced the first V2 persistence vertical slice:
 market_snapshots -> candidates -> filter_evaluations
 ```
 
-That paragraph is historical. The current foundation exposes eleven repositories, including
-independent `feature_snapshots` and `recommendations` repositories for the recommendation pivot.
+That paragraph is historical. The current foundation exposes twelve repositories, including
+independent `daily_market_bars`, `feature_snapshots`, and `recommendations` repositories.
 Existing trade and paper repositories remain optional shadow simulation infrastructure.
 
 ## Dependency direction
@@ -35,7 +35,7 @@ generation time, and database `recorded_at`.
 ## Transaction lifecycle
 
 `SqlAlchemyUnitOfWorkFactory` creates a fresh one-shot Unit of Work. Entering it checks out one
-connection, starts one root transaction, and supplies that connection to all eleven repositories.
+connection, starts one root transaction, and supplies that connection to all twelve repositories.
 Only the Unit of Work may commit or roll back.
 
 - `commit()` persists the whole slice atomically.
@@ -54,6 +54,12 @@ the Clock exactly once, reads by deterministic `snapshot_key`, and commits exact
 new insert. Exact retry returns `ALREADY_EXISTS` without ID generation, insert, or commit. A same-key
 different-digest request raises a payload-safe conflict. Unique races rollback and recheck in a new
 Unit of Work; no path overwrites an existing row.
+
+`DailyMarketBarCreationService` applies the same immutable retry/conflict/race policy to provider
+semantic identity. Its repository adds ID/key reads plus `list_latest_available`, implemented once
+as a deterministic SQLAlchemy Core window query and reused by DotNet. The query excludes
+`available_at > as_of`, selects one latest revision per session, limits distinct sessions, and
+returns chronological bars without owning a transaction.
 
 `RecommendationCreationService` calls the Clock once, then reads the referenced FeatureSnapshot and
 the Recommendation identity in the same Unit of Work. It rejects missing sources, actionable
@@ -83,7 +89,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 13 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 14 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -104,3 +110,10 @@ for SQLAlchemy and DotNet. It covers the `0005`-to-`0004`-to-`0005` round trip w
 prior 12-table catalog, actionable and NULL-plan shapes, invalid constraint rollback residue,
 idempotent retry/conflict, commit/implicit rollback visibility, list/get operations, and
 bidirectional full canonical equality. No provider-specific raw SQL repository is used.
+
+DailyMarketBar live integration verifies `0006` to `0005` to `0006` while preserving the prior
+13-table catalog, constraints and invalid-insert rollback, SQLAlchemy/DotNet retry and conflict,
+latest PIT revisions, bidirectional equality, and READY/DEGRADED/DATA_INSUFFICIENT FeatureSnapshot
+builds. Tests use only guarded `auto_trading_v2_test_*` databases; the development DB is unchanged.
+DotNet connection pooling remains enabled for development/paper settings and is disabled only when
+the validated environment is `test`, so temporary databases have no pooled session at cleanup.

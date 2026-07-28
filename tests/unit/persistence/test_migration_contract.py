@@ -11,6 +11,7 @@ from sqlalchemy.dialects import mssql
 
 from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES, metadata
 from migrations.ddl import (
+    create_daily_market_bars_table,
     create_execution_tables,
     create_feature_snapshot_table,
     create_market_tables,
@@ -64,16 +65,19 @@ def test_revision_chain_and_initial_table_creation_set_are_stable() -> None:
     version_migration = MIGRATIONS_ROOT / "versions" / "0003_add_position_decision_version.py"
     feature_migration = MIGRATIONS_ROOT / "versions" / "0004_add_feature_snapshots.py"
     recommendation_migration = MIGRATIONS_ROOT / "versions" / "0005_add_recommendations.py"
+    daily_bar_migration = MIGRATIONS_ROOT / "versions" / "0006_add_daily_market_bars.py"
     assert version.exists()
     assert snapshot_migration.exists()
     assert version_migration.exists()
     assert feature_migration.exists()
     assert recommendation_migration.exists()
+    assert daily_bar_migration.exists()
     assert 'revision: str = "0001_mssql_schema"' in version.read_text(encoding="utf-8")
     snapshot_text = snapshot_migration.read_text(encoding="utf-8")
     version_text = version_migration.read_text(encoding="utf-8")
     feature_text = feature_migration.read_text(encoding="utf-8")
     recommendation_text = recommendation_migration.read_text(encoding="utf-8")
+    daily_bar_text = daily_bar_migration.read_text(encoding="utf-8")
     assert 'revision: str = "0002_position_snapshot"' in snapshot_text
     assert 'down_revision: str | None = "0001_mssql_schema"' in snapshot_text
     assert 'revision: str = "0003_position_decision_version"' in version_text
@@ -82,6 +86,8 @@ def test_revision_chain_and_initial_table_creation_set_are_stable() -> None:
     assert 'down_revision: str | None = "0003_position_decision_version"' in feature_text
     assert 'revision: str = "0005_recommendations"' in recommendation_text
     assert 'down_revision: str | None = "0004_feature_snapshots"' in recommendation_text
+    assert 'revision: str = "0006_daily_market_bars"' in daily_bar_text
+    assert 'down_revision: str | None = "0005_recommendations"' in daily_bar_text
 
     text = _migration_text()
     created = set(re.findall(r'op\.create_table\(\s*"([a-z_]+)"', text))
@@ -105,8 +111,14 @@ def test_migration_contains_every_metadata_constraint_and_index_name() -> None:
         for name in expected_names
         if f'"{name}"' not in text
         and not (
-            name.startswith("ck_recommendations_")
-            and f'"{name.removeprefix("ck_recommendations_")}"' in text
+            (
+                name.startswith("ck_recommendations_")
+                and f'"{name.removeprefix("ck_recommendations_")}"' in text
+            )
+            or (
+                name.startswith("ck_daily_market_bars_")
+                and f'"{name.removeprefix("ck_daily_market_bars_")}"' in text
+            )
         )
     }
     assert missing == set()
@@ -121,6 +133,7 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
     operations = Operations(context)
 
     create_market_tables(operations)
+    create_daily_market_bars_table(operations)
     create_feature_snapshot_table(operations)
     create_recommendations_table(operations)
     create_portfolio_tables(operations, positions_only=True)
@@ -203,6 +216,9 @@ def test_legacy_migrations_are_byte_for_byte_unchanged_from_exact_base() -> None
         "0004_add_feature_snapshots.py": (
             "ac9da953ebe4e94b6b94baa11a5a66812bd1b8a490e8dc2ba5cf2767a8379562"
         ),
+        "0005_add_recommendations.py": (
+            "aee79c16aa958b499eec679b26ba8e760999c2ee427412c7d6ce7f2c70e49a26"
+        ),
     }
 
     for name, digest in expected.items():
@@ -228,6 +244,18 @@ def test_0005_upgrade_and_downgrade_touch_only_recommendations() -> None:
 
     assert "create_recommendations_table(op)" in text
     assert 'op.drop_table("recommendations", schema="trading")' in text
+    assert "alter_column" not in text
+    assert "add_column" not in text
+    assert "drop_column" not in text
+    assert "execute(" not in text
+
+
+def test_0006_upgrade_and_downgrade_touch_only_daily_market_bars() -> None:
+    migration = MIGRATIONS_ROOT / "versions" / "0006_add_daily_market_bars.py"
+    text = migration.read_text(encoding="utf-8")
+
+    assert "create_daily_market_bars_table(op)" in text
+    assert 'op.drop_table("daily_market_bars", schema="trading")' in text
     assert "alter_column" not in text
     assert "add_column" not in text
     assert "drop_column" not in text

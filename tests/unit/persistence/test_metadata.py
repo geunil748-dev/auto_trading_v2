@@ -5,6 +5,7 @@ from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES
 
 EXPECTED_TABLES = {
     "market_snapshots",
+    "daily_market_bars",
     "candidates",
     "filter_evaluations",
     "feature_snapshots",
@@ -21,7 +22,7 @@ EXPECTED_TABLES = {
 
 
 def test_business_table_registry_is_exact_and_schema_qualified() -> None:
-    assert len(BUSINESS_TABLES) == 13
+    assert len(BUSINESS_TABLES) == 14
     assert {table.name for table in BUSINESS_TABLES} == EXPECTED_TABLES
     assert {table.schema for table in BUSINESS_TABLES} == {"trading"}
 

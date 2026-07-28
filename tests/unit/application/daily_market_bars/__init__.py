@@ -1,0 +1,1 @@
+"""DailyMarketBar application unit tests."""

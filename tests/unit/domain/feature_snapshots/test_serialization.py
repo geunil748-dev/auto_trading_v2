@@ -28,6 +28,16 @@ def test_nested_decimal_is_fixed_non_scientific_and_mapping_order_is_canonical()
     assert canonical_json(first.feature_values) == canonical_json(second.feature_values)
 
 
+def test_decimal_canonicalization_preserves_precision_without_global_context() -> None:
+    source = snapshot_input(
+        feature_values={
+            "value": Decimal("0.0084033613445378151260504201680672269"),
+        }
+    )
+
+    assert source.feature_values["value"] == "0.0084033613445378151260504201680672269"
+
+
 @pytest.mark.parametrize(
     "invalid",
     [

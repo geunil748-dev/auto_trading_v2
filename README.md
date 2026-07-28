@@ -107,13 +107,26 @@ python -m pytest tests/integration -m integration
 
 현재 포함되는 것은 도메인 원시 타입, 변동성 돌파와 deterministic filter/strategy/risk 계산,
 Clock과 typed ID 포트, SQLAlchemy Core Repository, 명시적 Unit of Work, canonical metadata 및
-additive Alembic 마이그레이션, Point-in-Time FeatureSnapshot과 canonical Recommendation
-생성·저장 기반입니다. Recommendation은 사용자에게 제공할 추천 또는 비추천 결과를 검증·보존할
-뿐 실제 값을 계산하지 않습니다. 외부 데이터 수집, feature engineering, 모델, ranking/run,
+additive Alembic 마이그레이션, immutable DailyMarketBar, 21-session daily technical
+FeatureSnapshot과 canonical Recommendation 생성·저장 기반입니다. Recommendation은 사용자에게
+제공할 추천 또는 비추천 결과를 검증·보존할 뿐 실제 값을 계산하지 않습니다. 실제 외부 데이터
+provider, 모델, ranking/run,
 Outcome, 알림, 스케줄러와 실제 매매는 포함하지 않습니다. 상세 계약은
 [Recommendation 문서](docs/recommendations.md)를 참고하세요.
 
 자세한 경계는 [아키텍처 경계 문서](docs/architecture-boundaries.md)를 참고하세요.
+
+## Prediction P2 daily market features
+
+완료된 미국주식 일봉은 기존 `MarketSnapshot`과 분리된 immutable `DailyMarketBar`로 저장됩니다.
+Point-in-Time 조회는 `available_at <= as_of`인 session별 최신 revision만 선택합니다.
+`US_EQUITY_DAILY_TECHNICAL/v1` builder는 최신 21개 `SPLIT_ADJUSTED` bar에서 Decimal 기반
+17개 기술 feature를 계산하며 READY, DEGRADED, DATA_INSUFFICIENT를 구분합니다. 실제 provider
+API와 Recommendation 계산은 아직 구현하지 않습니다.
+
+상세 계약은 [DailyMarketBar](docs/daily-market-bars.md),
+[feature building](docs/feature-building.md), [ADR 0005](docs/adr/0005-canonical-daily-market-bars.md)를
+참고하세요.
 
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.

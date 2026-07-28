@@ -38,6 +38,7 @@ class DotNetConnectionFactory:
         builder.PersistSecurityInfo = False
         builder.ApplicationName = "auto_trading_v2"
         builder.MultipleActiveResultSets = False
+        builder.Pooling = self.settings.environment != "test"
         return builder
 
     def create_connection(self) -> object:

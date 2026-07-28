@@ -5,6 +5,7 @@ from uuid import NAMESPACE_URL, uuid5
 
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
+    DailyMarketBarID,
     DecisionID,
     FeatureSnapshotID,
     FillID,
@@ -29,6 +30,16 @@ class UuidFilterEvaluationIDFactory:
 
     def new(self) -> FilterEvaluationID:
         return self.identifier_factory.new(FilterEvaluationID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyMarketBarIDFactory:
+    """Adapt the existing UUID policy to canonical DailyMarketBar IDs."""
+
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyMarketBarID:
+        return self.identifier_factory.new(DailyMarketBarID)
 
 
 @dataclass(frozen=True, slots=True)

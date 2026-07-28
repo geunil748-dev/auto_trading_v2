@@ -1,8 +1,15 @@
 """Application ports implemented by external adapters."""
 
+from auto_trading_v2.application.ports.daily_market_bars import DailyMarketBarRepository
+from auto_trading_v2.application.ports.daily_market_data import (
+    CompletedDailyMarketBarObservation,
+    DailyMarketDataProvider,
+    FetchCompletedDailyBarsRequest,
+)
 from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
 from auto_trading_v2.application.ports.id_factory import (
     ClientOrderIDFactory,
+    DailyMarketBarIDFactory,
     DecisionIDFactory,
     FeatureSnapshotIDFactory,
     FillIDFactory,
@@ -33,12 +40,17 @@ from auto_trading_v2.application.ports.unit_of_work import UnitOfWork, UnitOfWor
 __all__ = [
     "CandidateRepository",
     "ClientOrderIDFactory",
+    "CompletedDailyMarketBarObservation",
+    "DailyMarketBarIDFactory",
+    "DailyMarketBarRepository",
+    "DailyMarketDataProvider",
     "DecisionIDFactory",
     "FeatureSnapshotIDFactory",
     "FeatureSnapshotRepository",
     "FilterEvaluationIDFactory",
     "FilterEvaluationRepository",
     "FillIDFactory",
+    "FetchCompletedDailyBarsRequest",
     "MarketSnapshotRepository",
     "OrderIDFactory",
     "PaperPositionRepository",
