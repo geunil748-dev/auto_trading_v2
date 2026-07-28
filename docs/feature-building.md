@@ -61,3 +61,20 @@ that scope, calls the pure builder, and delegates valid input to the existing
 Provenance contains the 21 safe source identities, versions, observed/available timestamps, and
 DailyMarketBar content digests. It does not duplicate raw prices or provider payloads. P2 does not
 calculate a model, probability, rank, Recommendation, Outcome, or order.
+
+## Twelve Data orchestration
+
+`TwelveDataDailyFeatureService` is an explicit ingest-then-build boundary:
+
+```text
+TWELVE_DATA_TIME_SERIES ingest
+→ immutable DailyMarketBar persistence
+→ DailyTechnicalFeatureSnapshotService.build with the same source code
+```
+
+It never selects another provider and never passes `RAW` bars to the technical builder. With the
+initial split-adjusted volume policy, 21 sessions produce
+`DEGRADED / VOLUME_DATA_INCOMPLETE`: the 14 price features remain populated and
+`volume_ratio_5_to_20`, `latest_volume_to_avg20`, and `average_dollar_volume_20` are null.
+Allowed build outcomes remain `CREATED`, `ALREADY_EXISTS`, and `DATA_INSUFFICIENT`; no path creates
+a Recommendation, TradeIntent, broker request, or order.

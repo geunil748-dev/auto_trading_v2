@@ -81,6 +81,24 @@ HTTPS base URL과 모든 credential이 필요하다. base URL에는 user info, q
 않는다. `live`와 `real`은 지원하지 않는다. access token key는 정의하지 않으며 향후 runtime token
 cache가 관리해야 한다. 이 PR에는 KIS HTTP client, token 발급, broker adapter가 없다.
 
+Twelve Data daily market data:
+
+- `AUTO_TRADING_V2_TWELVE_DATA_ENABLED`: 기본 `false`
+- `AUTO_TRADING_V2_TWELVE_DATA_BASE_URL`: 기본 `https://api.twelvedata.com`
+- `AUTO_TRADING_V2_TWELVE_DATA_API_KEY`
+- `AUTO_TRADING_V2_TWELVE_DATA_CONNECT_TIMEOUT_SECONDS`: 기본 `5`
+- `AUTO_TRADING_V2_TWELVE_DATA_READ_TIMEOUT_SECONDS`: 기본 `15`
+- `AUTO_TRADING_V2_TWELVE_DATA_CREDITS_PER_MINUTE`: 기본 `8`
+- `AUTO_TRADING_V2_TWELVE_DATA_DAILY_CREDIT_BUDGET`: 기본 `800`
+- `AUTO_TRADING_V2_TWELVE_DATA_MAXIMUM_RETRY_ATTEMPTS`: 기본 `3`
+- `AUTO_TRADING_V2_TWELVE_DATA_MAXIMUM_REQUESTS_PER_OPERATION`: 기본 `1`
+
+`TwelveDataMarketDataSettings`는 KIS/Toss 설정과 독립된 frozen 설정 경계다. disabled이면 API
+key가 필요하지 않고 보관하지 않으며, enabled이면 key가 필수다. HTTPS URL만 허용하고 user info,
+query, fragment는 거부한다. timeout, credit, retry/request 수는 bounded validation을 거친다.
+분당 8/일 800은 `verified_at=2026-07-28`의 무료 운영 기본값이며 Domain 정책이 아니다.
+loader는 네트워크를 호출하지 않고 import만으로 `.env`를 읽지 않는다.
+
 Telegram:
 
 - `AUTO_TRADING_V2_TELEGRAM_ENABLED`: 기본 `false`
@@ -97,9 +115,9 @@ Boolean은 대소문자와 앞뒤 공백을 정규화한 뒤 `true`, `1`, `yes`,
 ## Typed settings와 secret redaction
 
 `AppSettings`와 하위 설정 객체는 frozen dataclass다. Domain은 설정 객체나 credential을 알지
-않는다. 민감 값은 `SecretValue`가 보관하며 실제 adapter가 필요한 시점에만 명시적인
-`reveal()`을 호출해야 한다. 이번 범위에는 DB engine 또는 외부 API client 생성이 없으므로
-새로운 reveal 호출도 없다.
+않는다. 민감 값은 `SecretValue`가 보관하며 실제 adapter가 요청을 구성하는 순간에만 명시적인
+`reveal()`을 호출한다. Twelve Data key는 raw URL, query log, 예외, 진단, dataclass
+representation에 포함하지 않는다.
 
 오류에는 canonical key, missing/invalid 사유, 허용 값만 포함되고 실제 입력값은 포함되지 않는다.
 진단 출력과 dataclass representation에도 URL, App Key, App Secret, 계좌번호, Telegram token,

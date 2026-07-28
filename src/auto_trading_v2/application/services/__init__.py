@@ -27,6 +27,12 @@ from auto_trading_v2.application.services.trade_intent import (
     CandidateTradeIntentService,
     TradeIntentBatchResult,
 )
+from auto_trading_v2.application.services.twelve_data_daily_features import (
+    TwelveDataDailyFeatureService,
+)
+from auto_trading_v2.application.services.twelve_data_ingestion import (
+    TwelveDataDailyMarketBarIngestionService,
+)
 
 __all__ = [
     "CandidateFilterEvaluationService",
@@ -40,4 +46,6 @@ __all__ = [
     "RecommendationCreationService",
     "StrategyDecisionBatchResult",
     "TradeIntentBatchResult",
+    "TwelveDataDailyMarketBarIngestionService",
+    "TwelveDataDailyFeatureService",
 ]

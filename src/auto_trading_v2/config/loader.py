@@ -20,6 +20,7 @@ from auto_trading_v2.config.models import (
     SettingSource,
     TelegramSettings,
 )
+from auto_trading_v2.config.twelve_data_keys import TWELVE_DATA_KEYS
 from auto_trading_v2.config.validation import (
     normalize_choice,
     parse_boolean,
@@ -79,6 +80,7 @@ CANONICAL_KEYS = frozenset(
         TELEGRAM_ENABLED_KEY,
         TELEGRAM_BOT_TOKEN_KEY,
         TELEGRAM_CHAT_ID_KEY,
+        *TWELVE_DATA_KEYS,
     }
 )
 
@@ -102,9 +104,7 @@ def repository_env_file() -> Path:
 def _select_env_file(env_file: Path | None) -> Path:
     if env_file is None:
         return repository_env_file()
-    if env_file.is_absolute():
-        return env_file
-    return REPOSITORY_ROOT / env_file
+    return env_file if env_file.is_absolute() else REPOSITORY_ROOT / env_file
 
 
 def _read_env_file(env_file: Path) -> dict[str, str]:

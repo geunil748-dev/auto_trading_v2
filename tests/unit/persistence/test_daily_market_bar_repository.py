@@ -56,6 +56,7 @@ def test_repository_protocol_is_insert_only_with_pit_query() -> None:
         "add",
         "get_by_id",
         "get_by_bar_key",
+        "get_by_source_identity",
         "list_latest_available",
     }
     assert not {"update", "delete", "upsert", "commit", "rollback"}.intersection(methods)

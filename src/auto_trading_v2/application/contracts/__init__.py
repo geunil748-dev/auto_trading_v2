@@ -61,6 +61,14 @@ from auto_trading_v2.application.contracts.trade_intents import (
     NewTradeIntent,
     StoredTradeIntent,
 )
+from auto_trading_v2.application.contracts.twelve_data_ingestion import (
+    TwelveDataDailyFeatureCommand,
+    TwelveDataDailyFeatureResult,
+    TwelveDataDailyMarketBarIngestionCommand,
+    TwelveDataIngestionOutcome,
+    TwelveDataIngestionResult,
+    TwelveDataIngestionSummary,
+)
 
 __all__ = [
     "JSONValue",
@@ -104,4 +112,10 @@ __all__ = [
     "StoredPaperPosition",
     "StoredPositionEvent",
     "StoredTradeIntent",
+    "TwelveDataDailyMarketBarIngestionCommand",
+    "TwelveDataDailyFeatureCommand",
+    "TwelveDataDailyFeatureResult",
+    "TwelveDataIngestionOutcome",
+    "TwelveDataIngestionResult",
+    "TwelveDataIngestionSummary",
 ]

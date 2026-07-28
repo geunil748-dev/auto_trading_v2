@@ -32,6 +32,7 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 markers = [
     "integration: requires an explicitly configured temporary Microsoft SQL Server database",
+    "external_integration: requires explicitly configured external provider credentials",
 ]
 
 [tool.ruff]
