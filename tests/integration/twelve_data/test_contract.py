@@ -62,7 +62,6 @@ def test_scripted_contract_ingestion_retry_revision_and_degraded_feature(
     assert request.path == "/time_series"
     assert set(query) == {
         "adjust",
-        "apikey",
         "end_date",
         "interval",
         "mic_code",
@@ -72,10 +71,12 @@ def test_scripted_contract_ingestion_retry_revision_and_degraded_feature(
     }
     assert query["adjust"] == "splits"
     assert query["interval"] == "1day"
-    assert query["mic_code"] == "XNAS"
+    assert query["mic_code"] == "XNGS"
     assert query["outputsize"] == "21"
     assert query["order"] == "asc"
-    assert API_KEY not in repr(request)
+    assert request.headers == (("Authorization", f"apikey {API_KEY}"),)
+    assert API_KEY not in f"{request!r}|{request!s}"
+    assert "Authorization" not in f"{request!r}|{request!s}"
 
     as_of = clock.now_utc()
     build = feature_service(sqlalchemy_uow_factory, as_of, 271999)

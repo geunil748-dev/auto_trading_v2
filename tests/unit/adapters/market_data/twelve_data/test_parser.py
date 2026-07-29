@@ -112,6 +112,7 @@ def test_fetch_time_does_not_change_source_version() -> None:
     first = parser.parse(body, request, NOW)[0]
     second = parser.parse(body, request, NOW + timedelta(hours=1))[0]
 
+    assert first.source_record_key == "XNGS.AAPL.20260701.SPLITS"
     assert first.source_version == second.source_version
     assert first.source_record_key == second.source_record_key
     assert first.available_at != second.available_at

@@ -1,27 +1,47 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from sqlalchemy import func, select
 
 from auto_trading_v2.adapters.clock import FixedClock, SystemClock
-from auto_trading_v2.adapters.market_data import UrllibHttpTransport
+from auto_trading_v2.adapters.market_data import (
+    HttpRequest,
+    HttpResponse,
+    UrllibHttpTransport,
+)
 from auto_trading_v2.adapters.market_data.twelve_data import (
     TWELVE_DATA_SOURCE_CODE,
     TwelveDataCreditLimiter,
     TwelveDataDailyMarketDataProvider,
+    TwelveDataProviderError,
 )
 from auto_trading_v2.adapters.persistence import SqlAlchemyUnitOfWorkFactory
 from auto_trading_v2.adapters.persistence.dotnet import DotNetUnitOfWorkFactory
+from auto_trading_v2.adapters.persistence.tables import (
+    paper_orders as paper_orders_table,
+)
+from auto_trading_v2.adapters.persistence.tables import (
+    recommendations as recommendations_table,
+)
+from auto_trading_v2.adapters.persistence.tables import (
+    trade_intents as trade_intents_table,
+)
 from auto_trading_v2.application.contracts.twelve_data_ingestion import (
     TwelveDataIngestionOutcome,
 )
 from auto_trading_v2.application.feature_building import (
     DailyTechnicalFeatureSnapshotBuildOutcome,
 )
+from auto_trading_v2.application.ports.daily_market_data import (
+    CompletedDailyMarketBarObservation,
+    FetchCompletedDailyBarsRequest,
+)
 from auto_trading_v2.config import load_twelve_data_market_data_settings
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
 from auto_trading_v2.domain.feature_snapshots import FeatureQualityStatus
 from auto_trading_v2.domain.primitives import Symbol
 from tests.integration.daily_market_bars.helpers import build_command, feature_service
+from tests.integration.persistence.conftest import TemporaryMssqlDatabase
 from tests.integration.twelve_data.helpers import (
     ScriptedTransport,
     ingestion_command,
@@ -36,8 +56,65 @@ if not _SETTINGS.enabled or _SETTINGS.api_key is None:
         pytest.mark.skip(reason="Twelve Data credential is not configured"),
     ]
 
+_PRICE_FEATURES = (
+    "last_close",
+    "one_day_return",
+    "five_day_return",
+    "twenty_day_return",
+    "latest_gap_return",
+    "latest_intraday_return",
+    "latest_range_rate",
+    "close_vs_sma5",
+    "close_vs_sma10",
+    "close_vs_sma20",
+    "realized_volatility_20d",
+    "atr14_rate",
+    "distance_from_prior_20d_high",
+    "distance_from_prior_20d_low",
+)
+
+
+class CountingHttpTransport:
+    def __init__(self) -> None:
+        self.calls = 0
+        self._delegate = UrllibHttpTransport()
+
+    def send(
+        self,
+        base_url: str,
+        request: HttpRequest,
+        *,
+        connect_timeout_seconds: float,
+        read_timeout_seconds: float,
+    ) -> HttpResponse:
+        self.calls += 1
+        return self._delegate.send(
+            base_url,
+            request,
+            connect_timeout_seconds=connect_timeout_seconds,
+            read_timeout_seconds=read_timeout_seconds,
+        )
+
+
+class SafeDiagnosticCapturingProvider:
+    def __init__(self, delegate: TwelveDataDailyMarketDataProvider) -> None:
+        self._delegate = delegate
+        self.capabilities = delegate.capabilities
+        self.last_error: TwelveDataProviderError | None = None
+
+    def fetch_completed_daily_bars(
+        self,
+        request: FetchCompletedDailyBarsRequest,
+    ) -> tuple[CompletedDailyMarketBarObservation, ...]:
+        try:
+            return self._delegate.fetch_completed_daily_bars(request)
+        except TwelveDataProviderError as error:
+            self.last_error = error
+            raise
+
 
 def test_live_aapl_split_adjusted_ingestion_and_parity(
+    mssql_database: TemporaryMssqlDatabase,
     sqlalchemy_uow_factory: SqlAlchemyUnitOfWorkFactory,
     dotnet_uow_factory: DotNetUnitOfWorkFactory,
 ) -> None:
@@ -47,16 +124,19 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
         daily_credit_budget=_SETTINGS.daily_credit_budget,
         clock=system_clock,
     )
-    provider = TwelveDataDailyMarketDataProvider(
-        _SETTINGS,
-        UrllibHttpTransport(),
-        limiter,
-        system_clock,
+    transport = CountingHttpTransport()
+    provider = SafeDiagnosticCapturingProvider(
+        TwelveDataDailyMarketDataProvider(
+            _SETTINGS,
+            transport,
+            limiter,
+            system_clock,
+        )
     )
     cutoff = system_clock.now_utc().date() - timedelta(days=10)
     live_command = type(ingestion_command())(
         symbol=Symbol("AAPL"),
-        mic_code="XNAS",
+        mic_code="XNGS",
         adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
         completed_through_session_date=type(ingestion_command().completed_through_session_date)(
             cutoff
@@ -74,11 +154,21 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
     object.__setattr__(subject, "clock", system_clock)
 
     created = subject.ingest(live_command)
+    if created.outcome is not TwelveDataIngestionOutcome.COMPLETED:
+        error = provider.last_error
+        pytest.fail(
+            "TWELVE_DATA_LIVE_SAFE_FAILURE "
+            f"category={created.summary.safe_error_category} "
+            f"http_status={None if error is None else error.http_status} "
+            f"provider_code={None if error is None else error.provider_code} "
+            f"safe_parameter_hint={None if error is None else error.safe_parameter_hint} "
+            f"retry_count={max(0, transport.calls - 1)}"
+        )
     repeated = subject.ingest(live_command)
 
-    assert created.outcome is TwelveDataIngestionOutcome.COMPLETED
     assert created.summary.created_count >= 1
     assert repeated.outcome is TwelveDataIngestionOutcome.COMPLETED_WITH_EXISTING
+    assert transport.calls == 2
     assert all(bar.bar_input.session_date.value <= cutoff for bar in created.bars)
     assert all(bar.bar_input.volume is None for bar in created.bars)
     latest = created.bars[-1]
@@ -114,6 +204,7 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
         snapshot = result.snapshot.snapshot_input
         assert snapshot.quality_status is FeatureQualityStatus.DEGRADED
         assert snapshot.quality_reason_codes == ("VOLUME_DATA_INCOMPLETE",)
+        assert all(snapshot.feature_values[name] is not None for name in _PRICE_FEATURES)
         assert snapshot.feature_values["volume_ratio_5_to_20"] is None
         assert snapshot.feature_values["latest_volume_to_avg20"] is None
         assert snapshot.feature_values["average_dollar_volume_20"] is None
@@ -122,3 +213,22 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
                 result.snapshot.feature_snapshot_id
             )
         assert recommendations == ()
+
+    with mssql_database.engine.connect() as connection:
+        side_effect_counts = tuple(
+            connection.execute(select(func.count()).select_from(table)).scalar_one()
+            for table in (
+                recommendations_table,
+                trade_intents_table,
+                paper_orders_table,
+            )
+        )
+    assert side_effect_counts == (0, 0, 0)
+
+    oldest = created.bars[0].bar_input.session_date.serialize()
+    newest = created.bars[-1].bar_input.session_date.serialize()
+    print(
+        "TWELVE_DATA_LIVE_SAFE_RESULT "
+        f"requests={transport.calls} parsed_rows={len(created.bars)} "
+        f"oldest_session={oldest} newest_session={newest}"
+    )

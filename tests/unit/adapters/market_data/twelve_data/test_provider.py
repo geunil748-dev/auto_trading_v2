@@ -46,17 +46,18 @@ def test_exact_time_series_request_and_split_adjusted_mapping() -> None:
     assert request.path == "/time_series"
     assert dict(request.query) == {
         "symbol": "AAPL",
-        "mic_code": "XNAS",
+        "mic_code": "XNGS",
         "interval": "1day",
         "outputsize": "3",
         "end_date": "2026-07-01",
         "adjust": "splits",
         "order": "asc",
-        "apikey": API_KEY_SENTINEL,
     }
+    assert request.headers == (("Authorization", f"apikey {API_KEY_SENTINEL}"),)
     assert connect_timeout == 5
     assert read_timeout == 15
-    assert API_KEY_SENTINEL not in repr(request)
+    assert API_KEY_SENTINEL not in f"{request!r}|{request!s}"
+    assert "Authorization" not in f"{request!r}|{request!s}"
 
 
 def test_raw_mapping_preserves_valid_provider_volume() -> None:
@@ -70,7 +71,7 @@ def test_raw_mapping_preserves_valid_provider_volume() -> None:
     assert dict(transport.calls[0][1].query)["adjust"] == "none"
 
 
-@pytest.mark.parametrize("mic_code", ("XNAS", "XNYS", "XASE"))
+@pytest.mark.parametrize("mic_code", ("XNGS", "XNGM", "XNCM", "XNYS", "XASE"))
 def test_supported_mics_are_sent_explicitly(mic_code: str) -> None:
     transport = ScriptedTransport(response(payload(mic_code=mic_code)))
 
@@ -79,13 +80,15 @@ def test_supported_mics_are_sent_explicitly(mic_code: str) -> None:
     assert dict(transport.calls[0][1].query)["mic_code"] == mic_code
 
 
-def test_unsupported_mic_is_rejected_before_network() -> None:
+@pytest.mark.parametrize("mic_code", ("XNAS", "XLON"))
+def test_unsupported_mic_is_rejected_before_network(mic_code: str) -> None:
     transport = ScriptedTransport(response(payload()))
 
     with pytest.raises(TwelveDataProviderError) as raised:
-        provider(transport).fetch_completed_daily_bars(fetch_request(mic_code="XLON"))
+        provider(transport).fetch_completed_daily_bars(fetch_request(mic_code=mic_code))
 
     assert raised.value.category is TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST
+    assert raised.value.safe_parameter_hint == "mic_code"
     assert transport.calls == []
 
 
@@ -95,6 +98,7 @@ def test_unsupported_mic_is_rejected_before_network() -> None:
         TimeoutError("sentinel must not escape"),
         OSError("sentinel must not escape"),
         HttpResponse(429, (), b""),
+        HttpResponse(500, (), b""),
         HttpResponse(503, (), b""),
         response({"status": "error", "code": 429, "message": "sentinel"}),
     ),
@@ -110,15 +114,71 @@ def test_transient_failures_retry_with_bounded_backoff(first: object) -> None:
     assert sleeps == [1.0]
 
 
-def test_permanent_http_error_does_not_retry() -> None:
+def test_non_json_bad_request_is_safely_classified_without_retry() -> None:
     transport = ScriptedTransport(HttpResponse(400, (), b"provider body sentinel"))
 
     with pytest.raises(TwelveDataProviderError) as raised:
         provider(transport).fetch_completed_daily_bars(fetch_request())
 
-    assert raised.value.category is TwelveDataErrorCategory.HTTP_PERMANENT_FAILURE
+    assert raised.value.category is TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST
+    assert raised.value.http_status == 400
+    assert raised.value.provider_code is None
+    assert raised.value.safe_parameter_hint is None
     assert len(transport.calls) == 1
-    assert "sentinel" not in str(raised.value)
+    assert "sentinel" not in f"{raised.value!r}|{raised.value!s}"
+
+
+def test_bad_request_exposes_only_safe_provider_diagnostics() -> None:
+    raw_message = f"invalid mic_code {API_KEY_SENTINEL}"
+    transport = ScriptedTransport(
+        response(
+            {"status": "error", "code": "400", "message": raw_message},
+            status_code=400,
+        )
+    )
+
+    with pytest.raises(TwelveDataProviderError) as raised:
+        provider(transport).fetch_completed_daily_bars(fetch_request())
+
+    assert raised.value.category is TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST
+    assert raised.value.http_status == 400
+    assert raised.value.provider_code == 400
+    assert raised.value.safe_parameter_hint == "mic_code"
+    assert API_KEY_SENTINEL not in f"{raised.value!r}|{raised.value!s}"
+
+
+@pytest.mark.parametrize(
+    ("status_code", "category"),
+    (
+        (401, TwelveDataErrorCategory.AUTHENTICATION_REJECTED),
+        (403, TwelveDataErrorCategory.ACCESS_FORBIDDEN),
+        (404, TwelveDataErrorCategory.INSTRUMENT_NOT_FOUND),
+    ),
+)
+def test_permanent_http_statuses_are_distinct_and_safe(
+    status_code: int,
+    category: TwelveDataErrorCategory,
+) -> None:
+    transport = ScriptedTransport(
+        response(
+            {
+                "status": "error",
+                "code": status_code,
+                "message": f"symbol failure {API_KEY_SENTINEL}",
+            },
+            status_code=status_code,
+        )
+    )
+
+    with pytest.raises(TwelveDataProviderError) as raised:
+        provider(transport).fetch_completed_daily_bars(fetch_request())
+
+    assert raised.value.category is category
+    assert raised.value.http_status == status_code
+    assert raised.value.provider_code == status_code
+    assert raised.value.safe_parameter_hint == "symbol"
+    assert len(transport.calls) == 1
+    assert API_KEY_SENTINEL not in f"{raised.value!r}|{raised.value!s}"
 
 
 def test_invalid_key_provider_error_does_not_retry_or_leak() -> None:
@@ -130,6 +190,8 @@ def test_invalid_key_provider_error_does_not_retry_or_leak() -> None:
         provider(transport).fetch_completed_daily_bars(fetch_request())
 
     assert raised.value.category is TwelveDataErrorCategory.AUTHENTICATION_REJECTED
+    assert raised.value.http_status == 200
+    assert raised.value.provider_code == 401
     assert len(transport.calls) == 1
     assert API_KEY_SENTINEL not in f"{raised.value!r}|{raised.value!s}"
 

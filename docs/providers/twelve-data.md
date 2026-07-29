@@ -9,13 +9,13 @@ market-data port. Its source code is `TWELVE_DATA_TIME_SERIES`; it uses only the
 The implemented request contract is:
 
 - `symbol=<caller symbol>`
-- `mic_code=XNAS|XNYS|XASE`
+- `mic_code=XNGS|XNGM|XNCM|XNYS|XASE` (listing MIC; no operating-MIC aliasing)
 - `interval=1day`
 - `outputsize=<requested completed sessions>`, bounded by the official 5,000-row maximum
 - `end_date=<explicit completed cutoff YYYY-MM-DD>`
 - `adjust=splits` for `SPLIT_ADJUSTED`, or `adjust=none` for `RAW`
 - `order=asc`
-- `apikey=<secret>`
+- `Authorization: apikey <secret>` header; no API key is placed in the query string
 
 The adapter validates the endpoint response's symbol, USD currency, MIC/exchange, exchange
 timezone, and daily interval. It parses finite Decimal strings directly, rejects blank/invalid
@@ -50,10 +50,10 @@ UTC day. It reserves credit before network I/O, waits with injected clocks/sleep
 window, resets at a UTC-day boundary, and blocks before network I/O when the daily budget is
 exhausted.
 
-Retries are bounded deterministic exponential backoff for timeouts, HTTP 429, HTTP
-500/502/503/504, and explicitly temporary provider errors. Invalid key/symbol/MIC, permanent 4xx,
-malformed response, parsing errors, and adjustment violations do not retry. Diagnostics retain only
-sanitized categories.
+Retries are bounded deterministic exponential backoff for timeouts, HTTP 429, HTTP 5xx, and
+explicitly temporary provider errors. HTTP 400, 401, 403, and 404 are distinct non-retryable
+categories. Raw error messages and bodies are discarded; diagnostics retain only the HTTP status,
+numeric provider code, and a recognized parameter-name hint.
 
 ## Point-in-Time revisions
 
@@ -68,7 +68,6 @@ provider content receives a new version and the first observation time of that r
 ## Live gate
 
 The local scripted transport, unit suite, and temporary MSSQL SQLAlchemy/.NET contract do not need
-an external key. The credential-gated live test uses AAPL/XNAS only when an ignored local `.env` or
-process environment enables Twelve Data and supplies a key. At the 2026-07-28 P2.1A verification
-the key was not configured, so external live validation was `NOT_RUN`; this does not trigger another
-provider or invalidate local review.
+an external key. The credential-gated live test uses the AAPL listing MIC `XNGS` only when an
+ignored local `.env` or process environment enables Twelve Data and supplies a key. The external
+request sends the credential only in the Authorization header.

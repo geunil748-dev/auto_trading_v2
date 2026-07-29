@@ -17,7 +17,7 @@ from auto_trading_v2.domain.daily_market_bars import (
 from auto_trading_v2.domain.feature_snapshots import TradingDayHorizon
 from auto_trading_v2.domain.primitives import SessionDate, Symbol
 
-_SUPPORTED_MICS = frozenset({"XNAS", "XNYS", "XASE"})
+_SUPPORTED_MICS = frozenset({"XNGS", "XNGM", "XNCM", "XNYS", "XASE"})
 _SAFE_CATEGORY = re.compile(r"^[A-Z0-9_]{1,96}$")
 
 

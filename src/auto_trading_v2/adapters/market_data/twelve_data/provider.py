@@ -39,8 +39,18 @@ TWELVE_DATA_CAPABILITIES = DailyMarketDataProviderCapabilities(
     supports_pagination=True,
     maximum_rows_per_request=5000,
 )
-_SUPPORTED_MICS = frozenset({"XNAS", "XNYS", "XASE"})
-_RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+_SUPPORTED_LISTING_MICS = frozenset({"XNGS", "XNGM", "XNCM", "XNYS", "XASE"})
+_SAFE_PARAMETER_HINTS = (
+    "symbol",
+    "mic_code",
+    "interval",
+    "outputsize",
+    "start_date",
+    "end_date",
+    "adjust",
+    "order",
+    "apikey",
+)
 
 
 class TwelveDataDailyMarketDataProvider:
@@ -72,9 +82,6 @@ class TwelveDataDailyMarketDataProvider:
         self._validate(request)
         response = self._send_with_retry(self._http_request(request))
         payload = self._payload(response)
-        provider_error = _provider_error_category(payload)
-        if provider_error is not None:
-            raise TwelveDataProviderError(provider_error)
         observed_at = self._clock.now_utc()
         return self._parser.parse(payload, request, observed_at)
 
@@ -85,8 +92,11 @@ class TwelveDataDailyMarketDataProvider:
             raise TwelveDataProviderError(TwelveDataErrorCategory.CONFIGURATION_MISSING)
         if request.source_code != TWELVE_DATA_SOURCE_CODE:
             raise TwelveDataProviderError(TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST)
-        if request.mic_code not in _SUPPORTED_MICS:
-            raise TwelveDataProviderError(TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST)
+        if request.mic_code not in _SUPPORTED_LISTING_MICS:
+            raise TwelveDataProviderError(
+                TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST,
+                safe_parameter_hint="mic_code",
+            )
         if request.completed_through_session_date is None:
             raise TwelveDataProviderError(TwelveDataErrorCategory.CONFIGURATION_INVALID)
         maximum = TWELVE_DATA_CAPABILITIES.maximum_rows_per_request
@@ -119,13 +129,16 @@ class TwelveDataDailyMarketDataProvider:
                 ("end_date", cutoff.serialize()),
                 ("adjust", adjustment),
                 ("order", "asc"),
-                ("apikey", api_key.reveal()),
             ),
+            headers=(("Authorization", f"apikey {api_key.reveal()}"),),
         )
 
     def _send_with_retry(self, request: HttpRequest) -> HttpResponse:
         maximum = self._settings.maximum_retry_attempts
         last_category = TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE
+        last_http_status: int | None = None
+        last_provider_code: int | None = None
+        last_parameter_hint: str | None = None
         for attempt in range(1, maximum + 1):
             self._credit_limiter.acquire(1)
             try:
@@ -137,36 +150,44 @@ class TwelveDataDailyMarketDataProvider:
                 )
             except TimeoutError:
                 last_category = TwelveDataErrorCategory.HTTP_TIMEOUT
+                last_http_status = None
+                last_provider_code = None
+                last_parameter_hint = None
             except OSError:
                 last_category = TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE
+                last_http_status = None
+                last_provider_code = None
+                last_parameter_hint = None
             else:
-                if response.status_code not in _RETRYABLE_STATUS:
-                    if response.status_code in {401, 403}:
-                        raise TwelveDataProviderError(
-                            TwelveDataErrorCategory.AUTHENTICATION_REJECTED
-                        )
-                    if response.status_code >= 400:
-                        raise TwelveDataProviderError(
-                            TwelveDataErrorCategory.HTTP_PERMANENT_FAILURE
-                        )
-                    provider_error = _provider_error_category(self._payload(response))
-                    if provider_error is None:
+                provider_code, parameter_hint = _provider_error_metadata(response)
+                category = _http_error_category(response.status_code)
+                if category is None:
+                    payload = self._payload(response)
+                    category = _provider_error_category(payload)
+                    if category is None:
                         return response
-                    if provider_error not in {
-                        TwelveDataErrorCategory.MINUTE_CREDIT_LIMIT,
-                        TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE,
-                    }:
-                        raise TwelveDataProviderError(provider_error)
-                    last_category = provider_error
-                else:
-                    last_category = (
-                        TwelveDataErrorCategory.MINUTE_CREDIT_LIMIT
-                        if response.status_code == 429
-                        else TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE
+                if category not in {
+                    TwelveDataErrorCategory.MINUTE_CREDIT_LIMIT,
+                    TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE,
+                }:
+                    raise TwelveDataProviderError(
+                        category,
+                        http_status=response.status_code,
+                        provider_code=provider_code,
+                        safe_parameter_hint=parameter_hint,
                     )
+                last_category = category
+                last_http_status = response.status_code
+                last_provider_code = provider_code
+                last_parameter_hint = parameter_hint
             if attempt < maximum:
                 self._sleeper(min(8.0, float(2 ** (attempt - 1))))
-        raise TwelveDataProviderError(last_category)
+        raise TwelveDataProviderError(
+            last_category,
+            http_status=last_http_status,
+            provider_code=last_provider_code,
+            safe_parameter_hint=last_parameter_hint,
+        )
 
     @staticmethod
     def _payload(response: HttpResponse) -> dict[str, Any]:
@@ -182,12 +203,72 @@ class TwelveDataDailyMarketDataProvider:
 def _provider_error_category(payload: dict[str, Any]) -> TwelveDataErrorCategory | None:
     if payload.get("status") != "error":
         return None
-    raw_code = payload.get("code")
-    code = int(raw_code) if isinstance(raw_code, str) and raw_code.isdigit() else raw_code
-    if code in {401, 403}:
+    code = _safe_provider_code(payload.get("code"))
+    if code == 401:
         return TwelveDataErrorCategory.AUTHENTICATION_REJECTED
+    if code == 403:
+        return TwelveDataErrorCategory.ACCESS_FORBIDDEN
+    if code == 404:
+        return TwelveDataErrorCategory.INSTRUMENT_NOT_FOUND
     if code == 429:
         return TwelveDataErrorCategory.MINUTE_CREDIT_LIMIT
-    if isinstance(code, int) and code >= 500:
+    if code is not None and 500 <= code <= 599:
         return TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE
     return TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST
+
+
+def _http_error_category(status_code: int) -> TwelveDataErrorCategory | None:
+    if status_code < 400:
+        return None
+    if status_code == 400:
+        return TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST
+    if status_code == 401:
+        return TwelveDataErrorCategory.AUTHENTICATION_REJECTED
+    if status_code == 403:
+        return TwelveDataErrorCategory.ACCESS_FORBIDDEN
+    if status_code == 404:
+        return TwelveDataErrorCategory.INSTRUMENT_NOT_FOUND
+    if status_code == 429:
+        return TwelveDataErrorCategory.MINUTE_CREDIT_LIMIT
+    if 500 <= status_code <= 599:
+        return TwelveDataErrorCategory.HTTP_TRANSIENT_FAILURE
+    return TwelveDataErrorCategory.HTTP_PERMANENT_FAILURE
+
+
+def _provider_error_metadata(response: HttpResponse) -> tuple[int | None, str | None]:
+    try:
+        payload = json.loads(response.body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return None, None
+    if not isinstance(payload, dict):
+        return None, None
+    return (
+        _safe_provider_code(payload.get("code")),
+        _provider_parameter_hint(payload),
+    )
+
+
+def _safe_provider_code(value: object) -> int | None:
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str) and value.isdigit():
+        return int(value)
+    return None
+
+
+def _provider_parameter_hint(payload: dict[object, object]) -> str | None:
+    candidate = payload.get("parameter")
+    if isinstance(candidate, str):
+        normalized = candidate.strip().lower()
+        if normalized in _SAFE_PARAMETER_HINTS:
+            return normalized
+    message = payload.get("message")
+    if not isinstance(message, str):
+        return None
+    normalized_message = message.lower()
+    return next(
+        (parameter for parameter in _SAFE_PARAMETER_HINTS if parameter in normalized_message),
+        None,
+    )
