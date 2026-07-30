@@ -36,6 +36,12 @@ Migration and temporary-database tooling must explicitly call
 not connect to SQL Server. URL values remain wrapped in `SecretValue` and are not included in
 representations or diagnostics.
 
+Administration transport is also explicit. Both transport keys default to `tcp_url`;
+`local_shared_memory` is a local-integration-only opt-in for the default local SQL Server instance.
+It requires a loopback `master` URL declaring ODBC Driver 18 and Windows integrated authentication.
+The LPC engine is never selected as a fallback after a TCP failure, and it is rejected for remote,
+named-instance, SQL-auth, development, or production targets.
+
 ## Source precedence
 
 각 key는 다음 순서로 한 번만 선택한다.
@@ -61,7 +67,9 @@ MSSQL:
 
 - `AUTO_TRADING_V2_DATABASE_URL`: 필수, `mssql+pyodbc`, database `auto_trading_v2`
 - `AUTO_TRADING_V2_MSSQL_ADMIN_URL`: 선택, database `master`
+- `AUTO_TRADING_V2_MSSQL_ADMIN_TRANSPORT`: `tcp_url`, `local_shared_memory`; 기본 `tcp_url`
 - `AUTO_TRADING_V2_TEST_ADMIN_URL`: 선택, database `master`
+- `AUTO_TRADING_V2_TEST_ADMIN_TRANSPORT`: `tcp_url`, `local_shared_memory`; 기본 `tcp_url`
 
 설정 검증은 URL을 parse할 뿐 engine을 생성하거나 SQL Server에 연결하지 않는다. URL은
 `SecretValue`로 보관되어 `repr()`과 `str()`에서 항상 redacted된다.
@@ -98,6 +106,28 @@ key가 필요하지 않고 보관하지 않으며, enabled이면 key가 필수�
 query, fragment는 거부한다. timeout, credit, retry/request 수는 bounded validation을 거친다.
 분당 8/일 800은 `verified_at=2026-07-28`의 무료 운영 기본값이며 Domain 정책이 아니다.
 loader는 네트워크를 호출하지 않고 import만으로 `.env`를 읽지 않는다.
+
+Alpaca IEX validation market data:
+
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_ENABLED`: default `false`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_BASE_URL`: exact default
+  `https://data.alpaca.markets`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_API_KEY_ID`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_API_SECRET_KEY`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_FEED`: only `iex`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_CONNECT_TIMEOUT_SECONDS`: default `5`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_READ_TIMEOUT_SECONDS`: default `15`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_REQUESTS_PER_MINUTE`: default `200`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_MAXIMUM_RETRY_ATTEMPTS`: default `3`
+- `AUTO_TRADING_V2_ALPACA_MARKET_DATA_MAXIMUM_PAGES`: default `5`
+
+`AlpacaMarketDataSettings` is independent from KIS trading/account/order configuration. Disabled
+settings ignore both credentials. Enabled settings require both credentials and permit only the
+official HTTPS data host with no user info, port, path, query, or fragment. The API key ID and
+secret are `SecretValue` instances and are revealed only when the HTTP adapter builds the
+`APCA-API-KEY-ID` and `APCA-API-SECRET-KEY` headers. They never enter a query string, URL,
+diagnostic, exception, cache, database row, or representation. Loading settings does not read a
+dotenv file or perform network I/O until the loader is explicitly called.
 
 Telegram:
 

@@ -33,6 +33,14 @@ Twelve Data는 최초 실제 일봉 provider이며 기본적으로 disabled입�
 [Twelve Data 문서](docs/providers/twelve-data.md)와
 [provider matrix](docs/providers/provider-matrix.md)를 참고하십시오.
 
+Alpaca IEX는 `ALPACA_IEX_STOCK_BARS`라는 별도 validation-only 일봉 source입니다. IEX 한
+거래소의 단일 종목 historical bars만 읽으며 Twelve Data의 fallback, 대체 source, 자동
+선택 기준이 아닙니다. 비교 서비스는 두 source를 각각 Point-in-Time 조회한 뒤 겹치는
+session의 close 차이와 return 방향 일치율만 immutable report로 계산합니다. 결과를
+저장하거나 Recommendation·TradeIntent·주문을 만들지 않습니다. 자세한 계약은
+[Alpaca IEX provider](docs/providers/alpaca-iex.md)와
+[ADR 0007](docs/adr/0007-alpaca-iex-validation-provider.md)을 참고하십시오.
+
 `auto_trading_v2`는 기존 `auto_trading`과 코드, 데이터베이스, 런타임 상태를 공유하지 않는
 독립 프로젝트입니다. Microsoft SQL Server canonical schema 위에서 filter evaluation, strategy
 decision, TradeIntent, internal paper fill과 BUY position projection 경계를 구현합니다. 실제
@@ -69,6 +77,7 @@ PowerShell:
 $env:AUTO_TRADING_V2_MSSQL_ADMIN_URL = "<redacted-admin-sqlalchemy-url>"
 $env:AUTO_TRADING_V2_DATABASE_URL = "<redacted-v2-database-url>"
 $env:AUTO_TRADING_V2_TEST_ADMIN_URL = "<redacted-test-admin-url>"
+$env:AUTO_TRADING_V2_TEST_ADMIN_TRANSPORT = "tcp_url"
 
 python scripts/create_database.py
 alembic upgrade head
@@ -84,6 +93,7 @@ Bash:
 export AUTO_TRADING_V2_MSSQL_ADMIN_URL="<redacted-admin-sqlalchemy-url>"
 export AUTO_TRADING_V2_DATABASE_URL="<redacted-v2-database-url>"
 export AUTO_TRADING_V2_TEST_ADMIN_URL="<redacted-test-admin-url>"
+export AUTO_TRADING_V2_TEST_ADMIN_TRANSPORT="tcp_url"
 
 python scripts/create_database.py
 alembic upgrade head
@@ -98,6 +108,13 @@ python -m pytest tests/integration -m integration
 `auto_trading_v2_test_` 접두사의 임시 DB를 만들고 자신이 만든 DB만 삭제합니다. 세 변수 중
 필요한 URL이 없으면 해당 통합 테스트는 skip됩니다. URL을 화면에 출력하거나 `echo`하지
 마세요. 상세 정책은 [데이터베이스 스키마 문서](docs/database-schema.md)를 참고하세요.
+
+로컬 Windows의 default SQL Server instance에서만 통합 테스트 관리 경로를
+`local_shared_memory`로 명시적으로 선택할 수 있습니다. 이 모드는 SQLAlchemy admin/target에
+LPC Windows 통합 인증을 사용하며, DotNet target은 기존 공식 TCP SQL 인증 설정을 유지합니다.
+기본값은 `tcp_url`이고 두 transport 사이의 자동 fallback은 없습니다. 실제 `.env`를 변경하지
+않고 실행하려면 현재 process에만
+`AUTO_TRADING_V2_TEST_ADMIN_TRANSPORT=local_shared_memory`를 설정합니다.
 
 ## 설계 원칙
 

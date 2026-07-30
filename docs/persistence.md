@@ -97,6 +97,16 @@ details.
 All write integration tests reuse the guarded `auto_trading_v2_test_*` temporary database fixture.
 The development database remains read-only during persistence verification.
 
+Local Windows integration may explicitly select `local_shared_memory` for both SQLAlchemy
+administration and temporary-target persistence. That path constructs a fresh LPC
+Windows-integrated ODBC connection, uses `NullPool`, verifies the connected database and shared
+memory transport before migration or persistence, and disposes target connections before guarded
+drop. The default remains `tcp_url`; there is no TCP/LPC fallback in either direction. Application
+runtime persistence continues to use DotNet SqlClient over TCP SQL authentication. DotNet
+integration tests use an immutable `environment=test` copy of the official runtime settings with
+only the temporary database name replaced, so they do not derive endpoint or authentication from a
+SQLAlchemy engine.
+
 FeatureSnapshot live integration exercises the same temporary database through both providers.
 SQLAlchemy supplies guarded migration administration and one persistence implementation; DotNet
 uses a test-only copy of the validated runtime settings with only the database name replaced by the
@@ -117,3 +127,8 @@ latest PIT revisions, bidirectional equality, and READY/DEGRADED/DATA_INSUFFICIE
 builds. Tests use only guarded `auto_trading_v2_test_*` databases; the development DB is unchanged.
 DotNet connection pooling remains enabled for development/paper settings and is disabled only when
 the validated environment is `test`, so temporary databases have no pooled session at cleanup.
+
+The current local Windows account has the temporary-database permissions needed by the LPC test
+path. No login or credential is created or committed. A dedicated least-privilege test
+administrator remains a separate hardening option. Further ODBC TCP/TLS/trust diagnosis is outside
+this test-infrastructure boundary.

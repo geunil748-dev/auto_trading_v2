@@ -14,6 +14,7 @@ dependencies = [
     "python-dotenv==1.2.2",
     "pythonnet==3.1.0",
     "SQLAlchemy==2.0.51",
+    "tzdata==2026.3",
 ]
 
 [project.optional-dependencies]
