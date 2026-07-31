@@ -32,8 +32,9 @@ circuit. Successful bar and FeatureSnapshot transactions from earlier symbols ar
 The run key is computed before execution. Exact retry returns the existing immutable run and items
 without IDs, network, bar writes, or feature builds. Final run and item records are inserted in one
 Unit of Work. Migration 0007 adds exactly three tables, increasing the canonical count from 14 to 17.
-Alembic's non-canonical `dbo.alembic_version.version_num` bookkeeping column is created as
-`VARCHAR(64)` so the frozen P3 revision identifier is stored without truncation.
+Migration 0007 widens Alembic's non-canonical `dbo.alembic_version.version_num` bookkeeping column
+from `VARCHAR(32)` to `VARCHAR(64)` so an existing 0006 database can store the frozen P3 revision
+identifier without truncation. Downgrade retains the compatible width.
 
 ## Consequences
 
