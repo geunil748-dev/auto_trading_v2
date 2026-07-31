@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 
 from auto_trading_v2.adapters.clock import SystemClock
 from auto_trading_v2.adapters.identifiers import UuidDailyMarketBarIDFactory
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data import HttpRequest, HttpResponse, UrllibHttpTransport
 from auto_trading_v2.adapters.market_data.alpaca import (
     ALPACA_SOURCE_CODE,
@@ -29,6 +30,9 @@ from auto_trading_v2.application.contracts.alpaca_ingestion import (
     AlpacaDailyMarketBarIngestionCommand,
     AlpacaIngestionOutcome,
 )
+from auto_trading_v2.application.contracts.completed_daily_bars import (
+    CompletedDailyBarsRequestCreationOutcome,
+)
 from auto_trading_v2.application.contracts.daily_bar_comparison import (
     CompareDailyBarProvidersCommand,
     DailyBarProviderComparisonOutcome,
@@ -39,16 +43,20 @@ from auto_trading_v2.application.contracts.twelve_data_ingestion import (
 )
 from auto_trading_v2.application.services import (
     AlpacaDailyMarketBarIngestionService,
+    CompletedDailyBarsRequestFactory,
     DailyBarProviderComparisonService,
+    DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
     TwelveDataDailyMarketBarIngestionService,
+    UsEquityCompletedSessionResolver,
 )
 from auto_trading_v2.config import (
     load_alpaca_market_data_settings,
     load_twelve_data_market_data_settings,
 )
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
-from auto_trading_v2.domain.primitives import IdentifierFactory, SessionDate, Symbol
+from auto_trading_v2.domain.market_calendar import CompletionGracePeriod
+from auto_trading_v2.domain.primitives import IdentifierFactory, Symbol
 from tests.integration.persistence.conftest import TemporaryMssqlDatabase
 
 pytestmark = pytest.mark.external_integration
@@ -100,6 +108,8 @@ def test_live_one_request_per_provider_produces_read_only_comparison(
             for table in _SIDE_EFFECT_TABLES
         )
     clock = SystemClock()
+    calendar = StaticOfficialUsEquityCalendar2026()
+    request_factory = CompletedDailyBarsRequestFactory(UsEquityCompletedSessionResolver(calendar))
     alpaca_transport = CountingTransport()
     twelve_transport = CountingTransport()
     identifiers = count(302001)
@@ -117,6 +127,7 @@ def test_live_one_request_per_provider_produces_read_only_comparison(
         sqlalchemy_uow_factory,
         creation,
         clock,
+        DailyMarketBarCalendarValidator(calendar),
     )
     twelve = TwelveDataDailyMarketBarIngestionService(
         TwelveDataDailyMarketDataProvider(
@@ -132,8 +143,28 @@ def test_live_one_request_per_provider_produces_read_only_comparison(
         sqlalchemy_uow_factory,
         creation,
         clock,
+        DailyMarketBarCalendarValidator(calendar),
     )
-    cutoff = SessionDate(clock.now_utc().date() - timedelta(days=70))
+    request_values = {
+        "symbol": Symbol("AAPL"),
+        "mic_code": "XNGS",
+        "adjustment_basis": DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
+        "as_of": clock.now_utc(),
+        "requested_session_count": 30,
+        "completion_grace": CompletionGracePeriod(timedelta(minutes=15)),
+    }
+    alpaca_request = request_factory.create(source_code=ALPACA_SOURCE_CODE, **request_values)
+    twelve_request = request_factory.create(
+        source_code=TWELVE_DATA_SOURCE_CODE,
+        **request_values,
+    )
+    assert alpaca_request.outcome is CompletedDailyBarsRequestCreationOutcome.CREATED
+    assert twelve_request.outcome is CompletedDailyBarsRequestCreationOutcome.CREATED
+    assert alpaca_request.request is not None
+    assert twelve_request.request is not None
+    cutoff = alpaca_request.request.completed_through_session_date
+    assert cutoff == twelve_request.request.completed_through_session_date
+    assert cutoff is not None
     alpaca_result = alpaca.ingest(
         AlpacaDailyMarketBarIngestionCommand(
             Symbol("AAPL"),

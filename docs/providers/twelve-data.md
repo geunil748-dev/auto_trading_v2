@@ -71,3 +71,12 @@ The local scripted transport, unit suite, and temporary MSSQL SQLAlchemy/.NET co
 an external key. The credential-gated live test uses the AAPL listing MIC `XNGS` only when an
 ignored local `.env` or process environment enables Twelve Data and supplies a key. The external
 request sends the credential only in the Authorization header.
+
+## Exchange-calendar cutoff
+
+Operational and credential-gated live requests resolve their cutoff through
+`US_EQUITY_CORE / 2026.v1` with an explicit completion grace. The low-level explicit cutoff remains
+available for historical replay. Parsed observations pass the shared calendar validator before
+any persistence; a weekend, official closure, after-cutoff row, unsupported MIC, or out-of-range
+date fails closed without provider fallback. The calendar does not change Twelve Data's nullable
+split-adjusted volume policy.

@@ -8,6 +8,7 @@ import pytest
 
 from auto_trading_v2.adapters.clock import FixedClock
 from auto_trading_v2.adapters.identifiers import UuidDailyMarketBarIDFactory
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data.twelve_data import (
     TWELVE_DATA_CAPABILITIES,
     TwelveDataErrorCategory,
@@ -23,6 +24,7 @@ from auto_trading_v2.application.contracts.twelve_data_ingestion import (
 )
 from auto_trading_v2.application.errors import DuplicateRecordError
 from auto_trading_v2.application.services import (
+    DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
     TwelveDataDailyMarketBarIngestionService,
 )
@@ -32,6 +34,7 @@ from auto_trading_v2.domain.daily_market_bars import (
     DailyMarketBarInput,
     DailyMarketBarValidationError,
 )
+from auto_trading_v2.domain.market_calendar import ProviderBarCalendarErrorCategory
 from auto_trading_v2.domain.primitives import (
     IdentifierFactory,
     SessionDate,
@@ -181,6 +184,7 @@ def service(
         factory,  # type: ignore[arg-type]
         creation,
         FixedClock(NOW),
+        DailyMarketBarCalendarValidator(StaticOfficialUsEquityCalendar2026()),
     )
 
 
@@ -196,6 +200,20 @@ def test_completed_creates_each_canonical_bar() -> None:
     assert result.summary.existing_count == 0
     assert len(factory.repository.bars) == 3
     assert all(bar.bar_input.volume is None for bar in result.bars)
+
+
+def test_calendar_failure_stops_before_persistence() -> None:
+    factory = MemoryUnitOfWorkFactory()
+    holiday = observations(values=[row("2026-06-19", "100")])
+
+    result = service(FakeProvider(holiday), factory).ingest(command())
+
+    assert result.outcome is TwelveDataIngestionOutcome.PROVIDER_ERROR
+    assert result.summary.safe_error_category == (
+        ProviderBarCalendarErrorCategory.ON_NON_TRADING_DAY.value
+    )
+    assert factory.repository.bars == []
+    assert factory.units == []
 
 
 def test_same_content_refetch_preserves_first_available_at() -> None:

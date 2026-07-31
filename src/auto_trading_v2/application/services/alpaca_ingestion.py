@@ -29,7 +29,10 @@ from auto_trading_v2.application.services.daily_market_bar import (
     DailyMarketBarCreationService,
 )
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBar, DailyMarketBarInput
+from auto_trading_v2.domain.market_calendar import MarketCalendarValidationError
 from auto_trading_v2.ports.clock import Clock
+
+from .daily_market_bar_calendar import DailyMarketBarCalendarValidator
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,6 +41,7 @@ class AlpacaDailyMarketBarIngestionService:
     unit_of_work_factory: UnitOfWorkFactory
     creation_service: DailyMarketBarCreationService
     clock: Clock
+    calendar_validator: DailyMarketBarCalendarValidator
 
     def ingest(self, command: AlpacaDailyMarketBarIngestionCommand) -> AlpacaIngestionResult:
         from auto_trading_v2.application.ports.daily_market_data import (
@@ -57,6 +61,24 @@ class AlpacaDailyMarketBarIngestionService:
             observations = self.provider.fetch_completed_daily_bars(request)
         except AlpacaProviderError as error:
             return self._provider_failure(command, error.category)
+        try:
+            observations = self.calendar_validator.validate(
+                mic_code=command.mic_code,
+                calendar_code=self.calendar_validator.calendar.metadata.calendar_code,
+                calendar_version=self.calendar_validator.calendar.metadata.calendar_version,
+                completed_through_session_date=command.completed_through_session_date,
+                observations=observations,
+            )
+        except MarketCalendarValidationError as error:
+            return self._result(
+                command,
+                AlpacaIngestionOutcome.PROVIDER_ERROR,
+                len(observations),
+                0,
+                0,
+                (),
+                error.category,
+            )
         if not observations:
             return self._result(command, AlpacaIngestionOutcome.NO_DATA, 0, 0, 0, ())
         stored: list[DailyMarketBar] = []

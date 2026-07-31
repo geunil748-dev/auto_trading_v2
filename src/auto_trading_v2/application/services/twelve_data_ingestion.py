@@ -31,7 +31,10 @@ from auto_trading_v2.application.services.daily_market_bar import (
     DailyMarketBarCreationService,
 )
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBar, DailyMarketBarInput
+from auto_trading_v2.domain.market_calendar import MarketCalendarValidationError
 from auto_trading_v2.ports.clock import Clock
+
+from .daily_market_bar_calendar import DailyMarketBarCalendarValidator
 
 
 @dataclass(frozen=True, slots=True)
@@ -40,6 +43,7 @@ class TwelveDataDailyMarketBarIngestionService:
     unit_of_work_factory: UnitOfWorkFactory
     creation_service: DailyMarketBarCreationService
     clock: Clock
+    calendar_validator: DailyMarketBarCalendarValidator
 
     def ingest(
         self,
@@ -58,6 +62,24 @@ class TwelveDataDailyMarketBarIngestionService:
             observations = self.provider.fetch_completed_daily_bars(request)
         except TwelveDataProviderError as exc:
             return self._provider_failure(command, exc.category)
+        try:
+            observations = self.calendar_validator.validate(
+                mic_code=command.mic_code,
+                calendar_code=self.calendar_validator.calendar.metadata.calendar_code,
+                calendar_version=self.calendar_validator.calendar.metadata.calendar_version,
+                completed_through_session_date=command.completed_through_session_date,
+                observations=observations,
+            )
+        except MarketCalendarValidationError as exc:
+            return self._result(
+                command,
+                TwelveDataIngestionOutcome.PROVIDER_ERROR,
+                len(observations),
+                0,
+                0,
+                (),
+                exc.category,
+            )
         if not observations:
             return self._result(command, TwelveDataIngestionOutcome.NO_DATA, 0, 0, 0, ())
         stored: list[DailyMarketBar] = []

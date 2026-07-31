@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from itertools import count
 from uuid import UUID
 
 from auto_trading_v2.adapters.clock import FixedClock
 from auto_trading_v2.adapters.identifiers import UuidDailyMarketBarIDFactory
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data import HttpRequest, HttpResponse
 from auto_trading_v2.adapters.market_data.alpaca import (
     AlpacaDailyMarketDataProvider,
@@ -18,6 +19,7 @@ from auto_trading_v2.application.contracts.alpaca_ingestion import (
 from auto_trading_v2.application.ports.unit_of_work import UnitOfWorkFactory
 from auto_trading_v2.application.services import (
     AlpacaDailyMarketBarIngestionService,
+    DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
 )
 from auto_trading_v2.config import AlpacaMarketDataSettings
@@ -29,6 +31,12 @@ OBSERVED_AT = datetime(2026, 7, 15, 12, tzinfo=UTC)
 CUTOFF = date(2026, 6, 30)
 KEY_ID = "scripted-alpaca-key-id"
 SECRET = "scripted-alpaca-secret"
+_CALENDAR = StaticOfficialUsEquityCalendar2026()
+_SESSION_DATES = tuple(
+    session.session_date.value
+    for session in _CALENDAR.sessions("XNGS")
+    if date(2026, 6, 1) <= session.session_date.value <= CUTOFF
+)[-21:]
 
 
 class ScriptedTransport:
@@ -56,8 +64,7 @@ class ScriptedTransport:
 
 def bars_payload(*, close_delta: float = 0.0, revised_index: int | None = None):
     bars: list[dict[str, object]] = []
-    for index in range(21):
-        session = date(2026, 6, 1) + timedelta(days=index)
+    for index, session in enumerate(_SESSION_DATES):
         close = 100.0 + index + close_delta
         if index == revised_index:
             close += 0.5
@@ -126,4 +133,5 @@ def ingestion_service(
         unit_of_work_factory,
         creation,
         clock,
+        DailyMarketBarCalendarValidator(_CALENDAR),
     )

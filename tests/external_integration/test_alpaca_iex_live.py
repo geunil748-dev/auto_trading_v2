@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 
 from auto_trading_v2.adapters.clock import SystemClock
 from auto_trading_v2.adapters.identifiers import UuidDailyMarketBarIDFactory
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data import (
     HttpRequest,
     HttpResponse,
@@ -30,17 +31,24 @@ from auto_trading_v2.application.contracts.alpaca_ingestion import (
     AlpacaDailyMarketBarIngestionCommand,
     AlpacaIngestionOutcome,
 )
+from auto_trading_v2.application.contracts.completed_daily_bars import (
+    CompletedDailyBarsRequestCreationOutcome,
+)
 from auto_trading_v2.application.ports.daily_market_data import (
     CompletedDailyMarketBarObservation,
     FetchCompletedDailyBarsRequest,
 )
 from auto_trading_v2.application.services import (
     AlpacaDailyMarketBarIngestionService,
+    CompletedDailyBarsRequestFactory,
+    DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
+    UsEquityCompletedSessionResolver,
 )
 from auto_trading_v2.config import load_alpaca_market_data_settings
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
-from auto_trading_v2.domain.primitives import IdentifierFactory, SessionDate, Symbol
+from auto_trading_v2.domain.market_calendar import CompletionGracePeriod
+from auto_trading_v2.domain.primitives import IdentifierFactory, Symbol
 from tests.integration.persistence.conftest import TemporaryMssqlDatabase
 
 pytestmark = pytest.mark.external_integration
@@ -117,18 +125,34 @@ def test_live_aapl_iex_split_ingestion_idempotency_and_parity(
         sqlalchemy_uow_factory,
         UuidDailyMarketBarIDFactory(IdentifierFactory(lambda: UUID(int=next(identifiers)))),
     )
+    calendar = StaticOfficialUsEquityCalendar2026()
     service = AlpacaDailyMarketBarIngestionService(
         provider,
         sqlalchemy_uow_factory,
         creation,
         clock,
+        DailyMarketBarCalendarValidator(calendar),
     )
-    cutoff = clock.now_utc().date() - timedelta(days=10)
+    request_result = CompletedDailyBarsRequestFactory(
+        UsEquityCompletedSessionResolver(calendar)
+    ).create(
+        source_code=ALPACA_SOURCE_CODE,
+        symbol=Symbol("AAPL"),
+        mic_code="XNGS",
+        adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
+        as_of=clock.now_utc(),
+        requested_session_count=30,
+        completion_grace=CompletionGracePeriod(timedelta(minutes=15)),
+    )
+    assert request_result.outcome is CompletedDailyBarsRequestCreationOutcome.CREATED
+    assert request_result.request is not None
+    cutoff = request_result.request.completed_through_session_date
+    assert cutoff is not None
     command = AlpacaDailyMarketBarIngestionCommand(
         symbol=Symbol("AAPL"),
         mic_code="XNGS",
         adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
-        completed_through_session_date=SessionDate(cutoff),
+        completed_through_session_date=cutoff,
         requested_session_count=30,
     )
 
@@ -149,7 +173,7 @@ def test_live_aapl_iex_split_ingestion_idempotency_and_parity(
     assert repeated.outcome is AlpacaIngestionOutcome.COMPLETED_WITH_EXISTING
     assert repeated.summary.existing_count == len(created.bars)
     assert len(transport.calls) == 2
-    assert all(bar.bar_input.session_date.value <= cutoff for bar in created.bars)
+    assert all(bar.bar_input.session_date.value <= cutoff.value for bar in created.bars)
     assert all(bar.bar_input.volume is not None for bar in created.bars)
     assert dict(transport.calls[0].query)["feed"] == "iex"
     assert dict(transport.calls[0].query)["adjustment"] == "split"

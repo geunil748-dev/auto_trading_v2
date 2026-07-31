@@ -3,11 +3,20 @@
 from auto_trading_v2.application.services.alpaca_ingestion import (
     AlpacaDailyMarketBarIngestionService,
 )
+from auto_trading_v2.application.services.completed_daily_bars_request import (
+    CompletedDailyBarsRequestFactory,
+)
+from auto_trading_v2.application.services.completed_session import (
+    UsEquityCompletedSessionResolver,
+)
 from auto_trading_v2.application.services.daily_bar_comparison import (
     DailyBarProviderComparisonService,
 )
 from auto_trading_v2.application.services.daily_market_bar import (
     DailyMarketBarCreationService,
+)
+from auto_trading_v2.application.services.daily_market_bar_calendar import (
+    DailyMarketBarCalendarValidator,
 )
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
@@ -45,6 +54,8 @@ __all__ = [
     "CandidateFilterEvaluationService",
     "CandidateStrategyDecisionService",
     "CandidateTradeIntentService",
+    "CompletedDailyBarsRequestFactory",
+    "DailyMarketBarCalendarValidator",
     "DailyMarketBarCreationService",
     "DailyBarProviderComparisonService",
     "DailyTechnicalFeatureSnapshotService",
@@ -56,4 +67,5 @@ __all__ = [
     "TradeIntentBatchResult",
     "TwelveDataDailyMarketBarIngestionService",
     "TwelveDataDailyFeatureService",
+    "UsEquityCompletedSessionResolver",
 ]

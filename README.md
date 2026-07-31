@@ -241,3 +241,22 @@ decision. This slice does not create SELL intents or orders, reduce or close pos
 P&L/equity, write trading events, schedule work, or call KIS. See
 [version-pinned EXIT_LONG decisions](docs/position-exit-decisions.md) and
 [position decision source boundary](docs/position-decision-source.md).
+
+## Prediction P2.2 US equity completed-session calendar
+
+`US_EQUITY_CORE / 2026.v1` now provides a deterministic NYSE/Nasdaq core-session
+calendar for listing MICs `XNGS`, `XNGM`, `XNCM`, `XNYS`, and `XASE`. Core hours are
+09:30–16:00 America/New_York, with 13:00 closes on 2026-11-27 and 2026-12-24. Ten
+explicit official closures include 2026-07-03 as a full-day closure; the generated
+schedule contains 251 sessions.
+
+`ZoneInfo("America/New_York")` supplies DST-aware UTC conversion. A caller-provided
+completion grace separates scheduled market close from daily-bar eligibility. Operational
+provider requests resolve the latest eligible session through a common factory, while
+explicit historical cutoffs remain supported. Twelve Data and Alpaca observations pass a
+shared calendar validator before persistence, with no automatic provider fallback.
+
+Coverage is deliberately limited to 2026 and fails closed outside that range. Unscheduled
+emergency closures, scheduler execution, Recommendation/ranking, and orders remain outside
+this slice. See [market calendar policy](docs/market-calendar.md) and
+[ADR 0008](docs/adr/0008-us-equity-core-calendar.md).

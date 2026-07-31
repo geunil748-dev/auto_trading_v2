@@ -23,8 +23,9 @@ There is no silent fallback, cross-provider averaging, or mixed-source FeatureSn
 `observed_at <= available_at` is mandatory. A Point-in-Time query reads only
 `available_at <= as_of`, selects the latest available revision for each session, limits by distinct
 session, and returns chronological results. A revised provider record uses a new source record key
-or version; rows are never updated, upserted, or replaced. Exchange-calendar freshness, holidays,
-early closes, and DST session validation are not implemented.
+or version; rows are never updated, upserted, or replaced. `US_EQUITY_CORE / 2026.v1` validates
+official trading sessions, early closes, DST-aware close times, and completed cutoffs before any
+persistence.
 
 Twelve Data does not expose the historical first-published time used by this contract. The first
 successful UTC observation therefore becomes both `observed_at` and `available_at`; session close is
@@ -100,3 +101,17 @@ return-direction agreement, calculated with a local 38-digit `Decimal` context u
 Volume equality, exact OHLC equality, selection thresholds, provider ranking, blending, fallback,
 FeatureSnapshot creation, Recommendation, TradeIntent, broker, and order behavior are deliberately
 excluded.
+
+## Calendar eligibility boundary
+
+Operational requests use `CompletedDailyBarsRequestFactory` with an aware `as_of`, explicit
+listing MIC, and caller-selected completion grace. Scheduled core close and provider daily-bar
+eligibility are distinct; exact `close_at + grace` equality is eligible. The factory returns the
+existing explicit `FetchCompletedDailyBarsRequest`, so deterministic historical backfills and
+replays preserve their low-level contract.
+
+Both ingestion services run the common `DailyMarketBarCalendarValidator` after parsing and before
+repository lookup or creation. The sequence must be chronological, unique, within the 2026
+schedule, no later than its completed cutoff, and consistent in source and symbol. Failure creates
+no DailyMarketBar and causes no FeatureSnapshot, Recommendation, fallback, or order side effect.
+See [US equity market calendar](market-calendar.md).
