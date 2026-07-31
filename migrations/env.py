@@ -15,6 +15,7 @@ from migrations.autogenerate import (
     compare_mssql_server_default,
     include_schema_object,
 )
+from migrations.version_table import V2MssqlImpl as _V2MssqlImpl  # noqa: F401
 
 config = context.config
 target_metadata = metadata

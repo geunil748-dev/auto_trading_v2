@@ -6,8 +6,9 @@ PR 4 introduced the first V2 persistence vertical slice:
 market_snapshots -> candidates -> filter_evaluations
 ```
 
-That paragraph is historical. The current foundation exposes twelve repositories, including
-independent `daily_market_bars`, `feature_snapshots`, and `recommendations` repositories.
+That paragraph is historical. The current foundation exposes fourteen repositories, including
+independent `daily_market_bars`, `feature_snapshots`, `recommendations`, `universe_snapshots`, and
+`daily_feature_pipeline_runs` repositories.
 Existing trade and paper repositories remain optional shadow simulation infrastructure.
 
 ## Dependency direction
@@ -35,7 +36,7 @@ generation time, and database `recorded_at`.
 ## Transaction lifecycle
 
 `SqlAlchemyUnitOfWorkFactory` creates a fresh one-shot Unit of Work. Entering it checks out one
-connection, starts one root transaction, and supplies that connection to all twelve repositories.
+connection, starts one root transaction, and supplies that connection to all fourteen repositories.
 Only the Unit of Work may commit or roll back.
 
 - `commit()` persists the whole slice atomically.
@@ -89,7 +90,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 14 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 17 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -127,6 +128,19 @@ latest PIT revisions, bidirectional equality, and READY/DEGRADED/DATA_INSUFFICIE
 builds. Tests use only guarded `auto_trading_v2_test_*` databases; the development DB is unchanged.
 DotNet connection pooling remains enabled for development/paper settings and is disabled only when
 the validated environment is `test`, so temporary databases have no pooled session at cleanup.
+
+P3 adds `UniverseSnapshotRepository` and `DailyFeaturePipelineRunRepository` to both Unit of Work
+implementations. The run repository inserts a run and its ordered items on the caller-owned
+connection and transaction; repositories never commit. SQLAlchemy and DotNet share the same Core
+statements and row/JSON mappings. Exact run retry reads the aggregate before ID generation or work,
+and a unique-key race rolls back then re-reads through a fresh Unit of Work.
+
+Migration `0007_multi_symbol_feature_pipeline` round-trips to `0006` only in guarded
+`auto_trading_v2_test_*` databases. It removes and recreates only the three P3 tables while a catalog
+signature proves all prior fourteen tables unchanged. Scripted P3 integration uses one sequential
+Twelve Data-compatible provider, writes DailyMarketBars and FeatureSnapshots per symbol, persists
+the immutable run aggregate, and verifies SQLAlchemy/DotNet canonical equality. It creates no
+Recommendation, TradeIntent, or PaperOrder rows.
 
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test

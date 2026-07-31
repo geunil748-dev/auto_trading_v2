@@ -5,6 +5,8 @@ from uuid import NAMESPACE_URL, uuid5
 
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
+    DailyFeaturePipelineItemID,
+    DailyFeaturePipelineRunID,
     DailyMarketBarID,
     DecisionID,
     FeatureSnapshotID,
@@ -16,6 +18,7 @@ from auto_trading_v2.domain.primitives import (
     PositionID,
     RecommendationID,
     TradeIntentID,
+    UniverseSnapshotID,
 )
 
 TRADE_INTENT_CLIENT_ORDER_ID_POLICY_NAME = "TRADE_INTENT_CLIENT_ORDER_ID"
@@ -50,6 +53,30 @@ class UuidFeatureSnapshotIDFactory:
 
     def new(self) -> FeatureSnapshotID:
         return self.identifier_factory.new(FeatureSnapshotID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidUniverseSnapshotIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> UniverseSnapshotID:
+        return self.identifier_factory.new(UniverseSnapshotID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeaturePipelineRunIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeaturePipelineRunID:
+        return self.identifier_factory.new(DailyFeaturePipelineRunID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeaturePipelineItemIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeaturePipelineItemID:
+        return self.identifier_factory.new(DailyFeaturePipelineItemID)
 
 
 @dataclass(frozen=True, slots=True)

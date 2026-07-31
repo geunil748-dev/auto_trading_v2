@@ -75,6 +75,24 @@ class FeatureSnapshotID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class UniverseSnapshotID(_UUIDIdentifier):
+    """Identifier for an immutable caller-provided universe snapshot."""
+
+    __slots__ = ()
+
+
+class DailyFeaturePipelineRunID(_UUIDIdentifier):
+    """Identifier for one immutable daily feature pipeline run."""
+
+    __slots__ = ()
+
+
+class DailyFeaturePipelineItemID(_UUIDIdentifier):
+    """Identifier for one symbol result within a pipeline run."""
+
+    __slots__ = ()
+
+
 class RecommendationID(_UUIDIdentifier):
     """Identifier for a canonical user-facing recommendation."""
 

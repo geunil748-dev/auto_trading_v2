@@ -47,19 +47,12 @@ class TwelveDataCreditLimiter:
             wait_seconds = 0.0
             with self._lock:
                 now = self._monotonic()
-                day = self._current_day()
-                if day != self._utc_day:
-                    self._utc_day = day
-                    self._daily_used = 0
+                self._refresh_locked(now)
                 if self._daily_used + credits > self._daily_credit_budget:
                     raise TwelveDataProviderError(
                         TwelveDataErrorCategory.DAILY_CREDIT_BUDGET_EXHAUSTED
                     )
                 elapsed = now - self._minute_started
-                if elapsed >= 60 or elapsed < 0:
-                    self._minute_started = now
-                    self._minute_used = 0
-                    elapsed = 0
                 if self._minute_used + credits <= self._credits_per_minute:
                     self._minute_used += credits
                     self._daily_used += credits
@@ -70,7 +63,30 @@ class TwelveDataCreditLimiter:
     @property
     def daily_credits_used(self) -> int:
         with self._lock:
+            self._refresh_locked(self._monotonic())
             return self._daily_used
+
+    @property
+    def available_daily_credits(self) -> int:
+        with self._lock:
+            self._refresh_locked(self._monotonic())
+            return self._daily_credit_budget - self._daily_used
+
+    @property
+    def available_minute_credits(self) -> int:
+        with self._lock:
+            self._refresh_locked(self._monotonic())
+            return self._credits_per_minute - self._minute_used
+
+    def _refresh_locked(self, now: float) -> None:
+        day = self._current_day()
+        if day != self._utc_day:
+            self._utc_day = day
+            self._daily_used = 0
+        elapsed = now - self._minute_started
+        if elapsed >= 60 or elapsed < 0:
+            self._minute_started = now
+            self._minute_used = 0
 
     def _current_day(self) -> date:
         return normalize_utc(self._clock.now_utc()).date()

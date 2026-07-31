@@ -6,6 +6,9 @@ from auto_trading_v2.adapters.persistence.repositories.candidates import (
 from auto_trading_v2.adapters.persistence.repositories.daily_market_bars import (
     SqlAlchemyDailyMarketBarRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.feature_pipeline import (
+    SqlAlchemyDailyFeaturePipelineRunRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.feature_snapshots import (
     SqlAlchemyFeatureSnapshotRepository,
 )
@@ -36,10 +39,14 @@ from auto_trading_v2.adapters.persistence.repositories.strategy_decisions import
 from auto_trading_v2.adapters.persistence.repositories.trade_intents import (
     SqlAlchemyTradeIntentRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.universes import (
+    SqlAlchemyUniverseSnapshotRepository,
+)
 
 __all__ = [
     "SqlAlchemyCandidateRepository",
     "SqlAlchemyDailyMarketBarRepository",
+    "SqlAlchemyDailyFeaturePipelineRunRepository",
     "SqlAlchemyFilterEvaluationRepository",
     "SqlAlchemyFeatureSnapshotRepository",
     "SqlAlchemyMarketSnapshotRepository",
@@ -50,4 +57,5 @@ __all__ = [
     "SqlAlchemyRecommendationRepository",
     "SqlAlchemyStrategyDecisionRepository",
     "SqlAlchemyTradeIntentRepository",
+    "SqlAlchemyUniverseSnapshotRepository",
 ]

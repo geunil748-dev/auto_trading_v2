@@ -14,6 +14,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from auto_trading_v2.adapters.persistence.errors import translate_persistence_error
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
+    SqlAlchemyDailyFeaturePipelineRunRepository,
     SqlAlchemyDailyMarketBarRepository,
     SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
@@ -25,6 +26,7 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyRecommendationRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
+    SqlAlchemyUniverseSnapshotRepository,
 )
 from auto_trading_v2.application.errors import TransactionStateError
 
@@ -48,6 +50,8 @@ class SqlAlchemyUnitOfWork:
         self._transaction: RootTransaction | None = None
         self._daily_market_bars: SqlAlchemyDailyMarketBarRepository | None = None
         self._feature_snapshots: SqlAlchemyFeatureSnapshotRepository | None = None
+        self._universe_snapshots: SqlAlchemyUniverseSnapshotRepository | None = None
+        self._daily_feature_pipeline_runs: SqlAlchemyDailyFeaturePipelineRunRepository | None = None
         self._recommendations: SqlAlchemyRecommendationRepository | None = None
         self._market_snapshots: SqlAlchemyMarketSnapshotRepository | None = None
         self._candidates: SqlAlchemyCandidateRepository | None = None
@@ -72,6 +76,22 @@ class SqlAlchemyUnitOfWork:
         if self._feature_snapshots is None:
             raise TransactionStateError("repository_access")
         return self._feature_snapshots
+
+    @property
+    def universe_snapshots(self) -> SqlAlchemyUniverseSnapshotRepository:
+        self._ensure_repository_operation()
+        if self._universe_snapshots is None:
+            raise TransactionStateError("repository_access")
+        return self._universe_snapshots
+
+    @property
+    def daily_feature_pipeline_runs(
+        self,
+    ) -> SqlAlchemyDailyFeaturePipelineRunRepository:
+        self._ensure_repository_operation()
+        if self._daily_feature_pipeline_runs is None:
+            raise TransactionStateError("repository_access")
+        return self._daily_feature_pipeline_runs
 
     @property
     def recommendations(self) -> SqlAlchemyRecommendationRepository:
@@ -164,6 +184,10 @@ class SqlAlchemyUnitOfWork:
         repository_args = (connection, self._ensure_repository_operation, self._mark_failed)
         self._daily_market_bars = SqlAlchemyDailyMarketBarRepository(*repository_args)
         self._feature_snapshots = SqlAlchemyFeatureSnapshotRepository(*repository_args)
+        self._universe_snapshots = SqlAlchemyUniverseSnapshotRepository(*repository_args)
+        self._daily_feature_pipeline_runs = SqlAlchemyDailyFeaturePipelineRunRepository(
+            *repository_args
+        )
         self._recommendations = SqlAlchemyRecommendationRepository(*repository_args)
         self._market_snapshots = SqlAlchemyMarketSnapshotRepository(*repository_args)
         self._candidates = SqlAlchemyCandidateRepository(*repository_args)

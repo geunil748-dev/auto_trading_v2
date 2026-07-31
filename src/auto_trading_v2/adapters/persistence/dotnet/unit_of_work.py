@@ -19,6 +19,7 @@ from auto_trading_v2.adapters.persistence.dotnet.errors import (
 )
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
+    DotNetDailyFeaturePipelineRunRepository,
     DotNetDailyMarketBarRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
@@ -30,6 +31,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
+    DotNetUniverseSnapshotRepository,
 )
 from auto_trading_v2.adapters.persistence.dotnet.transaction import (
     DotNetTransaction,
@@ -50,7 +52,7 @@ _Repository = TypeVar("_Repository")
 
 
 class DotNetUnitOfWork:
-    """Provide twelve repositories inside exactly one caller-owned transaction."""
+    """Provide fourteen repositories inside exactly one caller-owned transaction."""
 
     def __init__(
         self,
@@ -65,6 +67,8 @@ class DotNetUnitOfWork:
         self._transaction: DotNetTransaction | None = None
         self._daily_market_bars: DotNetDailyMarketBarRepository | None = None
         self._feature_snapshots: DotNetFeatureSnapshotRepository | None = None
+        self._universe_snapshots: DotNetUniverseSnapshotRepository | None = None
+        self._daily_feature_pipeline_runs: DotNetDailyFeaturePipelineRunRepository | None = None
         self._recommendations: DotNetRecommendationRepository | None = None
         self._market_snapshots: DotNetMarketSnapshotRepository | None = None
         self._candidates: DotNetCandidateRepository | None = None
@@ -83,6 +87,14 @@ class DotNetUnitOfWork:
     @property
     def feature_snapshots(self) -> DotNetFeatureSnapshotRepository:
         return self._repository(self._feature_snapshots)
+
+    @property
+    def universe_snapshots(self) -> DotNetUniverseSnapshotRepository:
+        return self._repository(self._universe_snapshots)
+
+    @property
+    def daily_feature_pipeline_runs(self) -> DotNetDailyFeaturePipelineRunRepository:
+        return self._repository(self._daily_feature_pipeline_runs)
 
     @property
     def recommendations(self) -> DotNetRecommendationRepository:
@@ -147,6 +159,10 @@ class DotNetUnitOfWork:
         )
         self._daily_market_bars = DotNetDailyMarketBarRepository(*repository_args)
         self._feature_snapshots = DotNetFeatureSnapshotRepository(*repository_args)
+        self._universe_snapshots = DotNetUniverseSnapshotRepository(*repository_args)
+        self._daily_feature_pipeline_runs = DotNetDailyFeaturePipelineRunRepository(
+            *repository_args
+        )
         self._recommendations = DotNetRecommendationRepository(*repository_args)
         self._market_snapshots = DotNetMarketSnapshotRepository(*repository_args)
         self._candidates = DotNetCandidateRepository(*repository_args)

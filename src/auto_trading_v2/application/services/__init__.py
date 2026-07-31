@@ -12,6 +12,9 @@ from auto_trading_v2.application.services.completed_session import (
 from auto_trading_v2.application.services.daily_bar_comparison import (
     DailyBarProviderComparisonService,
 )
+from auto_trading_v2.application.services.daily_feature_pipeline import (
+    DailyFeaturePipelineService,
+)
 from auto_trading_v2.application.services.daily_market_bar import (
     DailyMarketBarCreationService,
 )
@@ -48,6 +51,9 @@ from auto_trading_v2.application.services.twelve_data_daily_features import (
 from auto_trading_v2.application.services.twelve_data_ingestion import (
     TwelveDataDailyMarketBarIngestionService,
 )
+from auto_trading_v2.application.services.universe_snapshot import (
+    UniverseSnapshotCreationService,
+)
 
 __all__ = [
     "AlpacaDailyMarketBarIngestionService",
@@ -57,6 +63,7 @@ __all__ = [
     "CompletedDailyBarsRequestFactory",
     "DailyMarketBarCalendarValidator",
     "DailyMarketBarCreationService",
+    "DailyFeaturePipelineService",
     "DailyBarProviderComparisonService",
     "DailyTechnicalFeatureSnapshotService",
     "EvaluationBatchResult",
@@ -68,4 +75,5 @@ __all__ = [
     "TwelveDataDailyMarketBarIngestionService",
     "TwelveDataDailyFeatureService",
     "UsEquityCompletedSessionResolver",
+    "UniverseSnapshotCreationService",
 ]

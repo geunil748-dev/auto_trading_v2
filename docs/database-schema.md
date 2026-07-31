@@ -8,7 +8,7 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 14개 table입니다.
+canonical source of truth는 다음 17개 table입니다.
 
 1. `market_snapshots`
 2. `daily_market_bars`
@@ -24,6 +24,9 @@ canonical source of truth는 다음 14개 table입니다.
 12. `position_events`
 13. `equity_snapshots`
 14. `trading_events`
+15. `universe_snapshots`
+16. `daily_feature_pipeline_runs`
+17. `daily_feature_pipeline_items`
 
 ```mermaid
 erDiagram
@@ -113,6 +116,25 @@ JSON column은 `NVARCHAR(MAX)`에 저장하고 `ISJSON(column) = 1`을 강제합
 `payload`, `feature_values`는 JSON object, `reason_codes`, `quality_reason_codes`,
 `provenance`는 JSON array 형태까지 check constraint로 제한합니다.
 JSON은 검색 최적화된 정규화 데이터의 대체물이 아니라 확장 가능한 설명·감사 payload입니다.
+
+## P3 universe and daily feature pipeline
+
+`trading.universe_snapshots` stores one immutable caller-provided membership definition. Its
+semantic identity is `(universe_code, universe_version)`. The `universe_key` hashes that identity;
+`content_digest` hashes only the MIC/symbol member list in canonical order. The JSON member array is
+non-empty, contains 1 to 100 members, and is mapped without provider URLs or raw payloads.
+
+`trading.daily_feature_pipeline_runs` references one UniverseSnapshot with `ON DELETE NO ACTION`.
+Its unique run key includes the pipeline/version, universe ID, provider, calendar/version,
+completed-session marker, split adjustment, feature set/version, horizon, requested sessions,
+normalized `as_of`, and completion grace. Outcome counts are non-negative and must sum to the total.
+
+`trading.daily_feature_pipeline_items` is inserted with its run in one transaction and retains
+canonical ordinal order. READY and DEGRADED items require a FeatureSnapshot FK and matching quality;
+all other outcomes require both feature fields to be null. Unique constraints cover run/ordinal,
+run/symbol, and run/symbol/MIC. Migration `0007_multi_symbol_feature_pipeline` creates only these
+three tables and downgrades them in item, run, universe order. Existing migrations 0001 through 0006
+and their fourteen tables are unchanged.
 
 ## Point-in-Time FeatureSnapshot
 

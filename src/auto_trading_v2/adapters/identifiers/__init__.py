@@ -2,6 +2,8 @@
 
 from auto_trading_v2.adapters.identifiers.uuid_factory import (
     Uuid5ClientOrderIDFactory,
+    UuidDailyFeaturePipelineItemIDFactory,
+    UuidDailyFeaturePipelineRunIDFactory,
     UuidDailyMarketBarIDFactory,
     UuidDecisionIDFactory,
     UuidFeatureSnapshotIDFactory,
@@ -12,10 +14,13 @@ from auto_trading_v2.adapters.identifiers.uuid_factory import (
     UuidPositionIDFactory,
     UuidRecommendationIDFactory,
     UuidTradeIntentIDFactory,
+    UuidUniverseSnapshotIDFactory,
 )
 
 __all__ = [
     "Uuid5ClientOrderIDFactory",
+    "UuidDailyFeaturePipelineItemIDFactory",
+    "UuidDailyFeaturePipelineRunIDFactory",
     "UuidDailyMarketBarIDFactory",
     "UuidDecisionIDFactory",
     "UuidFilterEvaluationIDFactory",
@@ -26,4 +31,5 @@ __all__ = [
     "UuidPositionIDFactory",
     "UuidRecommendationIDFactory",
     "UuidTradeIntentIDFactory",
+    "UuidUniverseSnapshotIDFactory",
 ]
