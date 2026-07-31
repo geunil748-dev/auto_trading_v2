@@ -6,6 +6,10 @@ from auto_trading_v2.application.contracts.alpaca_ingestion import (
     AlpacaIngestionResult,
     AlpacaIngestionSummary,
 )
+from auto_trading_v2.application.contracts.completed_daily_bars import (
+    CompletedDailyBarsRequestCreationOutcome,
+    CompletedDailyBarsRequestCreationResult,
+)
 from auto_trading_v2.application.contracts.daily_bar_comparison import (
     CompareDailyBarProvidersCommand,
     DailyBarProviderComparisonOutcome,
@@ -87,6 +91,8 @@ __all__ = [
     "AlpacaIngestionResult",
     "AlpacaIngestionSummary",
     "CompareDailyBarProvidersCommand",
+    "CompletedDailyBarsRequestCreationOutcome",
+    "CompletedDailyBarsRequestCreationResult",
     "JSONValue",
     "CreateDailyMarketBarCommand",
     "CreateFeatureSnapshotCommand",

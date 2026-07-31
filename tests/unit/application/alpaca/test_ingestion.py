@@ -9,6 +9,7 @@ import pytest
 
 from auto_trading_v2.adapters.clock import FixedClock
 from auto_trading_v2.adapters.identifiers import UuidDailyMarketBarIDFactory
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data.alpaca import (
     ALPACA_CAPABILITIES,
     AlpacaErrorCategory,
@@ -24,6 +25,7 @@ from auto_trading_v2.application.daily_market_bar_errors import DailyMarketBarCo
 from auto_trading_v2.application.errors import DuplicateRecordError
 from auto_trading_v2.application.services import (
     AlpacaDailyMarketBarIngestionService,
+    DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
 )
 from auto_trading_v2.domain.daily_market_bars import (
@@ -32,6 +34,7 @@ from auto_trading_v2.domain.daily_market_bars import (
     DailyMarketBarInput,
     DailyMarketBarValidationError,
 )
+from auto_trading_v2.domain.market_calendar import ProviderBarCalendarErrorCategory
 from auto_trading_v2.domain.primitives import IdentifierFactory, SessionDate, Symbol
 from tests.unit.adapters.market_data.alpaca.helpers import NOW, fetch_request
 
@@ -169,6 +172,7 @@ def service(provider: FakeProvider, factory: MemoryUnitOfWorkFactory):
         factory,  # type: ignore[arg-type]
         creation,
         FixedClock(NOW),
+        DailyMarketBarCalendarValidator(StaticOfficialUsEquityCalendar2026()),
     )
 
 
@@ -199,6 +203,19 @@ def test_create_repeat_revision_and_source_feed_summary() -> None:
     assert revised.outcome is AlpacaIngestionOutcome.COMPLETED
     assert len(factory.repository.bars) == 2
     assert len({bar.bar_input.source_version for bar in factory.repository.bars}) == 2
+
+
+def test_calendar_failure_stops_before_persistence() -> None:
+    factory = MemoryUnitOfWorkFactory()
+    weekend = observations_for((("2026-07-11T04:00:00Z", "102.5"),))
+
+    result = service(FakeProvider(weekend), factory).ingest(command())
+
+    assert result.outcome is AlpacaIngestionOutcome.PROVIDER_ERROR
+    assert result.summary.safe_error_category == (
+        ProviderBarCalendarErrorCategory.ON_NON_TRADING_DAY.value
+    )
+    assert factory.repository.bars == []
 
 
 def test_mixed_created_and_existing_rows_are_reported_separately() -> None:
@@ -232,6 +249,7 @@ def test_unresolved_creation_conflict_returns_sanitized_outcome() -> None:
         factory,  # type: ignore[arg-type]
         ConflictingCreation(),  # type: ignore[arg-type]
         FixedClock(NOW),
+        DailyMarketBarCalendarValidator(StaticOfficialUsEquityCalendar2026()),
     )
 
     result = subject.ingest(command())

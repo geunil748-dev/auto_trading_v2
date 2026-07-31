@@ -1,9 +1,10 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 import pytest
 from sqlalchemy import func, select
 
 from auto_trading_v2.adapters.clock import FixedClock, SystemClock
+from auto_trading_v2.adapters.market_calendar import StaticOfficialUsEquityCalendar2026
 from auto_trading_v2.adapters.market_data import (
     HttpRequest,
     HttpResponse,
@@ -26,6 +27,9 @@ from auto_trading_v2.adapters.persistence.tables import (
 from auto_trading_v2.adapters.persistence.tables import (
     trade_intents as trade_intents_table,
 )
+from auto_trading_v2.application.contracts.completed_daily_bars import (
+    CompletedDailyBarsRequestCreationOutcome,
+)
 from auto_trading_v2.application.contracts.twelve_data_ingestion import (
     TwelveDataIngestionOutcome,
 )
@@ -36,9 +40,14 @@ from auto_trading_v2.application.ports.daily_market_data import (
     CompletedDailyMarketBarObservation,
     FetchCompletedDailyBarsRequest,
 )
+from auto_trading_v2.application.services import (
+    CompletedDailyBarsRequestFactory,
+    UsEquityCompletedSessionResolver,
+)
 from auto_trading_v2.config import load_twelve_data_market_data_settings
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
 from auto_trading_v2.domain.feature_snapshots import FeatureQualityStatus
+from auto_trading_v2.domain.market_calendar import CompletionGracePeriod
 from auto_trading_v2.domain.primitives import Symbol
 from tests.integration.daily_market_bars.helpers import build_command, feature_service
 from tests.integration.persistence.conftest import TemporaryMssqlDatabase
@@ -133,21 +142,33 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
             system_clock,
         )
     )
-    cutoff = system_clock.now_utc().date() - timedelta(days=10)
+    request_result = CompletedDailyBarsRequestFactory(
+        UsEquityCompletedSessionResolver(StaticOfficialUsEquityCalendar2026())
+    ).create(
+        source_code=TWELVE_DATA_SOURCE_CODE,
+        symbol=Symbol("AAPL"),
+        mic_code="XNGS",
+        adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
+        as_of=system_clock.now_utc(),
+        requested_session_count=30,
+        completion_grace=CompletionGracePeriod(timedelta(minutes=15)),
+    )
+    assert request_result.outcome is CompletedDailyBarsRequestCreationOutcome.CREATED
+    assert request_result.request is not None
+    cutoff = request_result.request.completed_through_session_date
+    assert cutoff is not None
     live_command = type(ingestion_command())(
         symbol=Symbol("AAPL"),
         mic_code="XNGS",
         adjustment_basis=DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
-        completed_through_session_date=type(ingestion_command().completed_through_session_date)(
-            cutoff
-        ),
+        completed_through_session_date=cutoff,
         requested_session_count=30,
     )
     placeholder = ScriptedTransport()
     subject = ingestion_service(
         sqlalchemy_uow_factory,
         placeholder,
-        FixedClock(datetime.now(UTC)),
+        FixedClock(system_clock.now_utc()),
         281001,
     )
     object.__setattr__(subject, "provider", provider)
@@ -169,7 +190,7 @@ def test_live_aapl_split_adjusted_ingestion_and_parity(
     assert created.summary.created_count >= 1
     assert repeated.outcome is TwelveDataIngestionOutcome.COMPLETED_WITH_EXISTING
     assert transport.calls == 2
-    assert all(bar.bar_input.session_date.value <= cutoff for bar in created.bars)
+    assert all(bar.bar_input.session_date.value <= cutoff.value for bar in created.bars)
     assert all(bar.bar_input.volume is None for bar in created.bars)
     latest = created.bars[-1]
     source = latest.bar_input

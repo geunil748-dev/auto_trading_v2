@@ -64,3 +64,12 @@ volume, require exact OHLC equality, select a provider, or trigger trading behav
 
 External tests are opt-in. Missing ignored-local or process credentials produce a real skip and
 remain an explicit external-live blocker; a skip is never reported as a live pass.
+
+## Exchange-calendar cutoff
+
+Operational and credential-gated live requests use `US_EQUITY_CORE / 2026.v1` and an explicit
+completion grace to select the latest eligible core session. Existing historical requests retain
+their explicit cutoff. After IEX parsing, the common calendar validator rejects non-trading,
+after-cutoff, duplicate, out-of-range, unsupported-MIC, or inconsistent rows before persistence.
+Calendar failure never switches to Twelve Data or creates FeatureSnapshot, Recommendation,
+TradeIntent, broker, or order side effects.

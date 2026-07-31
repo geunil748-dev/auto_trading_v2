@@ -20,6 +20,7 @@ from auto_trading_v2.application.ports.id_factory import (
     RecommendationIDFactory,
     TradeIntentIDFactory,
 )
+from auto_trading_v2.application.ports.market_calendar import UsEquityMarketCalendar
 from auto_trading_v2.application.ports.paper_broker import PaperBroker, PaperBrokerError
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
@@ -68,4 +69,5 @@ __all__ = [
     "TradeIntentRepository",
     "UnitOfWork",
     "UnitOfWorkFactory",
+    "UsEquityMarketCalendar",
 ]
