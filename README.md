@@ -154,6 +154,30 @@ Point-in-Time 조회는 `available_at <= as_of`인 session별 최신 revision만
 [feature building](docs/feature-building.md), [ADR 0005](docs/adr/0005-canonical-daily-market-bars.md),
 [multi-provider ADR](docs/adr/0006-multi-provider-market-data.md)를 참고하세요.
 
+## Prediction P3 multi-symbol daily feature pipeline
+
+P3 accepts an explicit caller-provided universe of 1 to 100 US-equity listings and freezes it as
+an immutable `UniverseSnapshot`. Members are ordered by listing MIC and then symbol; the supported
+MICs are `XNGS`, `XNGM`, `XNCM`, `XNYS`, and `XASE`. A universe is an evaluation set, not a ranking.
+
+`DailyFeaturePipelineService` resolves one shared completed session through the P2.2 calendar,
+performs a provider-budget preflight, and processes members sequentially. One run uses exactly one
+provider: `TWELVE_DATA_TIME_SERIES` is the primary feature source and
+`ALPACA_IEX_STOCK_BARS` remains validation-only. There is no automatic fallback, provider blending,
+or parallel provider request path. Symbol failures are isolated; authentication, configuration,
+schema, calendar-coverage, and persistence failures stop the remaining work safely. Three
+consecutive transient failures open the bounded v1 circuit.
+
+The immutable run and per-symbol items preserve READY, DEGRADED, DATA_INSUFFICIENT, NO_DATA, error,
+and not-attempted outcomes. Exact retry returns the existing aggregate with zero provider network,
+DailyMarketBar writes, or FeatureSnapshot builds. Migration `0007_multi_symbol_feature_pipeline`
+adds `universe_snapshots`, `daily_feature_pipeline_runs`, and `daily_feature_pipeline_items`, taking
+the canonical table count from 14 to 17. P3 creates FeatureSnapshots only; scoring, ranking,
+Recommendation generation, TradeIntent, broker, and order behavior remain excluded for P4.
+
+See [universe and feature pipeline](docs/universe-and-feature-pipeline.md) and
+[ADR 0009](docs/adr/0009-multi-symbol-daily-feature-pipeline.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

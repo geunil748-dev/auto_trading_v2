@@ -3,6 +3,8 @@
 from auto_trading_v2.domain.primitives.identifiers import (
     CandidateID,
     ClientOrderID,
+    DailyFeaturePipelineItemID,
+    DailyFeaturePipelineRunID,
     DailyMarketBarID,
     DecisionID,
     EquitySnapshotID,
@@ -21,6 +23,7 @@ from auto_trading_v2.domain.primitives.identifiers import (
     RunID,
     StrategyID,
     TradeIntentID,
+    UniverseSnapshotID,
 )
 from auto_trading_v2.domain.primitives.money import Currency, Money
 from auto_trading_v2.domain.primitives.numbers import Price, Quantity, Rate
@@ -31,6 +34,8 @@ __all__ = [
     "CandidateID",
     "ClientOrderID",
     "Currency",
+    "DailyFeaturePipelineItemID",
+    "DailyFeaturePipelineRunID",
     "DailyMarketBarID",
     "DecisionID",
     "EquitySnapshotID",
@@ -55,5 +60,6 @@ __all__ = [
     "StrategyID",
     "Symbol",
     "TradeIntentID",
+    "UniverseSnapshotID",
     "UtcTimestamp",
 ]

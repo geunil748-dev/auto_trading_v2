@@ -58,6 +58,23 @@ class TwelveDataDailyMarketBarIngestionService:
             mic_code=command.mic_code,
             completed_through_session_date=command.completed_through_session_date,
         )
+        return self.ingest_request(command, request)
+
+    def ingest_request(
+        self,
+        command: TwelveDataDailyMarketBarIngestionCommand,
+        request: FetchCompletedDailyBarsRequest,
+    ) -> TwelveDataIngestionResult:
+        if not self._request_matches(command, request):
+            return self._result(
+                command,
+                TwelveDataIngestionOutcome.PROVIDER_ERROR,
+                0,
+                0,
+                0,
+                (),
+                TwelveDataErrorCategory.PROVIDER_REJECTED_REQUEST.value,
+            )
         try:
             observations = self.provider.fetch_completed_daily_bars(request)
         except TwelveDataProviderError as exc:
@@ -214,6 +231,20 @@ class TwelveDataDailyMarketBarIngestionService:
                 safe_error_category=safe_error_category,
             ),
             bars=bars,
+        )
+
+    @staticmethod
+    def _request_matches(
+        command: TwelveDataDailyMarketBarIngestionCommand,
+        request: FetchCompletedDailyBarsRequest,
+    ) -> bool:
+        return (
+            request.source_code == TWELVE_DATA_SOURCE_CODE
+            and request.symbol == command.symbol
+            and request.mic_code == command.mic_code
+            and request.adjustment_basis is command.adjustment_basis
+            and request.completed_through_session_date == command.completed_through_session_date
+            and request.requested_session_count == command.requested_session_count
         )
 
 

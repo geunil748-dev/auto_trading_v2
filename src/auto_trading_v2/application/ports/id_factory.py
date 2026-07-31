@@ -4,6 +4,8 @@ from typing import Protocol
 
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
+    DailyFeaturePipelineItemID,
+    DailyFeaturePipelineRunID,
     DailyMarketBarID,
     DecisionID,
     FeatureSnapshotID,
@@ -14,6 +16,7 @@ from auto_trading_v2.domain.primitives import (
     PositionID,
     RecommendationID,
     TradeIntentID,
+    UniverseSnapshotID,
 )
 
 
@@ -33,6 +36,18 @@ class FeatureSnapshotIDFactory(Protocol):
     """Create canonical FeatureSnapshot identifiers only for new content."""
 
     def new(self) -> FeatureSnapshotID: ...
+
+
+class UniverseSnapshotIDFactory(Protocol):
+    def new(self) -> UniverseSnapshotID: ...
+
+
+class DailyFeaturePipelineRunIDFactory(Protocol):
+    def new(self) -> DailyFeaturePipelineRunID: ...
+
+
+class DailyFeaturePipelineItemIDFactory(Protocol):
+    def new(self) -> DailyFeaturePipelineItemID: ...
 
 
 class RecommendationIDFactory(Protocol):

@@ -15,6 +15,7 @@ from migrations.ddl import (
     create_execution_tables,
     create_feature_snapshot_table,
     create_market_tables,
+    create_multi_symbol_feature_pipeline_tables,
     create_portfolio_tables,
     create_recommendations_table,
     create_strategy_tables,
@@ -119,6 +120,14 @@ def test_migration_contains_every_metadata_constraint_and_index_name() -> None:
                 name.startswith("ck_daily_market_bars_")
                 and f'"{name.removeprefix("ck_daily_market_bars_")}"' in text
             )
+            or any(
+                name.startswith(prefix) and f'"{name.removeprefix(prefix)}"' in text
+                for prefix in (
+                    "ck_universe_snapshots_",
+                    "ck_daily_feature_pipeline_runs_",
+                    "ck_daily_feature_pipeline_items_",
+                )
+            )
         )
     }
     assert missing == set()
@@ -141,6 +150,7 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
     create_execution_tables(operations)
     create_portfolio_tables(operations, positions_only=False)
     create_trading_events(operations)
+    create_multi_symbol_feature_pipeline_tables(operations)
 
     ddl = output.getvalue()
     expected_names = {
@@ -218,6 +228,9 @@ def test_legacy_migrations_are_byte_for_byte_unchanged_from_exact_base() -> None
         ),
         "0005_add_recommendations.py": (
             "aee79c16aa958b499eec679b26ba8e760999c2ee427412c7d6ce7f2c70e49a26"
+        ),
+        "0006_add_daily_market_bars.py": (
+            "856d3201b5a973adba0d9508a640e2c414f96de124218b8483dad5e79093e7da"
         ),
     }
 

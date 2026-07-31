@@ -29,6 +29,7 @@ from auto_trading_v2.adapters.persistence.dotnet.probe import (
 )
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
+    DotNetDailyFeaturePipelineRunRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
     DotNetMarketSnapshotRepository,
@@ -39,6 +40,7 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
+    DotNetUniverseSnapshotRepository,
 )
 from auto_trading_v2.adapters.persistence.dotnet.results import DotNetRow, DotNetRows
 from auto_trading_v2.adapters.persistence.dotnet.runtime import (
@@ -59,6 +61,7 @@ __all__ = [
     "DotNetConnectionFactory",
     "DotNetCoreConnection",
     "DotNetCandidateRepository",
+    "DotNetDailyFeaturePipelineRunRepository",
     "DotNetErrorCategory",
     "DotNetFeatureSnapshotRepository",
     "DotNetFilterEvaluationRepository",
@@ -80,6 +83,7 @@ __all__ = [
     "DotNetSqlType",
     "DotNetStrategyDecisionRepository",
     "DotNetTradeIntentRepository",
+    "DotNetUniverseSnapshotRepository",
     "DotNetTransaction",
     "DotNetTransactionSmokeResult",
     "DotNetTransactionState",

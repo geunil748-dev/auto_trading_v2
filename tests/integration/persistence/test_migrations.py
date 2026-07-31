@@ -11,12 +11,18 @@ from auto_trading_v2.adapters.persistence.tables import (
 
 pytestmark = pytest.mark.integration
 
+P3_TABLE_NAMES = set(
+    "universe_snapshots daily_feature_pipeline_runs daily_feature_pipeline_items".split()  # noqa: SIM905
+)
+
+
+def _without_p3(*names: str) -> set[str]:
+    return {table.name for table in BUSINESS_TABLES} - P3_TABLE_NAMES - set(names)
+
 
 def _revision(mssql_database: object) -> str:
     with mssql_database.engine.connect() as connection:
-        return str(
-            connection.execute(text("SELECT version_num FROM dbo.alembic_version")).scalar_one()
-        )
+        return str(connection.scalar(text("SELECT version_num FROM dbo.alembic_version")))
 
 
 def _normalized(value: object) -> object:
@@ -76,7 +82,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
     expected = {table.name for table in BUSINESS_TABLES}
     inspector = inspect(mssql_database.engine)
     assert set(inspector.get_table_names(schema="trading")) == expected
-    assert _revision(mssql_database) == "0006_daily_market_bars"
+    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
     mssql_database.run_check()
 
 
@@ -96,12 +102,12 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
     mssql_database: object,
 ) -> None:
     expected_tables = {table.name for table in BUSINESS_TABLES}
-    prior_tables = expected_tables - {
+    prior_tables = _without_p3(
         daily_market_bars.name,
         feature_snapshots.name,
         recommendations.name,
-    }
-    assert _revision(mssql_database) == "0006_daily_market_bars"
+    )
+    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0003_position_decision_version")
@@ -109,7 +115,7 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0006_daily_market_bars"
+    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
@@ -119,15 +125,15 @@ def test_recommendation_revision_round_trip_preserves_prior_schema(
     mssql_database: object,
 ) -> None:
     expected_tables = {table.name for table in BUSINESS_TABLES}
-    prior_tables = expected_tables - {daily_market_bars.name, recommendations.name}
-    assert _revision(mssql_database) == "0006_daily_market_bars"
+    prior_tables = _without_p3(daily_market_bars.name, recommendations.name)
+    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0004_feature_snapshots")
     assert _revision(mssql_database) == "0004_feature_snapshots"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0006_daily_market_bars"
+    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
