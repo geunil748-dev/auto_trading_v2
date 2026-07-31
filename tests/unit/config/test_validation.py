@@ -17,11 +17,13 @@ from auto_trading_v2.config.loader import (
     KIS_ENABLED_KEY,
     KIS_ENVIRONMENT_KEY,
     LOG_LEVEL_KEY,
-    MSSQL_ADMIN_URL_KEY,
-    MSSQL_TEST_ADMIN_URL_KEY,
     TELEGRAM_BOT_TOKEN_KEY,
     TELEGRAM_CHAT_ID_KEY,
     TELEGRAM_ENABLED_KEY,
+)
+from auto_trading_v2.config.mssql_administration_keys import (
+    MSSQL_ADMIN_URL_KEY,
+    MSSQL_TEST_ADMIN_URL_KEY,
 )
 from auto_trading_v2.config.validation import parse_boolean, validate_mssql_url
 

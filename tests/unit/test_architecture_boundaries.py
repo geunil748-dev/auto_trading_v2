@@ -122,6 +122,7 @@ def test_project_declares_only_approved_runtime_dependencies() -> None:
         "python-dotenv==1.2.2",
         "pythonnet==3.1.0",
         "SQLAlchemy==2.0.51",
+        "tzdata==2026.3",
     }
 
 

@@ -14,13 +14,16 @@ import auto_trading_v2.config.loader as loader_module
 from auto_trading_v2.config import (
     InvalidSettingError,
     MssqlAdministrationSettings,
+    MssqlAdministrationTransport,
     SecretValue,
     load_mssql_administration_settings,
     load_settings,
 )
 from auto_trading_v2.config.dotnet_database import DotNetDatabaseSettings
-from auto_trading_v2.config.loader import (
+from auto_trading_v2.config.mssql_administration_keys import (
+    MSSQL_ADMIN_TRANSPORT_KEY,
     MSSQL_ADMIN_URL_KEY,
+    MSSQL_TEST_ADMIN_TRANSPORT_KEY,
     MSSQL_TEST_ADMIN_URL_KEY,
 )
 
@@ -80,6 +83,61 @@ def test_missing_administration_urls_are_allowed(tmp_path: Path) -> None:
     assert settings.admin_url is None
     assert settings.test_admin_url is None
     assert settings.selected_admin_url is None
+    assert settings.admin_transport is MssqlAdministrationTransport.TCP_URL
+    assert settings.test_admin_transport is MssqlAdministrationTransport.TCP_URL
+    assert settings.selected_admin_transport is MssqlAdministrationTransport.TCP_URL
+
+
+def test_explicit_test_transport_is_selected_with_test_admin_url(tmp_path: Path) -> None:
+    settings = _load(
+        tmp_path,
+        environ={
+            MSSQL_ADMIN_URL_KEY: ADMIN_URL,
+            MSSQL_ADMIN_TRANSPORT_KEY: "tcp_url",
+            MSSQL_TEST_ADMIN_URL_KEY: TEST_ADMIN_URL,
+            MSSQL_TEST_ADMIN_TRANSPORT_KEY: "LOCAL_SHARED_MEMORY",
+        },
+    )
+
+    assert settings.selected_admin_url is settings.test_admin_url
+    assert settings.selected_admin_transport is MssqlAdministrationTransport.LOCAL_SHARED_MEMORY
+
+
+def test_admin_transport_is_selected_when_test_admin_url_is_absent(tmp_path: Path) -> None:
+    settings = _load(
+        tmp_path,
+        environ={
+            MSSQL_ADMIN_URL_KEY: ADMIN_URL,
+            MSSQL_ADMIN_TRANSPORT_KEY: "local_shared_memory",
+            MSSQL_TEST_ADMIN_TRANSPORT_KEY: "tcp_url",
+        },
+    )
+
+    assert settings.selected_admin_url is settings.admin_url
+    assert settings.selected_admin_transport is MssqlAdministrationTransport.LOCAL_SHARED_MEMORY
+
+
+def test_invalid_transport_is_rejected_without_exposing_value(tmp_path: Path) -> None:
+    unsafe_value = f"unknown-{SENTINEL}"
+
+    with pytest.raises(InvalidSettingError) as caught:
+        _load(
+            tmp_path,
+            environ={MSSQL_ADMIN_TRANSPORT_KEY: unsafe_value},
+        )
+
+    assert unsafe_value not in str(caught.value)
+    assert SENTINEL not in repr(caught.value)
+
+
+def test_blank_transport_masks_process_and_uses_safe_default(tmp_path: Path) -> None:
+    settings = _load(
+        tmp_path,
+        environ={MSSQL_TEST_ADMIN_TRANSPORT_KEY: ""},
+        process={MSSQL_TEST_ADMIN_TRANSPORT_KEY: "local_shared_memory"},
+    )
+
+    assert settings.test_admin_transport is MssqlAdministrationTransport.TCP_URL
 
 
 def test_explicit_dotenv_process_precedence(tmp_path: Path) -> None:
@@ -174,6 +232,8 @@ def test_model_is_immutable_and_all_representations_are_redacted(
     rendered = (repr(settings), str(settings), repr(asdict(settings)))
     assert all(SENTINEL not in item for item in rendered)
     assert "localhost" not in repr(settings)
+    assert "admin_transport='tcp_url'" in repr(settings)
+    assert "test_admin_transport='tcp_url'" in repr(settings)
 
     with caplog.at_level(logging.INFO):
         logging.getLogger("admin-config-test").info("settings=%r", settings)
@@ -216,3 +276,4 @@ def test_secret_wrapper_is_reused() -> None:
     )
 
     assert isinstance(settings.admin_url, SecretValue)
+    assert settings.admin_transport is MssqlAdministrationTransport.TCP_URL

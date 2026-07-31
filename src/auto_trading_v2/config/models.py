@@ -51,12 +51,21 @@ class DatabaseSettings:
     test_admin_url: SecretValue | None
 
 
+class MssqlAdministrationTransport(StrEnum):
+    """Explicit transport for MSSQL migration and temporary-test administration."""
+
+    TCP_URL = "tcp_url"
+    LOCAL_SHARED_MEMORY = "local_shared_memory"
+
+
 @dataclass(frozen=True, slots=True, repr=False)
 class MssqlAdministrationSettings:
     """Protected MSSQL administration URLs for migrations and temporary tests."""
 
     admin_url: SecretValue | None
     test_admin_url: SecretValue | None
+    admin_transport: MssqlAdministrationTransport = MssqlAdministrationTransport.TCP_URL
+    test_admin_transport: MssqlAdministrationTransport = MssqlAdministrationTransport.TCP_URL
 
     @property
     def selected_admin_url(self) -> SecretValue | None:
@@ -64,11 +73,21 @@ class MssqlAdministrationSettings:
 
         return self.test_admin_url or self.admin_url
 
+    @property
+    def selected_admin_transport(self) -> MssqlAdministrationTransport:
+        """Select the transport from the same source as the selected URL."""
+
+        if self.test_admin_url is not None:
+            return self.test_admin_transport
+        return self.admin_transport
+
     def __repr__(self) -> str:
         return (
             "MssqlAdministrationSettings("
             f"admin_configured={self.admin_url is not None!r}, "
-            f"test_admin_configured={self.test_admin_url is not None!r})"
+            f"test_admin_configured={self.test_admin_url is not None!r}, "
+            f"admin_transport={self.admin_transport.value!r}, "
+            f"test_admin_transport={self.test_admin_transport.value!r})"
         )
 
     def __str__(self) -> str:

@@ -8,7 +8,9 @@ from pathlib import Path
 
 from dotenv import dotenv_values
 
+from auto_trading_v2.config import mssql_administration_keys as _admin_keys
 from auto_trading_v2.config.errors import UnsafeSettingError
+from auto_trading_v2.config.market_data_keys import MARKET_DATA_KEYS
 from auto_trading_v2.config.models import (
     AppSettings,
     ConfigurationDiagnostics,
@@ -20,7 +22,6 @@ from auto_trading_v2.config.models import (
     SettingSource,
     TelegramSettings,
 )
-from auto_trading_v2.config.twelve_data_keys import TWELVE_DATA_KEYS
 from auto_trading_v2.config.validation import (
     normalize_choice,
     parse_boolean,
@@ -40,9 +41,9 @@ MSSQL_PASSWORD_KEY = "AUTO_TRADING_V2_MSSQL_PASSWORD"
 MSSQL_ENCRYPT_KEY = "AUTO_TRADING_V2_MSSQL_ENCRYPT"
 MSSQL_TRUST_CERTIFICATE_KEY = "AUTO_TRADING_V2_MSSQL_TRUST_SERVER_CERTIFICATE"
 MSSQL_CONNECT_TIMEOUT_KEY = "AUTO_TRADING_V2_MSSQL_CONNECT_TIMEOUT"
-MSSQL_ADMIN_URL_KEY = "AUTO_TRADING_V2_MSSQL_ADMIN_URL"
+MSSQL_ADMIN_URL_KEY = _admin_keys.MSSQL_ADMIN_URL_KEY
 DATABASE_URL_KEY = "AUTO_TRADING_V2_DATABASE_URL"
-MSSQL_TEST_ADMIN_URL_KEY = "AUTO_TRADING_V2_TEST_ADMIN_URL"
+MSSQL_TEST_ADMIN_URL_KEY = _admin_keys.MSSQL_TEST_ADMIN_URL_KEY
 KIS_ENABLED_KEY = "AUTO_TRADING_V2_KIS_ENABLED"
 KIS_ENVIRONMENT_KEY = "AUTO_TRADING_V2_KIS_ENVIRONMENT"
 KIS_BASE_URL_KEY = "AUTO_TRADING_V2_KIS_BASE_URL"
@@ -67,9 +68,8 @@ CANONICAL_KEYS = frozenset(
         MSSQL_ENCRYPT_KEY,
         MSSQL_TRUST_CERTIFICATE_KEY,
         MSSQL_CONNECT_TIMEOUT_KEY,
-        MSSQL_ADMIN_URL_KEY,
+        *_admin_keys.MSSQL_ADMINISTRATION_KEYS,
         DATABASE_URL_KEY,
-        MSSQL_TEST_ADMIN_URL_KEY,
         KIS_ENABLED_KEY,
         KIS_ENVIRONMENT_KEY,
         KIS_BASE_URL_KEY,
@@ -80,7 +80,7 @@ CANONICAL_KEYS = frozenset(
         TELEGRAM_ENABLED_KEY,
         TELEGRAM_BOT_TOKEN_KEY,
         TELEGRAM_CHAT_ID_KEY,
-        *TWELVE_DATA_KEYS,
+        *MARKET_DATA_KEYS,
     }
 )
 

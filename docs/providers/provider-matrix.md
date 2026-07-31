@@ -1,12 +1,12 @@
 # Market-data provider matrix
 
-`verified_at=2026-07-28`. Provider limits and product access can change; re-check official terms
+`verified_at=2026-07-29`. Provider limits and product access can change; re-check official terms
 before enabling a provider.
 
-| Provider code / candidate | Official | Current role | P2.1A status |
+| Provider code / candidate | Official | Current role | P2.1B status |
 | --- | --- | --- | --- |
 | `TWELVE_DATA_TIME_SERIES` | Yes | Completed US-equity daily price input | Actual `/time_series` adapter implemented |
-| `ALPACA` | Yes | Future second-source validation; Basic feed coverage must be evaluated | Not implemented |
+| `ALPACA_IEX_STOCK_BARS` | Yes | IEX single-venue daily-bar validation only | Implemented; never fallback or full-US-market input |
 | `YAHOO_FINANCE_EXPERIMENTAL` | No | Research/personal-use experimental fallback candidate | Not implemented; never a production canonical default |
 | `KIS` | Yes | Future RAW daily adapter after market-data credentials are available | Not implemented; existing clean KIS worktree preserved |
 | `TOSS_SECURITIES` | Yes | Future account, actual execution, and user-action integration after approval/access | Not implemented |
@@ -23,3 +23,5 @@ or credit rejection. Different providers never contribute bars to the same techn
 Twelve Data free operational defaults are 8 credits per minute and 800 credits per UTC day. They
 are configurable adapter safeguards rather than Domain rules. See the
 [Twelve Data provider contract](twelve-data.md).
+Alpaca request throttling defaults to 200 requests per rolling minute as an adapter safeguard.
+See the [Alpaca IEX validation contract](alpaca-iex.md).

@@ -1,5 +1,16 @@
 """Immutable application boundary contracts."""
 
+from auto_trading_v2.application.contracts.alpaca_ingestion import (
+    AlpacaDailyMarketBarIngestionCommand,
+    AlpacaIngestionOutcome,
+    AlpacaIngestionResult,
+    AlpacaIngestionSummary,
+)
+from auto_trading_v2.application.contracts.daily_bar_comparison import (
+    CompareDailyBarProvidersCommand,
+    DailyBarProviderComparisonOutcome,
+    DailyBarProviderComparisonReport,
+)
 from auto_trading_v2.application.contracts.daily_market_bars import (
     CreateDailyMarketBarCommand,
     DailyMarketBarCreationOutcome,
@@ -71,6 +82,11 @@ from auto_trading_v2.application.contracts.twelve_data_ingestion import (
 )
 
 __all__ = [
+    "AlpacaDailyMarketBarIngestionCommand",
+    "AlpacaIngestionOutcome",
+    "AlpacaIngestionResult",
+    "AlpacaIngestionSummary",
+    "CompareDailyBarProvidersCommand",
     "JSONValue",
     "CreateDailyMarketBarCommand",
     "CreateFeatureSnapshotCommand",
@@ -79,6 +95,8 @@ __all__ = [
     "FeatureSnapshotCreationResult",
     "DailyMarketBarCreationOutcome",
     "DailyMarketBarCreationResult",
+    "DailyBarProviderComparisonOutcome",
+    "DailyBarProviderComparisonReport",
     "NewCandidate",
     "NewDailyMarketBar",
     "NewCandidateStrategyDecision",

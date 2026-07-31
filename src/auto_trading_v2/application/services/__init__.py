@@ -1,5 +1,11 @@
 """Application orchestration services."""
 
+from auto_trading_v2.application.services.alpaca_ingestion import (
+    AlpacaDailyMarketBarIngestionService,
+)
+from auto_trading_v2.application.services.daily_bar_comparison import (
+    DailyBarProviderComparisonService,
+)
 from auto_trading_v2.application.services.daily_market_bar import (
     DailyMarketBarCreationService,
 )
@@ -35,10 +41,12 @@ from auto_trading_v2.application.services.twelve_data_ingestion import (
 )
 
 __all__ = [
+    "AlpacaDailyMarketBarIngestionService",
     "CandidateFilterEvaluationService",
     "CandidateStrategyDecisionService",
     "CandidateTradeIntentService",
     "DailyMarketBarCreationService",
+    "DailyBarProviderComparisonService",
     "DailyTechnicalFeatureSnapshotService",
     "EvaluationBatchResult",
     "FeatureSnapshotCreationService",

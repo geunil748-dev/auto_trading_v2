@@ -6,9 +6,11 @@
 `DailyMarketBar` is a completed historical US-equity session used only as prediction feature input.
 It is not attached directly to Candidate, StrategyDecision, TradeIntent, or Recommendation.
 
-P2.1A extends the provider-neutral port with immutable capabilities and implements only the official
-Twelve Data `/time_series` adapter. The caller selects `TWELVE_DATA_TIME_SERIES` explicitly.
-KIS, Yahoo, Alpaca, Toss, Alpha Vantage, Finnhub, SEC, and FRED adapters remain outside this slice.
+P2.1A extends the provider-neutral port with immutable capabilities and implements the official
+Twelve Data `/time_series` adapter. P2.1B adds the official Alpaca single-symbol historical bars
+adapter as an independent validation-only source. The caller selects `TWELVE_DATA_TIME_SERIES` or
+`ALPACA_IEX_STOCK_BARS` explicitly. KIS, Yahoo, Toss, Alpha Vantage, Finnhub, SEC, and FRED
+adapters remain outside this slice.
 There is no silent fallback, cross-provider averaging, or mixed-source FeatureSnapshot.
 
 ## Time and revision policy
@@ -68,3 +70,33 @@ and raw payload.
 
 `adjust=splits` is `SPLIT_ADJUSTED`, but adjusted volume compatibility is not verified, so canonical
 volume is `None`. `adjust=none` is storable `RAW` and is rejected by the v1 technical builder.
+
+## Alpaca IEX source identity
+
+`ALPACA_IEX_STOCK_BARS` reads only `/v2/stocks/{symbol}/bars` with `feed=iex`. IEX is one
+exchange, so this source is not represented as full-US-market coverage and is not a fallback for
+Twelve Data. Listing MIC remains explicit identity context and is never sent as an endpoint query
+parameter. AAPL uses `XNGS`; `XNAS` is never inferred or aliased.
+
+The record key is `{MIC}.{SYMBOL}.{YYYYMMDD}.IEX.{SPLIT|RAW}`. Its `source_version` covers mapping
+version, symbol, MIC, feed, adjustment, session, canonical Decimal OHLC, and integer volume. Fetch
+time, credentials, URL, response body, pagination token, and other request metadata are excluded.
+Stable content reuses the existing row and preserves its first `available_at`; corrected content
+creates an immutable revision.
+
+Alpaca documents that split adjustment changes price and volume, so `adjustment=split` preserves
+the returned non-negative integer volume. `adjustment=raw` is supported for storage but is never
+selected automatically for technical features.
+
+## Cross-provider validation report
+
+`DailyBarProviderComparisonService` independently queries each source's latest available
+`SPLIT_ADJUSTED` revisions, aligns by session, and returns an immutable, non-persisted report.
+Outcomes distinguish comparable data, insufficient overlap, and missing primary or validation
+data. Comparable metrics are median/maximum absolute relative close difference and consecutive
+return-direction agreement, calculated with a local 38-digit `Decimal` context using
+`ROUND_HALF_EVEN`.
+
+Volume equality, exact OHLC equality, selection thresholds, provider ranking, blending, fallback,
+FeatureSnapshot creation, Recommendation, TradeIntent, broker, and order behavior are deliberately
+excluded.
