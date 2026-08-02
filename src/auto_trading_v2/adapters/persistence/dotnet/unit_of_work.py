@@ -15,10 +15,12 @@ from auto_trading_v2.adapters.persistence.dotnet.errors import (
     safe_persistence_error,
     translate_dotnet_error,
 )
+from auto_trading_v2.adapters.persistence.dotnet.prediction_unit_of_work import (
+    DotNetPredictionUnitOfWorkMixin,
+)
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
     DotNetDailyFeaturePipelineRunRepository,
-    DotNetDailyFeatureScoringRunRepository,
     DotNetDailyMarketBarRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
@@ -50,7 +52,7 @@ class _State(Enum):
 _Repository = TypeVar("_Repository")
 
 
-class DotNetUnitOfWork:
+class DotNetUnitOfWork(DotNetPredictionUnitOfWorkMixin):
     def __init__(
         self,
         connection_factory: DotNetConnectionFactory,
@@ -66,7 +68,7 @@ class DotNetUnitOfWork:
         self._feature_snapshots: DotNetFeatureSnapshotRepository | None = None
         self._universe_snapshots: DotNetUniverseSnapshotRepository | None = None
         self._daily_feature_pipeline_runs: DotNetDailyFeaturePipelineRunRepository | None = None
-        self._daily_feature_scoring_runs: DotNetDailyFeatureScoringRunRepository | None = None
+        self._initialize_prediction_repository_slots()
         self._recommendations: DotNetRecommendationRepository | None = None
         self._market_snapshots: DotNetMarketSnapshotRepository | None = None
         self._candidates: DotNetCandidateRepository | None = None
@@ -93,10 +95,6 @@ class DotNetUnitOfWork:
     @property
     def daily_feature_pipeline_runs(self) -> DotNetDailyFeaturePipelineRunRepository:
         return self._repository(self._daily_feature_pipeline_runs)
-
-    @property
-    def daily_feature_scoring_runs(self) -> DotNetDailyFeatureScoringRunRepository:
-        return self._repository(self._daily_feature_scoring_runs)
 
     @property
     def recommendations(self) -> DotNetRecommendationRepository:
@@ -165,7 +163,7 @@ class DotNetUnitOfWork:
         self._daily_feature_pipeline_runs = DotNetDailyFeaturePipelineRunRepository(
             *repository_args
         )
-        self._daily_feature_scoring_runs = DotNetDailyFeatureScoringRunRepository(*repository_args)
+        self._bind_prediction_repositories(repository_args)
         self._recommendations = DotNetRecommendationRepository(*repository_args)
         self._market_snapshots = DotNetMarketSnapshotRepository(*repository_args)
         self._candidates = DotNetCandidateRepository(*repository_args)

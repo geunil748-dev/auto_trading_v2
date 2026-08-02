@@ -4,17 +4,18 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from types import TracebackType
-from typing import cast
 
 from sqlalchemy import Connection, Engine
 from sqlalchemy.engine import RootTransaction
 from sqlalchemy.exc import SQLAlchemyError
 
 from auto_trading_v2.adapters.persistence.errors import translate_persistence_error
+from auto_trading_v2.adapters.persistence.prediction_unit_of_work import (
+    SqlAlchemyPredictionUnitOfWorkMixin,
+)
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
     SqlAlchemyDailyFeaturePipelineRunRepository,
-    SqlAlchemyDailyFeatureScoringRunRepository,
     SqlAlchemyDailyMarketBarRepository,
     SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
@@ -39,7 +40,7 @@ class _State(Enum):
     FINISHED = auto()
 
 
-class SqlAlchemyUnitOfWork:
+class SqlAlchemyUnitOfWork(SqlAlchemyPredictionUnitOfWorkMixin):
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
         self._state = _State.NEW
@@ -50,7 +51,7 @@ class SqlAlchemyUnitOfWork:
         self._feature_snapshots: SqlAlchemyFeatureSnapshotRepository | None = None
         self._universe_snapshots: SqlAlchemyUniverseSnapshotRepository | None = None
         self._daily_feature_pipeline_runs: SqlAlchemyDailyFeaturePipelineRunRepository | None = None
-        self._daily_feature_scoring_runs: SqlAlchemyDailyFeatureScoringRunRepository | None = None
+        self._initialize_prediction_repository_slots()
         self._recommendations: SqlAlchemyRecommendationRepository | None = None
         self._market_snapshots: SqlAlchemyMarketSnapshotRepository | None = None
         self._candidates: SqlAlchemyCandidateRepository | None = None
@@ -91,11 +92,6 @@ class SqlAlchemyUnitOfWork:
         if self._daily_feature_pipeline_runs is None:
             raise TransactionStateError("repository_access")
         return self._daily_feature_pipeline_runs
-
-    @property
-    def daily_feature_scoring_runs(self) -> SqlAlchemyDailyFeatureScoringRunRepository:
-        self._ensure_repository_operation()
-        return cast(SqlAlchemyDailyFeatureScoringRunRepository, self._daily_feature_scoring_runs)
 
     @property
     def recommendations(self) -> SqlAlchemyRecommendationRepository:
@@ -192,9 +188,7 @@ class SqlAlchemyUnitOfWork:
         self._daily_feature_pipeline_runs = SqlAlchemyDailyFeaturePipelineRunRepository(
             *repository_args
         )
-        self._daily_feature_scoring_runs = SqlAlchemyDailyFeatureScoringRunRepository(
-            *repository_args
-        )
+        self._bind_prediction_repositories(repository_args)
         self._recommendations = SqlAlchemyRecommendationRepository(*repository_args)
         self._market_snapshots = SqlAlchemyMarketSnapshotRepository(*repository_args)
         self._candidates = SqlAlchemyCandidateRepository(*repository_args)

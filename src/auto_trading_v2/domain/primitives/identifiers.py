@@ -105,6 +105,24 @@ class DailyFeatureScoringItemID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class DailyFeatureOutcomeID(_UUIDIdentifier):
+    """Identifier for one immutable forward-outcome revision."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeObservationRunID(_UUIDIdentifier):
+    """Identifier for one immutable outcome-observation run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeObservationRunItemID(_UUIDIdentifier):
+    """Identifier for one audited item within an observation run."""
+
+    __slots__ = ()
+
+
 class RecommendationID(_UUIDIdentifier):
     """Identifier for a canonical user-facing recommendation."""
 

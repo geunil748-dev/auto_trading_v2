@@ -29,6 +29,13 @@ from auto_trading_v2.application.contracts.daily_market_bars import (
     DailyMarketBarCreationResult,
     NewDailyMarketBar,
 )
+from auto_trading_v2.application.contracts.feature_outcomes import (
+    DailyFeatureOutcomeObservationExecutionOutcome,
+    DailyFeatureOutcomeObservationExecutionResult,
+    NewDailyFeatureOutcome,
+    NewDailyFeatureOutcomeObservationRunWithItems,
+    ObserveDailyFeatureScoringOutcomesCommand,
+)
 from auto_trading_v2.application.contracts.feature_scoring import (
     DailyFeatureScoringExecutionOutcome,
     DailyFeatureScoringExecutionResult,
@@ -127,6 +134,8 @@ __all__ = [
     "DailyFeaturePipelineExecutionResult",
     "DailyFeatureScoringExecutionOutcome",
     "DailyFeatureScoringExecutionResult",
+    "DailyFeatureOutcomeObservationExecutionOutcome",
+    "DailyFeatureOutcomeObservationExecutionResult",
     "DailyBarProviderComparisonOutcome",
     "DailyBarProviderComparisonReport",
     "NewCandidate",
@@ -137,6 +146,9 @@ __all__ = [
     "NewDailyFeatureScoringItem",
     "NewDailyFeatureScoringRun",
     "NewDailyFeatureScoringRunWithItems",
+    "NewDailyFeatureOutcome",
+    "NewDailyFeatureOutcomeObservationRunWithItems",
+    "ObserveDailyFeatureScoringOutcomesCommand",
     "NewCandidateStrategyDecision",
     "NewPositionStrategyDecision",
     "NewFilterEvaluation",

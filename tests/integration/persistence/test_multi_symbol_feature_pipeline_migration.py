@@ -3,6 +3,9 @@ from sqlalchemy import inspect, text
 
 from auto_trading_v2.adapters.persistence.tables import (
     BUSINESS_TABLES,
+    daily_feature_outcome_observation_run_items,
+    daily_feature_outcome_observation_runs,
+    daily_feature_outcomes,
     daily_feature_pipeline_items,
     daily_feature_pipeline_runs,
     daily_feature_scoring_items,
@@ -39,8 +42,14 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
     mssql_database: TemporaryMssqlDatabase,
 ) -> None:
     head = {table.name for table in BUSINESS_TABLES}
-    scoring = {daily_feature_scoring_runs.name, daily_feature_scoring_items.name}
-    expected = head - scoring
+    downstream = {
+        daily_feature_scoring_runs.name,
+        daily_feature_scoring_items.name,
+        daily_feature_outcomes.name,
+        daily_feature_outcome_observation_runs.name,
+        daily_feature_outcome_observation_run_items.name,
+    }
+    expected = head - downstream
     added = {
         universe_snapshots.name,
         daily_feature_pipeline_runs.name,
@@ -50,7 +59,7 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
     assert len(expected) == 17
     assert len(prior) == 14
     assert _version_column_length(mssql_database) == 64
-    assert _revision(mssql_database) == "0008_daily_feature_scoring"
+    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
     signature = _table_catalog_signature(mssql_database, prior)
 
     mssql_database.run_downgrade("0006_daily_market_bars")
@@ -65,6 +74,6 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected
     assert _table_catalog_signature(mssql_database, prior) == signature
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0008_daily_feature_scoring"
+    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == head
     mssql_database.run_check()

@@ -157,6 +157,23 @@ FeatureSnapshot all use `ON DELETE NO ACTION`. Migration `0008_daily_feature_sco
 these two tables, taking the canonical count from 17 to 19, and downgrades only to
 `0007_multi_symbol_feature_pipeline`.
 
+## P4B.1 forward outcomes
+
+`daily_feature_outcomes` stores immutable raw terminal return, MFE, and MAE at `DECIMAL(38,18)` plus
+the P4A/P3/FeatureSnapshot foreign-key chain. Its ordered provenance is a JSON array of safe
+DailyMarketBar revision identities without copied prices or provider payload. Outcome identity
+includes a path-revision digest, so corrected bars create a new row rather than an overwrite.
+
+`daily_feature_outcome_observation_runs` and
+`daily_feature_outcome_observation_run_items` audit one exact observation command and each source
+item outcome. `completion_grace_seconds` is `INTEGER` because the allowed 86,400 seconds exceeds SQL
+Server `SMALLINT`. Run/items are inserted atomically; canonical outcomes may be inserted in separate
+per-item transactions. All FKs use `ON DELETE NO ACTION`.
+
+Migration `0009_daily_feature_outcomes` adds only these three tables in dependency order and raises
+the canonical count from 19 to 22. Downgrade removes run items, runs, then outcomes. No backfill or
+existing-table mutation occurs.
+
 ## Point-in-Time FeatureSnapshot
 
 `trading.feature_snapshots`는 기존 11개 table과 FK가 없는 독립 aggregate입니다. 최소 column은

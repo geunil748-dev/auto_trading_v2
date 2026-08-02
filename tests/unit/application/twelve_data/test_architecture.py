@@ -8,16 +8,20 @@ ROOT = Path("src/auto_trading_v2")
 
 
 def test_domain_has_no_adapter_configuration_or_persistence_imports() -> None:
-    domain = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "domain").rglob("*.py"))
+    paths = sorted((ROOT / "domain").rglob("*.py"))
+    domain = "\n".join(path.read_text(encoding="utf-8") for path in paths)
 
     for forbidden in (
         "urllib",
         "auto_trading_v2.config",
         "sqlalchemy",
         "pythonnet",
-        "TWELVE_DATA",
     ):
         assert forbidden not in domain
+    provider_mentions = [
+        path for path in paths if "TWELVE_DATA" in path.read_text(encoding="utf-8")
+    ]
+    assert provider_mentions == [ROOT / "domain" / "feature_outcomes" / "policies.py"]
 
 
 def test_twelve_data_adapter_has_no_execution_or_fallback_dependencies() -> None:

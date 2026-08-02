@@ -6,6 +6,10 @@ from types import TracebackType
 from typing import Protocol, Self
 
 from auto_trading_v2.application.ports.daily_market_bars import DailyMarketBarRepository
+from auto_trading_v2.application.ports.feature_outcomes import (
+    DailyFeatureOutcomeObservationRunRepository,
+    DailyFeatureOutcomeRepository,
+)
 from auto_trading_v2.application.ports.feature_pipeline import (
     DailyFeaturePipelineRunRepository,
 )
@@ -36,6 +40,8 @@ class UnitOfWork(Protocol):
     universe_snapshots: UniverseSnapshotRepository
     daily_feature_pipeline_runs: DailyFeaturePipelineRunRepository
     daily_feature_scoring_runs: DailyFeatureScoringRunRepository
+    daily_feature_outcomes: DailyFeatureOutcomeRepository
+    daily_feature_outcome_observation_runs: DailyFeatureOutcomeObservationRunRepository
     recommendations: RecommendationRepository
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository

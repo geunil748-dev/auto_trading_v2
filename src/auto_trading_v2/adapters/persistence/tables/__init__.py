@@ -4,6 +4,13 @@ from auto_trading_v2.adapters.persistence.metadata import metadata
 from auto_trading_v2.adapters.persistence.tables.daily_market_bars import daily_market_bars
 from auto_trading_v2.adapters.persistence.tables.events import trading_events
 from auto_trading_v2.adapters.persistence.tables.execution import paper_fills, paper_orders
+from auto_trading_v2.adapters.persistence.tables.feature_outcome_observations import (
+    daily_feature_outcome_observation_run_items,
+    daily_feature_outcome_observation_runs,
+)
+from auto_trading_v2.adapters.persistence.tables.feature_outcomes import (
+    daily_feature_outcomes,
+)
 from auto_trading_v2.adapters.persistence.tables.feature_pipeline import (
     daily_feature_pipeline_items,
     daily_feature_pipeline_runs,
@@ -50,6 +57,9 @@ BUSINESS_TABLES = (
     daily_feature_pipeline_items,
     daily_feature_scoring_runs,
     daily_feature_scoring_items,
+    daily_feature_outcomes,
+    daily_feature_outcome_observation_runs,
+    daily_feature_outcome_observation_run_items,
 )
 
 __all__ = [
@@ -60,6 +70,9 @@ __all__ = [
     "daily_feature_pipeline_runs",
     "daily_feature_scoring_items",
     "daily_feature_scoring_runs",
+    "daily_feature_outcome_observation_run_items",
+    "daily_feature_outcome_observation_runs",
+    "daily_feature_outcomes",
     "equity_snapshots",
     "filter_evaluations",
     "feature_snapshots",

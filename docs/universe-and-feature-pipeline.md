@@ -55,6 +55,14 @@ same-run price population; volume percentiles use READY items only. All other P3
 visible as unscorable audit items. Exact scoring retry performs no network request, bar write,
 FeatureSnapshot build, or Recommendation creation. See [relative scoring](relative-scoring.md).
 
+## P4B.1 downstream outcome boundary
+
+P4B.1 reuses the P3 run's completed session and 1–5 trading-day horizon. It validates the persisted
+P4A→P3→FeatureSnapshot chain, takes the reference price from FeatureSnapshot `last_close`, and reads
+only existing canonical future DailyMarketBars at an observation cutoff. It does not rerun P3,
+change a snapshot, call a provider, or create a Recommendation. The static calendar supports only
+2026; see [forward outcomes](forward-outcomes.md).
+
 ## External batch validation status
 
 `EXTERNAL_BATCH_LIVE: NOT_RUN_CREDENTIAL_MISSING`. The P3 worktree configuration was inspected

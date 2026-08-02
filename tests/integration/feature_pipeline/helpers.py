@@ -49,11 +49,12 @@ def universe_command(case: int, *symbols: str) -> CreateUniverseSnapshotCommand:
 def universe_service(
     factory: UnitOfWorkFactory,
     identifier: int,
+    observed_at: datetime | None = None,
 ) -> UniverseSnapshotCreationService:
     ids = IdentifierFactory(lambda: UUID(int=identifier))
     return UniverseSnapshotCreationService(
         factory,
-        FixedClock(NOW - timedelta(days=1)),
+        FixedClock(NOW - timedelta(days=1) if observed_at is None else observed_at),
         UuidUniverseSnapshotIDFactory(ids),
     )
 
