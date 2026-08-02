@@ -21,7 +21,7 @@ from sqlalchemy import (
     Uuid,
     select,
 )
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from auto_trading_v2.adapters.persistence.dotnet.commands import (
     DotNetCommandExecutor,
@@ -44,6 +44,7 @@ sample = Table(
     Column("large", BigInteger(), nullable=False),
     Column("count", Integer(), nullable=False),
     Column("amount", Numeric(38, 18), nullable=False),
+    Column("relative_score", Numeric(9, 6), nullable=False),
     Column("instant", DateTime(timezone=True), nullable=False),
     Column("day", Date(), nullable=False),
     Column("code", String(32), nullable=False),
@@ -105,6 +106,7 @@ def test_insert_compiles_to_named_explicit_parameters_without_value_interpolatio
             large=2**40,
             count=7,
             amount=Decimal("123.450000000000000000"),
+            relative_score=Decimal("33.333333"),
             instant=datetime(2026, 7, 19, 1, 2, 3, 456789, tzinfo=UTC),
             day=date(2026, 7, 19),
             code="CODE",
@@ -134,6 +136,58 @@ def test_insert_compiles_to_named_explicit_parameters_without_value_interpolatio
     }
     details = next(parameter for parameter in parameters if parameter.value == sentinel)
     assert details.size == -1
+    amount = next(parameter for parameter in parameters if parameter.name == "@amount")
+    score = next(parameter for parameter in parameters if parameter.name == "@relative_score")
+    assert (amount.precision, amount.scale) == (38, 18)
+    assert (score.precision, score.scale) == (9, 6)
+
+
+def test_numeric_boundary_shapes_are_derived_from_compiled_bind_types() -> None:
+    boundaries = Table(
+        "decimal_boundaries",
+        MetaData(),
+        Column("minimal", Numeric(1, 0), nullable=False),
+        Column("max_fraction", Numeric(38, 38), nullable=False),
+    )
+    executor = CapturingExecutor()
+    connection, _ = _connection(executor)
+
+    connection.execute(
+        boundaries.insert().values(
+            max_fraction=Decimal("0.1"),
+            minimal=Decimal("1"),
+        )
+    )
+
+    shapes = {
+        parameter.name: (parameter.precision, parameter.scale) for parameter in executor.calls[0][2]
+    }
+    assert shapes == {"@minimal": (1, 0), "@max_fraction": (38, 38)}
+
+
+@pytest.mark.parametrize(
+    ("numeric_type", "value"),
+    [
+        (Numeric(), Decimal("1")),
+        (Numeric(9, 6, asdecimal=False), Decimal("1.000000")),
+        (Numeric(9, 6), 1.25),
+    ],
+)
+def test_invalid_numeric_bind_contract_fails_before_provider_execution(
+    numeric_type: Numeric, value: object
+) -> None:
+    invalid = Table(
+        "invalid_numeric",
+        MetaData(),
+        Column("value", numeric_type, nullable=False),
+    )
+    executor = CapturingExecutor()
+    connection, _ = _connection(executor)
+
+    with pytest.raises(SQLAlchemyError):
+        connection.execute(invalid.insert().values(value=value))
+
+    assert executor.calls == []
 
 
 def test_select_result_supports_existing_repository_mapping_contract() -> None:

@@ -8,63 +8,26 @@ from auto_trading_v2.adapters.persistence.tables import (
     feature_snapshots,
     recommendations,
 )
+from tests.integration.persistence.catalog_helpers import (
+    revision as _revision,
+)
+from tests.integration.persistence.catalog_helpers import (
+    table_catalog_signature as _table_catalog_signature,
+)
 
 pytestmark = pytest.mark.integration
 
-P3_TABLE_NAMES = set(
-    "universe_snapshots daily_feature_pipeline_runs daily_feature_pipeline_items".split()  # noqa: SIM905
-)
+P3_TABLE_NAMES = {
+    "universe_snapshots",
+    "daily_feature_pipeline_runs",
+    "daily_feature_pipeline_items",
+    "daily_feature_scoring_runs",
+    "daily_feature_scoring_items",
+}
 
 
 def _without_p3(*names: str) -> set[str]:
     return {table.name for table in BUSINESS_TABLES} - P3_TABLE_NAMES - set(names)
-
-
-def _revision(mssql_database: object) -> str:
-    with mssql_database.engine.connect() as connection:
-        return str(connection.scalar(text("SELECT version_num FROM dbo.alembic_version")))
-
-
-def _normalized(value: object) -> object:
-    if isinstance(value, dict):
-        return tuple(sorted((str(key), _normalized(item)) for key, item in value.items()))
-    if isinstance(value, list | tuple):
-        return tuple(_normalized(item) for item in value)
-    if value is None or isinstance(value, str | int | float | bool):
-        return value
-    return str(value)
-
-
-def _table_catalog_signature(mssql_database: object, table_names: set[str]) -> object:
-    inspector = inspect(mssql_database.engine)
-    with mssql_database.engine.connect() as connection:
-        constraints = tuple(
-            sorted(
-                tuple(str(value) for value in row)
-                for row in connection.execute(
-                    text(
-                        "SELECT t.name, o.type, o.name, COALESCE(cc.definition, '') "
-                        "FROM sys.objects o JOIN sys.tables t "
-                        "ON o.parent_object_id = t.object_id JOIN sys.schemas s "
-                        "ON t.schema_id = s.schema_id LEFT JOIN sys.check_constraints cc "
-                        "ON o.object_id = cc.object_id WHERE s.name = 'trading' "
-                        "AND o.type IN ('PK', 'UQ', 'C')"
-                    )
-                ).tuples()
-                if str(row[0]) in table_names
-            )
-        )
-    reflected = tuple(
-        (
-            table_name,
-            _normalized(inspector.get_columns(table_name, schema="trading")),
-            _normalized(inspector.get_pk_constraint(table_name, schema="trading")),
-            _normalized(inspector.get_foreign_keys(table_name, schema="trading")),
-            _normalized(inspector.get_indexes(table_name, schema="trading")),
-        )
-        for table_name in sorted(table_names)
-    )
-    return reflected, constraints
 
 
 def _filtered_index_names() -> set[str]:
@@ -82,7 +45,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
     expected = {table.name for table in BUSINESS_TABLES}
     inspector = inspect(mssql_database.engine)
     assert set(inspector.get_table_names(schema="trading")) == expected
-    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
+    assert _revision(mssql_database) == "0008_daily_feature_scoring"
     mssql_database.run_check()
 
 
@@ -107,7 +70,7 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
         feature_snapshots.name,
         recommendations.name,
     )
-    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
+    assert _revision(mssql_database) == "0008_daily_feature_scoring"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0003_position_decision_version")
@@ -115,7 +78,7 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
+    assert _revision(mssql_database) == "0008_daily_feature_scoring"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
@@ -126,14 +89,14 @@ def test_recommendation_revision_round_trip_preserves_prior_schema(
 ) -> None:
     expected_tables = {table.name for table in BUSINESS_TABLES}
     prior_tables = _without_p3(daily_market_bars.name, recommendations.name)
-    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
+    assert _revision(mssql_database) == "0008_daily_feature_scoring"
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0004_feature_snapshots")
     assert _revision(mssql_database) == "0004_feature_snapshots"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0007_multi_symbol_feature_pipeline"
+    assert _revision(mssql_database) == "0008_daily_feature_scoring"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
@@ -224,8 +187,16 @@ def test_sql_server_catalog_contract(mssql_database: object) -> None:
                 text(
                     "SELECT "
                     "SUM(CASE WHEN ty.name = 'decimal' THEN 1 ELSE 0 END) AS decimal_count, "
-                    "SUM(CASE WHEN ty.name = 'decimal' AND (c.precision <> 38 OR c.scale <> 18) "
-                    "THEN 1 ELSE 0 END) AS wrong_decimal_count, "
+                    "SUM(CASE WHEN ty.name = 'decimal' AND ((t.name = "
+                    "'daily_feature_scoring_items' AND c.name IN ('momentum_score',"
+                    "'trend_score','breakout_score','price_action_score','stability_score',"
+                    "'volume_score','overall_relative_score') AND "
+                    "(c.precision <> 9 OR c.scale <> 6)) OR (NOT (t.name = "
+                    "'daily_feature_scoring_items' AND c.name IN ('momentum_score',"
+                    "'trend_score','breakout_score','price_action_score','stability_score',"
+                    "'volume_score','overall_relative_score')) AND "
+                    "(c.precision <> 38 OR c.scale <> 18))) THEN 1 ELSE 0 END) "
+                    "AS wrong_decimal_count, "
                     "SUM(CASE WHEN ty.name = 'datetimeoffset' THEN 1 ELSE 0 END) "
                     "AS datetimeoffset_count, "
                     "SUM(CASE WHEN ty.name = 'datetimeoffset' AND c.scale <> 7 THEN 1 ELSE 0 END) "

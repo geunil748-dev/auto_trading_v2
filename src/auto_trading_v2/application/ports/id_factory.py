@@ -6,6 +6,8 @@ from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DailyFeaturePipelineItemID,
     DailyFeaturePipelineRunID,
+    DailyFeatureScoringItemID,
+    DailyFeatureScoringRunID,
     DailyMarketBarID,
     DecisionID,
     FeatureSnapshotID,
@@ -48,6 +50,14 @@ class DailyFeaturePipelineRunIDFactory(Protocol):
 
 class DailyFeaturePipelineItemIDFactory(Protocol):
     def new(self) -> DailyFeaturePipelineItemID: ...
+
+
+class DailyFeatureScoringRunIDFactory(Protocol):
+    def new(self) -> DailyFeatureScoringRunID: ...
+
+
+class DailyFeatureScoringItemIDFactory(Protocol):
+    def new(self) -> DailyFeatureScoringItemID: ...
 
 
 class RecommendationIDFactory(Protocol):

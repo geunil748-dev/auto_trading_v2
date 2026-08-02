@@ -30,6 +30,7 @@ from auto_trading_v2.adapters.persistence.dotnet.probe import (
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
     DotNetDailyFeaturePipelineRunRepository,
+    DotNetDailyFeatureScoringRunRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
     DotNetMarketSnapshotRepository,
@@ -62,6 +63,7 @@ __all__ = [
     "DotNetCoreConnection",
     "DotNetCandidateRepository",
     "DotNetDailyFeaturePipelineRunRepository",
+    "DotNetDailyFeatureScoringRunRepository",
     "DotNetErrorCategory",
     "DotNetFeatureSnapshotRepository",
     "DotNetFilterEvaluationRepository",

@@ -26,6 +26,7 @@ from auto_trading_v2.adapters.persistence.dotnet.commands import (
     DotNetCommandExecutor,
     DotNetSqlParameter,
     DotNetSqlType,
+    validate_decimal_shape,
 )
 from auto_trading_v2.adapters.persistence.dotnet.errors import (
     DotNetErrorCategory,
@@ -89,14 +90,15 @@ def _parameter(name: str, value: object, sql_type: object) -> DotNetSqlParameter
     if isinstance(sql_type, Integer):
         return DotNetSqlParameter(name, DotNetSqlType.INTEGER, value)
     if isinstance(sql_type, Numeric):
-        if sql_type.precision != 38 or sql_type.scale != 18:
-            raise DotNetParameterError("numeric binds require DECIMAL(38,18)")
+        if not sql_type.asdecimal:
+            raise DotNetParameterError("DECIMAL_ASDECIMAL_REQUIRED")
+        precision, scale = validate_decimal_shape(sql_type.precision, sql_type.scale)
         return DotNetSqlParameter(
             name,
             DotNetSqlType.DECIMAL,
             value,
-            precision=38,
-            scale=18,
+            precision=precision,
+            scale=scale,
         )
     if isinstance(sql_type, DateTime):
         return DotNetSqlParameter(name, DotNetSqlType.DATETIMEOFFSET, value)

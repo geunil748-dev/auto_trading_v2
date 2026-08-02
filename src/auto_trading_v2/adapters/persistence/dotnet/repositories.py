@@ -3,6 +3,7 @@
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
     SqlAlchemyDailyFeaturePipelineRunRepository,
+    SqlAlchemyDailyFeatureScoringRunRepository,
     SqlAlchemyDailyMarketBarRepository,
     SqlAlchemyFeatureSnapshotRepository,
     SqlAlchemyFilterEvaluationRepository,
@@ -36,6 +37,10 @@ class DotNetUniverseSnapshotRepository(SqlAlchemyUniverseSnapshotRepository):
 
 class DotNetDailyFeaturePipelineRunRepository(SqlAlchemyDailyFeaturePipelineRunRepository):
     """Pipeline run contract backed by the DotNet Core compiler adapter."""
+
+
+class DotNetDailyFeatureScoringRunRepository(SqlAlchemyDailyFeatureScoringRunRepository):
+    """Relative-scoring contract backed by the DotNet Core compiler adapter."""
 
 
 class DotNetRecommendationRepository(SqlAlchemyRecommendationRepository):
@@ -78,6 +83,7 @@ __all__ = [
     "DotNetCandidateRepository",
     "DotNetDailyMarketBarRepository",
     "DotNetDailyFeaturePipelineRunRepository",
+    "DotNetDailyFeatureScoringRunRepository",
     "DotNetFeatureSnapshotRepository",
     "DotNetFilterEvaluationRepository",
     "DotNetMarketSnapshotRepository",
