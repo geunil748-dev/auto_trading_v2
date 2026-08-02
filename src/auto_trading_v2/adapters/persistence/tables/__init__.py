@@ -8,6 +8,10 @@ from auto_trading_v2.adapters.persistence.tables.feature_pipeline import (
     daily_feature_pipeline_items,
     daily_feature_pipeline_runs,
 )
+from auto_trading_v2.adapters.persistence.tables.feature_scoring import (
+    daily_feature_scoring_items,
+    daily_feature_scoring_runs,
+)
 from auto_trading_v2.adapters.persistence.tables.features import feature_snapshots
 from auto_trading_v2.adapters.persistence.tables.market import (
     candidates,
@@ -44,6 +48,8 @@ BUSINESS_TABLES = (
     universe_snapshots,
     daily_feature_pipeline_runs,
     daily_feature_pipeline_items,
+    daily_feature_scoring_runs,
+    daily_feature_scoring_items,
 )
 
 __all__ = [
@@ -52,6 +58,8 @@ __all__ = [
     "daily_market_bars",
     "daily_feature_pipeline_items",
     "daily_feature_pipeline_runs",
+    "daily_feature_scoring_items",
+    "daily_feature_scoring_runs",
     "equity_snapshots",
     "filter_evaluations",
     "feature_snapshots",

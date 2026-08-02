@@ -7,6 +7,8 @@ from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DailyFeaturePipelineItemID,
     DailyFeaturePipelineRunID,
+    DailyFeatureScoringItemID,
+    DailyFeatureScoringRunID,
     DailyMarketBarID,
     DecisionID,
     FeatureSnapshotID,
@@ -77,6 +79,22 @@ class UuidDailyFeaturePipelineItemIDFactory:
 
     def new(self) -> DailyFeaturePipelineItemID:
         return self.identifier_factory.new(DailyFeaturePipelineItemID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureScoringRunIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureScoringRunID:
+        return self.identifier_factory.new(DailyFeatureScoringRunID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureScoringItemIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureScoringItemID:
+        return self.identifier_factory.new(DailyFeatureScoringItemID)
 
 
 @dataclass(frozen=True, slots=True)

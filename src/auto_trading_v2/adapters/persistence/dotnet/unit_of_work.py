@@ -1,5 +1,3 @@
-"""DotNet Unit of Work owning one SqlConnection and SqlTransaction."""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -20,6 +18,7 @@ from auto_trading_v2.adapters.persistence.dotnet.errors import (
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
     DotNetDailyFeaturePipelineRunRepository,
+    DotNetDailyFeatureScoringRunRepository,
     DotNetDailyMarketBarRepository,
     DotNetFeatureSnapshotRepository,
     DotNetFilterEvaluationRepository,
@@ -52,8 +51,6 @@ _Repository = TypeVar("_Repository")
 
 
 class DotNetUnitOfWork:
-    """Provide fourteen repositories inside exactly one caller-owned transaction."""
-
     def __init__(
         self,
         connection_factory: DotNetConnectionFactory,
@@ -69,6 +66,7 @@ class DotNetUnitOfWork:
         self._feature_snapshots: DotNetFeatureSnapshotRepository | None = None
         self._universe_snapshots: DotNetUniverseSnapshotRepository | None = None
         self._daily_feature_pipeline_runs: DotNetDailyFeaturePipelineRunRepository | None = None
+        self._daily_feature_scoring_runs: DotNetDailyFeatureScoringRunRepository | None = None
         self._recommendations: DotNetRecommendationRepository | None = None
         self._market_snapshots: DotNetMarketSnapshotRepository | None = None
         self._candidates: DotNetCandidateRepository | None = None
@@ -95,6 +93,10 @@ class DotNetUnitOfWork:
     @property
     def daily_feature_pipeline_runs(self) -> DotNetDailyFeaturePipelineRunRepository:
         return self._repository(self._daily_feature_pipeline_runs)
+
+    @property
+    def daily_feature_scoring_runs(self) -> DotNetDailyFeatureScoringRunRepository:
+        return self._repository(self._daily_feature_scoring_runs)
 
     @property
     def recommendations(self) -> DotNetRecommendationRepository:
@@ -163,6 +165,7 @@ class DotNetUnitOfWork:
         self._daily_feature_pipeline_runs = DotNetDailyFeaturePipelineRunRepository(
             *repository_args
         )
+        self._daily_feature_scoring_runs = DotNetDailyFeatureScoringRunRepository(*repository_args)
         self._recommendations = DotNetRecommendationRepository(*repository_args)
         self._market_snapshots = DotNetMarketSnapshotRepository(*repository_args)
         self._candidates = DotNetCandidateRepository(*repository_args)
@@ -286,8 +289,6 @@ class DotNetUnitOfWork:
 
 @dataclass(frozen=True, slots=True)
 class DotNetUnitOfWorkFactory:
-    """Create a fresh DotNet Unit of Work without opening a connection eagerly."""
-
     connection_factory: DotNetConnectionFactory = field(repr=False)
 
     def __call__(self) -> DotNetUnitOfWork:

@@ -9,6 +9,9 @@ from auto_trading_v2.adapters.persistence.repositories.daily_market_bars import 
 from auto_trading_v2.adapters.persistence.repositories.feature_pipeline import (
     SqlAlchemyDailyFeaturePipelineRunRepository,
 )
+from auto_trading_v2.adapters.persistence.repositories.feature_scoring import (
+    SqlAlchemyDailyFeatureScoringRunRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.feature_snapshots import (
     SqlAlchemyFeatureSnapshotRepository,
 )
@@ -47,6 +50,7 @@ __all__ = [
     "SqlAlchemyCandidateRepository",
     "SqlAlchemyDailyMarketBarRepository",
     "SqlAlchemyDailyFeaturePipelineRunRepository",
+    "SqlAlchemyDailyFeatureScoringRunRepository",
     "SqlAlchemyFilterEvaluationRepository",
     "SqlAlchemyFeatureSnapshotRepository",
     "SqlAlchemyMarketSnapshotRepository",

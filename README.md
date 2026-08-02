@@ -178,6 +178,22 @@ Recommendation generation, TradeIntent, broker, and order behavior remain exclud
 See [universe and feature pipeline](docs/universe-and-feature-pipeline.md) and
 [ADR 0009](docs/adr/0009-multi-symbol-daily-feature-pipeline.md).
 
+## Prediction P4A transparent relative scoring
+
+P4A consumes exactly one persisted P3 run and compares only its eligible
+`US_EQUITY_DAILY_TECHNICAL/v1` FeatureSnapshots. Policy
+`US_EQUITY_DAILY_TECHNICAL_RELATIVE_SCORE/v1` calculates Decimal-only cross-sectional percentiles
+and component scores. Ranking policy `QUALITY_TIERED_CROSS_SECTIONAL_PERCENTILE/v1` always ranks
+READY items before the two supported volume-related DEGRADED states, then applies deterministic
+score, MIC, and symbol tie-breaks.
+
+The resulting 0-to-100 value is a same-run relative score. It is neither a probability nor an
+expected return and it is not comparable across different universes or runs. P4A creates no
+Recommendation, entry/target/stop plan, TradeIntent, broker request, or order. Migration
+`0008_daily_feature_scoring` adds immutable scoring run/item audit tables and raises the canonical
+table count from 17 to 19. See [relative scoring](docs/relative-scoring.md) and
+[ADR 0010](docs/adr/0010-transparent-relative-scoring.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

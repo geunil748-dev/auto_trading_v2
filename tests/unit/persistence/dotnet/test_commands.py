@@ -180,10 +180,78 @@ def test_all_supported_parameter_types_are_explicitly_bound() -> None:
     ]
     decimal_value = command.Parameters.items[6].Value
     assert decimal_value == ("decimal", "123.450000000000000000", "invariant")
+    assert command.Parameters.items[6].Precision == 38
+    assert command.Parameters.items[6].Scale == 18
     datetime_value: Any = command.Parameters.items[7].Value
     assert datetime_value[0] == "datetimeoffset"
     assert datetime_value[1].extra_ticks == 7890
     assert command.Parameters.items[-1].Value == "DBNULL"
+
+
+def test_decimal_9_6_and_nullable_shapes_reach_provider_without_fallback() -> None:
+    connection = FakeConnection()
+    executor = DotNetCommandExecutor(_bindings)
+    parameters = (
+        DotNetSqlParameter(
+            "score",
+            DotNetSqlType.DECIMAL,
+            Decimal("33.333333"),
+            precision=9,
+            scale=6,
+        ),
+        DotNetSqlParameter(
+            "missing_score",
+            DotNetSqlType.DECIMAL,
+            None,
+            precision=9,
+            scale=6,
+        ),
+    )
+
+    executor.execute_scalar(connection, "SELECT @score, @missing_score", parameters)
+
+    score, missing = connection.commands[0].Parameters.items
+    assert (score.Precision, score.Scale) == (9, 6)
+    assert score.Value == ("decimal", "33.333333", "invariant")
+    assert (missing.Precision, missing.Scale, missing.Value) == (9, 6, "DBNULL")
+
+
+@pytest.mark.parametrize(("precision", "scale"), [(1, 0), (38, 38)])
+def test_decimal_boundary_shapes_are_accepted(precision: int, scale: int) -> None:
+    parameter = DotNetSqlParameter(
+        "amount",
+        DotNetSqlType.DECIMAL,
+        Decimal("0"),
+        precision=precision,
+        scale=scale,
+    )
+    assert (parameter.precision, parameter.scale) == (precision, scale)
+
+
+@pytest.mark.parametrize(
+    ("precision", "scale"),
+    [
+        (None, 0),
+        (9, None),
+        (0, 0),
+        (39, 0),
+        (9, -1),
+        (9, 10),
+        (True, 0),
+        (9, False),
+        ("9", 6),
+        (9, "6"),
+    ],
+)
+def test_invalid_decimal_shapes_are_rejected(precision: object, scale: object) -> None:
+    with pytest.raises(DotNetParameterError):
+        DotNetSqlParameter(
+            "amount",
+            DotNetSqlType.DECIMAL,
+            Decimal("1"),
+            precision=cast(Any, precision),
+            scale=cast(Any, scale),
+        )
 
 
 def test_non_query_and_rows_dispose_all_resources() -> None:
@@ -213,6 +281,7 @@ def test_non_query_and_rows_dispose_all_resources() -> None:
         ),
         lambda: DotNetSqlParameter("bad name", DotNetSqlType.INTEGER, 1),
         lambda: DotNetSqlParameter("value", DotNetSqlType.BIGINT, True),
+        lambda: DotNetSqlParameter("value", DotNetSqlType.INTEGER, 1, precision=9, scale=6),
     ],
 )
 def test_invalid_parameter_shapes_fail_before_command_execution(parameter: object) -> None:

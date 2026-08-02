@@ -9,6 +9,9 @@ from auto_trading_v2.application.ports.daily_market_bars import DailyMarketBarRe
 from auto_trading_v2.application.ports.feature_pipeline import (
     DailyFeaturePipelineRunRepository,
 )
+from auto_trading_v2.application.ports.feature_scoring import (
+    DailyFeatureScoringRunRepository,
+)
 from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
@@ -32,6 +35,7 @@ class UnitOfWork(Protocol):
     feature_snapshots: FeatureSnapshotRepository
     universe_snapshots: UniverseSnapshotRepository
     daily_feature_pipeline_runs: DailyFeaturePipelineRunRepository
+    daily_feature_scoring_runs: DailyFeatureScoringRunRepository
     recommendations: RecommendationRepository
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository

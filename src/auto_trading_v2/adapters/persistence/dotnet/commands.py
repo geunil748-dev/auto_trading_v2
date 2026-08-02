@@ -28,6 +28,24 @@ from auto_trading_v2.adapters.persistence.dotnet.runtime import (
 _PARAMETER_NAME = re.compile(r"^@[A-Za-z_][A-Za-z0-9_]*$")
 
 
+def validate_decimal_shape(precision: object, scale: object) -> tuple[int, int]:
+    """Validate an explicit SQL Server DECIMAL shape without inspecting values."""
+
+    if precision is None:
+        raise DotNetParameterError("DECIMAL_PRECISION_REQUIRED")
+    if not isinstance(precision, int) or isinstance(precision, bool):
+        raise DotNetParameterError("DECIMAL_PRECISION_INVALID")
+    if not 1 <= precision <= 38:
+        raise DotNetParameterError("DECIMAL_PRECISION_OUT_OF_RANGE")
+    if scale is None:
+        raise DotNetParameterError("DECIMAL_SCALE_REQUIRED")
+    if not isinstance(scale, int) or isinstance(scale, bool):
+        raise DotNetParameterError("DECIMAL_SCALE_INVALID")
+    if not 0 <= scale <= precision:
+        raise DotNetParameterError("DECIMAL_SCALE_OUT_OF_RANGE")
+    return precision, scale
+
+
 class DotNetSqlType(StrEnum):
     BIT = "Bit"
     BIGINT = "BigInt"
@@ -63,8 +81,7 @@ class DotNetSqlParameter:
         elif self.size is not None:
             raise DotNetParameterError("size is supported only for string parameters")
         if self.sql_type is DotNetSqlType.DECIMAL:
-            if self.precision != 38 or self.scale != 18:
-                raise DotNetParameterError("decimal parameters require precision 38 and scale 18")
+            validate_decimal_shape(self.precision, self.scale)
         elif self.precision is not None or self.scale is not None:
             raise DotNetParameterError("precision and scale are supported only for decimal")
         _validate_python_value(self.sql_type, self.value)

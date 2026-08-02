@@ -8,7 +8,7 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 17개 table입니다.
+canonical source of truth는 다음 19개 table입니다.
 
 1. `market_snapshots`
 2. `daily_market_bars`
@@ -27,6 +27,8 @@ canonical source of truth는 다음 17개 table입니다.
 15. `universe_snapshots`
 16. `daily_feature_pipeline_runs`
 17. `daily_feature_pipeline_items`
+18. `daily_feature_scoring_runs`
+19. `daily_feature_scoring_items`
 
 ```mermaid
 erDiagram
@@ -55,6 +57,10 @@ erDiagram
         datetime generated_at
     }
     feature_snapshots ||--o{ recommendations : "supports"
+    daily_feature_pipeline_runs ||--o{ daily_feature_scoring_runs : "scored from"
+    daily_feature_scoring_runs ||--o{ daily_feature_scoring_items : "contains"
+    daily_feature_pipeline_items ||--o| daily_feature_scoring_items : "audited as"
+    feature_snapshots o|--o{ daily_feature_scoring_items : "scored from"
     market_snapshots ||--o{ candidates : "observed as"
     candidates ||--o{ filter_evaluations : "evaluated by"
     candidates o|--o{ strategy_decisions : "candidate decision"
@@ -135,6 +141,21 @@ all other outcomes require both feature fields to be null. Unique constraints co
 run/symbol, and run/symbol/MIC. Migration `0007_multi_symbol_feature_pipeline` creates only these
 three tables and downgrades them in item, run, universe order. Existing migrations 0001 through 0006
 and their fourteen tables are unchanged.
+
+## P4A daily feature scoring
+
+`trading.daily_feature_scoring_runs` identifies one immutable scoring result by the source P3 run
+and four fixed scoring/ranking policy fields. Its key is a versioned SHA-256 identity; the content
+digest covers status, counts, ordered item outcomes, fixed Decimal scores, and ranks. It is not
+unique so identical content from different source runs remains auditable.
+
+`trading.daily_feature_scoring_items` preserves the P3 ordinal and stores nullable `DECIMAL(9,6)`
+component/overall relative scores. READY rows contain all six components; supported volume-related
+DEGRADED rows contain price components and a null volume component. Unscorable rows contain no
+scores or rank and require a safe reason code. FKs to the scoring run, P3 item, and optional
+FeatureSnapshot all use `ON DELETE NO ACTION`. Migration `0008_daily_feature_scoring` adds only
+these two tables, taking the canonical count from 17 to 19, and downgrades only to
+`0007_multi_symbol_feature_pipeline`.
 
 ## Point-in-Time FeatureSnapshot
 

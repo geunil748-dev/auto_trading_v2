@@ -13,11 +13,16 @@ from auto_trading_v2.application.ports.daily_market_data import (
 from auto_trading_v2.application.ports.feature_pipeline import (
     DailyFeaturePipelineRunRepository,
 )
+from auto_trading_v2.application.ports.feature_scoring import (
+    DailyFeatureScoringRunRepository,
+)
 from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
 from auto_trading_v2.application.ports.id_factory import (
     ClientOrderIDFactory,
     DailyFeaturePipelineItemIDFactory,
     DailyFeaturePipelineRunIDFactory,
+    DailyFeatureScoringItemIDFactory,
+    DailyFeatureScoringRunIDFactory,
     DailyMarketBarIDFactory,
     DecisionIDFactory,
     FeatureSnapshotIDFactory,
@@ -57,6 +62,9 @@ __all__ = [
     "DailyFeaturePipelineItemIDFactory",
     "DailyFeaturePipelineRunIDFactory",
     "DailyFeaturePipelineRunRepository",
+    "DailyFeatureScoringItemIDFactory",
+    "DailyFeatureScoringRunIDFactory",
+    "DailyFeatureScoringRunRepository",
     "DailyMarketDataBatchBudgetPort",
     "DailyMarketDataProviderRole",
     "DailyMarketBarRepository",

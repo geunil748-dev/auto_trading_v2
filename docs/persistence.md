@@ -6,9 +6,10 @@ PR 4 introduced the first V2 persistence vertical slice:
 market_snapshots -> candidates -> filter_evaluations
 ```
 
-That paragraph is historical. The current foundation exposes fourteen repositories, including
+That paragraph is historical. The current foundation exposes fifteen repositories, including
 independent `daily_market_bars`, `feature_snapshots`, `recommendations`, `universe_snapshots`, and
-`daily_feature_pipeline_runs` repositories.
+`daily_feature_pipeline_runs` repositories plus the P4A `daily_feature_scoring_runs` aggregate
+repository.
 Existing trade and paper repositories remain optional shadow simulation infrastructure.
 
 ## Dependency direction
@@ -36,7 +37,7 @@ generation time, and database `recorded_at`.
 ## Transaction lifecycle
 
 `SqlAlchemyUnitOfWorkFactory` creates a fresh one-shot Unit of Work. Entering it checks out one
-connection, starts one root transaction, and supplies that connection to all fourteen repositories.
+connection, starts one root transaction, and supplies that connection to all fifteen repositories.
 Only the Unit of Work may commit or roll back.
 
 - `commit()` persists the whole slice atomically.
@@ -90,7 +91,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 17 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 19 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -141,6 +142,19 @@ signature proves all prior fourteen tables unchanged. Scripted P3 integration us
 Twelve Data-compatible provider, writes DailyMarketBars and FeatureSnapshots per symbol, persists
 the immutable run aggregate, and verifies SQLAlchemy/DotNet canonical equality. It creates no
 Recommendation, TradeIntent, or PaperOrder rows.
+
+P4A adds `DailyFeatureScoringRunRepository` to both Unit of Work implementations. It inserts one
+run and its canonically ordered items on the caller-owned connection, maps `DECIMAL(9,6)` directly
+to `Decimal`, and supplies ID/key/aggregate/item reads. Exact retry performs no feature reads,
+calculation, insert, or commit. A unique race rolls back the current Unit of Work and re-reads in a
+fresh one; equal content returns the stored aggregate while different content raises a sanitized
+conflict. SQLAlchemy Core statements and mappings are reused by the DotNet adapter.
+
+Migration `0008_daily_feature_scoring` round-trips to `0007` only in guarded temporary databases.
+It removes and recreates only the two P4A tables while preserving the prior seventeen-table catalog
+signature. Scripted integration persists a mixed READY/DEGRADED/unscorable P3 source, verifies
+quality-tier ranking, SQLAlchemy/DotNet equality, exact retry, and zero Recommendation, TradeIntent,
+or PaperOrder rows.
 
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test

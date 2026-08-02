@@ -44,7 +44,16 @@ rollback and re-read the stored aggregate using a fresh Unit of Work.
 
 P3 does not calculate probability, expected return, entry/target/stop prices, or ranks. It creates
 no Recommendation, StrategyDecision, TradeIntent, broker call, order, notification, or scheduler
-execution. Those prediction outputs begin with P4.
+execution. P4A consumes the immutable run without mutating it.
+
+## P4A downstream scoring boundary
+
+P4A accepts only eligible completed P3 statuses produced by
+`US_EQUITY_DAILY_FEATURE_BATCH/v1`, `TWELVE_DATA_TIME_SERIES`, and split-adjusted
+`US_EQUITY_DAILY_TECHNICAL/v1`. READY and supported volume-related DEGRADED items enter the
+same-run price population; volume percentiles use READY items only. All other P3 outcomes remain
+visible as unscorable audit items. Exact scoring retry performs no network request, bar write,
+FeatureSnapshot build, or Recommendation creation. See [relative scoring](relative-scoring.md).
 
 ## External batch validation status
 

@@ -11,6 +11,7 @@ from sqlalchemy.dialects import mssql
 
 from auto_trading_v2.adapters.persistence.tables import BUSINESS_TABLES, metadata
 from migrations.ddl import (
+    create_daily_feature_scoring_tables,
     create_daily_market_bars_table,
     create_execution_tables,
     create_feature_snapshot_table,
@@ -126,6 +127,8 @@ def test_migration_contains_every_metadata_constraint_and_index_name() -> None:
                     "ck_universe_snapshots_",
                     "ck_daily_feature_pipeline_runs_",
                     "ck_daily_feature_pipeline_items_",
+                    "ck_daily_feature_scoring_runs_",
+                    "ck_daily_feature_scoring_items_",
                 )
             )
         )
@@ -151,6 +154,7 @@ def test_offline_migration_preserves_frozen_check_constraint_names() -> None:
     create_portfolio_tables(operations, positions_only=False)
     create_trading_events(operations)
     create_multi_symbol_feature_pipeline_tables(operations)
+    create_daily_feature_scoring_tables(operations)
 
     ddl = output.getvalue()
     expected_names = {

@@ -93,6 +93,18 @@ class DailyFeaturePipelineItemID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class DailyFeatureScoringRunID(_UUIDIdentifier):
+    """Identifier for one immutable relative-scoring run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureScoringItemID(_UUIDIdentifier):
+    """Identifier for one audited item within a relative-scoring run."""
+
+    __slots__ = ()
+
+
 class RecommendationID(_UUIDIdentifier):
     """Identifier for a canonical user-facing recommendation."""
 

@@ -21,11 +21,13 @@ EXPECTED_TABLES = {
     "universe_snapshots",
     "daily_feature_pipeline_runs",
     "daily_feature_pipeline_items",
+    "daily_feature_scoring_runs",
+    "daily_feature_scoring_items",
 }
 
 
 def test_business_table_registry_is_exact_and_schema_qualified() -> None:
-    assert len(BUSINESS_TABLES) == 17
+    assert len(BUSINESS_TABLES) == 19
     assert {table.name for table in BUSINESS_TABLES} == EXPECTED_TABLES
     assert {table.schema for table in BUSINESS_TABLES} == {"trading"}
 
@@ -46,8 +48,8 @@ def test_all_official_decimals_are_fixed_precision_and_no_float_types_exist() ->
             assert not isinstance(column.type, Float), (table.name, column.name)
             if isinstance(column.type, Numeric):
                 decimal_columns.append((table.name, column.name))
-                assert column.type.precision == 38
-                assert column.type.scale == 18
+                expected = (9, 6) if table.name == "daily_feature_scoring_items" else (38, 18)
+                assert (column.type.precision, column.type.scale) == expected
                 assert column.type.asdecimal is True
 
     assert decimal_columns
