@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import datetime
 
-from sqlalchemy import Connection, func, select
+from sqlalchemy import Connection, case, func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.base import Executable
 
@@ -22,7 +22,7 @@ from auto_trading_v2.domain.daily_market_bars import (
     DailyMarketBarAdjustmentBasis,
 )
 from auto_trading_v2.domain.errors import ValidationError
-from auto_trading_v2.domain.primitives import DailyMarketBarID, Symbol
+from auto_trading_v2.domain.primitives import DailyMarketBarID, SessionDate, Symbol
 from auto_trading_v2.domain.primitives.time import normalize_utc
 
 
@@ -131,6 +131,41 @@ class SqlAlchemyDailyMarketBarRepository:
                 operation="select",
             ) from None
 
+    def list_latest_available_for_sessions(
+        self,
+        source_code: str,
+        symbol: Symbol,
+        adjustment_basis: DailyMarketBarAdjustmentBasis,
+        session_dates: tuple[SessionDate, ...],
+        as_of: datetime,
+    ) -> tuple[DailyMarketBar, ...]:
+        self._ensure_active()
+        _validate_session_query(source_code, symbol, adjustment_basis, session_dates)
+        try:
+            cutoff = normalize_utc(as_of)
+        except ValidationError:
+            raise ValueError("as_of must be timezone-aware") from None
+        statement = latest_available_daily_market_bars_for_sessions_statement(
+            source_code,
+            symbol,
+            adjustment_basis,
+            session_dates,
+            cutoff,
+        )
+        try:
+            rows = self._connection.execute(statement).mappings().all()
+            return tuple(map_daily_market_bar(row) for row in rows)
+        except PersistenceMappingError:
+            self._mark_failed()
+            raise
+        except SQLAlchemyError as exc:
+            self._mark_failed()
+            raise translate_persistence_error(
+                exc,
+                entity="daily_market_bar",
+                operation="select",
+            ) from None
+
     def _select_by_id(
         self,
         daily_market_bar_id: DailyMarketBarID,
@@ -196,3 +231,67 @@ def latest_available_daily_market_bars_statement(
         .subquery("recent_daily_market_bars")
     )
     return select(*(recent.c[name] for name in column_names)).order_by(recent.c.session_date.asc())
+
+
+def latest_available_daily_market_bars_for_sessions_statement(
+    source_code: str,
+    symbol: Symbol,
+    adjustment_basis: DailyMarketBarAdjustmentBasis,
+    session_dates: tuple[SessionDate, ...],
+    as_of: datetime,
+) -> Executable:
+    """Select one PIT revision for each exact requested session in caller order."""
+
+    date_values = tuple(value.value for value in session_dates)
+    revision_rank = (
+        func.row_number()
+        .over(
+            partition_by=daily_market_bars.c.session_date,
+            order_by=(
+                daily_market_bars.c.available_at.desc(),
+                daily_market_bars.c.bar_key.desc(),
+            ),
+        )
+        .label("_revision_rank")
+    )
+    ranked = (
+        select(daily_market_bars, revision_rank)
+        .where(
+            daily_market_bars.c.source_code == source_code,
+            daily_market_bars.c.symbol == symbol.value,
+            daily_market_bars.c.adjustment_basis == adjustment_basis.value,
+            daily_market_bars.c.session_date.in_(date_values),
+            daily_market_bars.c.available_at <= as_of,
+        )
+        .subquery("ranked_daily_market_bars_for_sessions")
+    )
+    column_names = tuple(column.name for column in daily_market_bars.c)
+    order = case(
+        {value: index for index, value in enumerate(date_values)},
+        value=ranked.c.session_date,
+    )
+    return (
+        select(*(ranked.c[name] for name in column_names))
+        .where(ranked.c._revision_rank == 1)
+        .order_by(order.asc())
+    )
+
+
+def _validate_session_query(
+    source_code: str,
+    symbol: Symbol,
+    adjustment_basis: DailyMarketBarAdjustmentBasis,
+    session_dates: tuple[SessionDate, ...],
+) -> None:
+    if not isinstance(source_code, str) or not source_code.strip():
+        raise ValueError("source_code is invalid")
+    if not isinstance(symbol, Symbol):
+        raise TypeError("symbol must be Symbol")
+    if not isinstance(adjustment_basis, DailyMarketBarAdjustmentBasis):
+        raise TypeError("adjustment_basis is invalid")
+    if not 1 <= len(session_dates) <= 5:
+        raise ValueError("session_dates must contain one to five sessions")
+    if any(not isinstance(value, SessionDate) for value in session_dates):
+        raise TypeError("session_dates contains an invalid value")
+    if len(set(session_dates)) != len(session_dates):
+        raise ValueError("session_dates must be unique")

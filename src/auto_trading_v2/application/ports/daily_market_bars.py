@@ -8,7 +8,7 @@ from auto_trading_v2.domain.daily_market_bars import (
     DailyMarketBar,
     DailyMarketBarAdjustmentBasis,
 )
-from auto_trading_v2.domain.primitives import DailyMarketBarID, Symbol
+from auto_trading_v2.domain.primitives import DailyMarketBarID, SessionDate, Symbol
 
 
 class DailyMarketBarRepository(Protocol):
@@ -32,4 +32,13 @@ class DailyMarketBarRepository(Protocol):
         adjustment_basis: DailyMarketBarAdjustmentBasis,
         as_of: datetime,
         limit: int,
+    ) -> tuple[DailyMarketBar, ...]: ...
+
+    def list_latest_available_for_sessions(
+        self,
+        source_code: str,
+        symbol: Symbol,
+        adjustment_basis: DailyMarketBarAdjustmentBasis,
+        session_dates: tuple[SessionDate, ...],
+        as_of: datetime,
     ) -> tuple[DailyMarketBar, ...]: ...

@@ -194,6 +194,22 @@ Recommendation, entry/target/stop plan, TradeIntent, broker request, or order. M
 table count from 17 to 19. See [relative scoring](docs/relative-scoring.md) and
 [ADR 0010](docs/adr/0010-transparent-relative-scoring.md).
 
+## Prediction P4B.1 prospective forward outcomes
+
+P4B.1 observes one eligible persisted P4A scoring run against existing canonical DailyMarketBars.
+It takes the reference price from the source FeatureSnapshot `last_close`, derives the next exact
+1–5 official trading sessions from the P3 horizon and `US_EQUITY_CORE/2026.v1`, and stores only
+terminal close return, MFE, and MAE. Each read is Point-in-Time at `observation_as_of`; a corrected
+bar path creates a new immutable outcome revision.
+
+`PROSPECTIVE` scoring existed by the first future open, while `RETROSPECTIVE_REPLAY` was produced
+later. The modes remain separate evidence populations. This slice is not a prediction, probability,
+label, expected value, Recommendation, entry/target/stop proposal, or VIRTUAL/ACTUAL trade. Migration
+`0009_daily_feature_outcomes` adds three tables and raises the canonical count from 19 to 22. The
+calendar is limited to 2026 and future bars must already exist canonically. See
+[forward outcomes](docs/forward-outcomes.md) and
+[ADR 0011](docs/adr/0011-prospective-forward-outcome-observation.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

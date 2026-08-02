@@ -23,11 +23,14 @@ EXPECTED_TABLES = {
     "daily_feature_pipeline_items",
     "daily_feature_scoring_runs",
     "daily_feature_scoring_items",
+    "daily_feature_outcomes",
+    "daily_feature_outcome_observation_runs",
+    "daily_feature_outcome_observation_run_items",
 }
 
 
 def test_business_table_registry_is_exact_and_schema_qualified() -> None:
-    assert len(BUSINESS_TABLES) == 19
+    assert len(BUSINESS_TABLES) == 22
     assert {table.name for table in BUSINESS_TABLES} == EXPECTED_TABLES
     assert {table.schema for table in BUSINESS_TABLES} == {"trading"}
 

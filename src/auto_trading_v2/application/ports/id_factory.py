@@ -4,6 +4,9 @@ from typing import Protocol
 
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
+    DailyFeatureOutcomeID,
+    DailyFeatureOutcomeObservationRunID,
+    DailyFeatureOutcomeObservationRunItemID,
     DailyFeaturePipelineItemID,
     DailyFeaturePipelineRunID,
     DailyFeatureScoringItemID,
@@ -58,6 +61,18 @@ class DailyFeatureScoringRunIDFactory(Protocol):
 
 class DailyFeatureScoringItemIDFactory(Protocol):
     def new(self) -> DailyFeatureScoringItemID: ...
+
+
+class DailyFeatureOutcomeIDFactory(Protocol):
+    def new(self) -> DailyFeatureOutcomeID: ...
+
+
+class DailyFeatureOutcomeObservationRunIDFactory(Protocol):
+    def new(self) -> DailyFeatureOutcomeObservationRunID: ...
+
+
+class DailyFeatureOutcomeObservationRunItemIDFactory(Protocol):
+    def new(self) -> DailyFeatureOutcomeObservationRunItemID: ...
 
 
 class RecommendationIDFactory(Protocol):

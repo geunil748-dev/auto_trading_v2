@@ -91,7 +91,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 19 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 22 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -155,6 +155,16 @@ It removes and recreates only the two P4A tables while preserving the prior seve
 signature. Scripted integration persists a mixed READY/DEGRADED/unscorable P3 source, verifies
 quality-tier ranking, SQLAlchemy/DotNet equality, exact retry, and zero Recommendation, TradeIntent,
 or PaperOrder rows.
+
+P4B.1 adds `DailyFeatureOutcomeRepository` and
+`DailyFeatureOutcomeObservationRunRepository` to both Unit of Work providers, increasing the shared
+repository count from 15 to 17. Outcome add/read/latest-as-of and observation aggregate operations
+reuse provider-neutral Core statements and mappings. Repositories never commit or roll back.
+
+Migration `0009_daily_feature_outcomes` round-trips to `0008` only in guarded temporary databases.
+It removes and recreates only the three P4B.1 tables while preserving the prior nineteen-table
+catalog signature. Future-bar selection is read-only and Point-in-Time; no provider, DailyMarketBar,
+FeatureSnapshot, scoring, Recommendation, or order write occurs.
 
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test

@@ -66,45 +66,89 @@ VOLUME_KEYS = (
 
 
 def seed_source(
-    factory: UnitOfWorkFactory, universe: UniverseSnapshot
+    factory: UnitOfWorkFactory,
+    universe: UniverseSnapshot,
+    *,
+    horizon: int = 1,
+    session: SessionDate = SESSION,
+    now: datetime = NOW,
+    case: int = 0,
+    outcome_observation_shape: bool = False,
 ) -> DailyFeaturePipelineRunID:
-    run_id = DailyFeaturePipelineRunID(UUID(int=910_000))
-    snapshot_specs = (
-        (1, "AAPL", Decimal("1"), FeatureQualityStatus.READY),
-        (2, "MSFT", Decimal("3"), FeatureQualityStatus.READY),
-        (3, "NVDA", Decimal("5"), FeatureQualityStatus.DEGRADED),
+    identifier_offset = case * 100
+    run_id = DailyFeaturePipelineRunID(UUID(int=910_000 + identifier_offset))
+    if outcome_observation_shape:
+        snapshot_specs = (
+            (1, "AAPL", Decimal("1"), FeatureQualityStatus.READY),
+            (2, "MSFT", Decimal("3"), FeatureQualityStatus.DEGRADED),
+        )
+        unscorable_specs = ((3, "NVDA", DailyFeaturePipelineItemOutcome.DATA_INSUFFICIENT),)
+        run_counts = (3, 1, 1, 1, 0, 0, 0, 0)
+    else:
+        snapshot_specs = (
+            (1, "AAPL", Decimal("1"), FeatureQualityStatus.READY),
+            (2, "MSFT", Decimal("3"), FeatureQualityStatus.READY),
+            (3, "NVDA", Decimal("5"), FeatureQualityStatus.DEGRADED),
+        )
+        unscorable_specs = (
+            (4, "AMZN", DailyFeaturePipelineItemOutcome.DATA_INSUFFICIENT),
+            (5, "META", DailyFeaturePipelineItemOutcome.PROVIDER_ERROR),
+        )
+        run_counts = (5, 2, 1, 1, 0, 1, 0, 0)
+    snapshots = tuple(
+        _snapshot(
+            *spec,
+            horizon=horizon,
+            identifier_offset=identifier_offset,
+            source_case=case,
+            now=now,
+        )
+        for spec in snapshot_specs
     )
-    snapshots = tuple(_snapshot(*spec) for spec in snapshot_specs)
-    items = (
-        _scored_item(run_id, 1, "AAPL", snapshots[0], FeatureQualityStatus.READY),
-        _scored_item(run_id, 2, "MSFT", snapshots[1], FeatureQualityStatus.READY),
-        _scored_item(run_id, 3, "NVDA", snapshots[2], FeatureQualityStatus.DEGRADED),
+    items = tuple(
+        _scored_item(
+            run_id,
+            ordinal,
+            symbol,
+            snapshots[ordinal - 1],
+            quality,
+            session,
+            identifier_offset,
+            now,
+        )
+        for ordinal, symbol, _value, quality in snapshot_specs
+    ) + tuple(
         _unscorable_item(
             run_id,
-            4,
-            "AMZN",
-            DailyFeaturePipelineItemOutcome.DATA_INSUFFICIENT,
-        ),
-        _unscorable_item(run_id, 5, "META", DailyFeaturePipelineItemOutcome.PROVIDER_ERROR),
+            ordinal,
+            symbol,
+            outcome,
+            session,
+            identifier_offset,
+            now,
+        )
+        for ordinal, symbol, outcome in unscorable_specs
     )
     identity = DailyFeaturePipelineIdentity(
         universe.universe_snapshot_id,
         "TWELVE_DATA_TIME_SERIES",
         ExchangeCalendarCode.US_EQUITY_CORE,
         ExchangeCalendarVersion.V2026_1,
-        SESSION,
+        session,
         DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED,
-        TradingDayHorizon(1),
+        TradingDayHorizon(horizon),
         30,
-        NOW,
+        now,
         CompletionGracePeriod(timedelta(minutes=15)),
     )
-    provisional = _run(run_id, identity, "0" * 64)
+    provisional = _run(run_id, identity, "0" * 64, run_counts, now)
     digest = daily_feature_pipeline_content_digest(
-        provisional.stored(NOW),
-        tuple(item.stored(NOW) for item in items),
+        provisional.stored(now),
+        tuple(item.stored(now) for item in items),
     )
-    aggregate = NewDailyFeaturePipelineRunWithItems(_run(run_id, identity, digest), items)
+    aggregate = NewDailyFeaturePipelineRunWithItems(
+        _run(run_id, identity, digest, run_counts, now), items
+    )
     with factory() as unit_of_work:
         for snapshot in snapshots:
             unit_of_work.feature_snapshots.add(snapshot)
@@ -118,6 +162,11 @@ def _snapshot(
     symbol: str,
     value: Decimal,
     quality: FeatureQualityStatus,
+    *,
+    horizon: int,
+    identifier_offset: int,
+    source_case: int,
+    now: datetime,
 ) -> NewFeatureSnapshot:
     values: dict[str, object] = {key: value for key in PRICE_KEYS}
     values.update(
@@ -132,15 +181,15 @@ def _snapshot(
         Symbol(symbol),
         "US_EQUITY_DAILY_TECHNICAL",
         "v1",
-        TradingDayHorizon(1),
-        NOW,
+        TradingDayHorizon(horizon),
+        now,
         values,
         (
             FeatureProvenanceEntry(
                 "TWELVE_DATA_TIME_SERIES",
-                f"p4a-scripted-{symbol}",
-                NOW,
-                NOW,
+                f"p4a-scripted-{source_case}-{symbol}",
+                now,
+                now,
                 f"{ordinal:064x}",
                 "v1",
             ),
@@ -149,11 +198,11 @@ def _snapshot(
         () if quality is FeatureQualityStatus.READY else ("VOLUME_DATA_INCOMPLETE",),
     )
     return NewFeatureSnapshot(
-        FeatureSnapshotID(UUID(int=911_000 + ordinal)),
+        FeatureSnapshotID(UUID(int=911_000 + identifier_offset + ordinal)),
         feature_snapshot_key(source),
         feature_content_digest(source),
         source,
-        NOW,
+        now,
     )
 
 
@@ -163,14 +212,17 @@ def _scored_item(
     symbol: str,
     snapshot: NewFeatureSnapshot,
     quality: FeatureQualityStatus,
+    session: SessionDate,
+    identifier_offset: int,
+    now: datetime,
 ) -> NewDailyFeaturePipelineItem:
     return NewDailyFeaturePipelineItem(
-        DailyFeaturePipelineItemID(UUID(int=912_000 + ordinal)),
+        DailyFeaturePipelineItemID(UUID(int=912_000 + identifier_offset + ordinal)),
         run_id,
         ordinal,
         Symbol(symbol),
         "XNGS",
-        SESSION,
+        session,
         (
             DailyFeaturePipelineItemOutcome.READY
             if quality is FeatureQualityStatus.READY
@@ -183,8 +235,8 @@ def _scored_item(
         None if quality is FeatureQualityStatus.READY else "VOLUME_DATA_INCOMPLETE",
         0,
         0,
-        NOW,
-        NOW,
+        now,
+        now,
     )
 
 
@@ -193,14 +245,17 @@ def _unscorable_item(
     ordinal: int,
     symbol: str,
     outcome: DailyFeaturePipelineItemOutcome,
+    session: SessionDate,
+    identifier_offset: int,
+    now: datetime,
 ) -> NewDailyFeaturePipelineItem:
     return NewDailyFeaturePipelineItem(
-        DailyFeaturePipelineItemID(UUID(int=912_000 + ordinal)),
+        DailyFeaturePipelineItemID(UUID(int=912_000 + identifier_offset + ordinal)),
         run_id,
         ordinal,
         Symbol(symbol),
         "XNGS",
-        SESSION,
+        session,
         outcome,
         0,
         0,
@@ -209,8 +264,8 @@ def _unscorable_item(
         outcome.value,
         0,
         0,
-        NOW,
-        NOW,
+        now,
+        now,
     )
 
 
@@ -218,6 +273,8 @@ def _run(
     run_id: DailyFeaturePipelineRunID,
     identity: DailyFeaturePipelineIdentity,
     digest: str,
+    counts: tuple[int, ...],
+    now: datetime,
 ) -> NewDailyFeaturePipelineRun:
     return NewDailyFeaturePipelineRun(
         run_id,
@@ -225,16 +282,9 @@ def _run(
         digest,
         identity,
         DailyFeaturePipelineRunStatus.COMPLETED_WITH_PARTIAL_FAILURES,
-        5,
-        2,
-        1,
-        1,
-        0,
-        1,
+        *counts,
         0,
         0,
-        0,
-        0,
-        NOW,
-        NOW,
+        now,
+        now,
     )

@@ -12,6 +12,9 @@ from auto_trading_v2.application.services.completed_session import (
 from auto_trading_v2.application.services.daily_bar_comparison import (
     DailyBarProviderComparisonService,
 )
+from auto_trading_v2.application.services.daily_feature_outcome_observation import (
+    DailyFeatureOutcomeObservationService,
+)
 from auto_trading_v2.application.services.daily_feature_pipeline import (
     DailyFeaturePipelineService,
 )
@@ -68,6 +71,7 @@ __all__ = [
     "DailyMarketBarCreationService",
     "DailyFeaturePipelineService",
     "DailyFeatureScoringService",
+    "DailyFeatureOutcomeObservationService",
     "DailyBarProviderComparisonService",
     "DailyTechnicalFeatureSnapshotService",
     "EvaluationBatchResult",

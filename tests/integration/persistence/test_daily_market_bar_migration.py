@@ -3,6 +3,9 @@ from sqlalchemy import inspect
 
 from auto_trading_v2.adapters.persistence.tables import (
     BUSINESS_TABLES,
+    daily_feature_outcome_observation_run_items,
+    daily_feature_outcome_observation_runs,
+    daily_feature_outcomes,
     daily_feature_pipeline_items,
     daily_feature_pipeline_runs,
     daily_feature_scoring_items,
@@ -32,8 +35,11 @@ def test_daily_market_bar_revision_round_trip_preserves_prior_13_tables(
         daily_feature_pipeline_items.name,
         daily_feature_scoring_runs.name,
         daily_feature_scoring_items.name,
+        daily_feature_outcomes.name,
+        daily_feature_outcome_observation_runs.name,
+        daily_feature_outcome_observation_run_items.name,
     }
-    assert _revision(mssql_database) == "0008_daily_feature_scoring"
+    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
     assert len(prior_tables) == 13
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
 
@@ -45,7 +51,7 @@ def test_daily_market_bar_revision_round_trip_preserves_prior_13_tables(
 
     mssql_database.run_upgrade("head")
 
-    assert _revision(mssql_database) == "0008_daily_feature_scoring"
+    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()

@@ -46,3 +46,8 @@ Run identity contains only source P3 run ID and fixed policy codes/versions. Con
 status/counts and canonical ordinal item results but excludes IDs, key, and timestamps. Exact retry
 returns the stored aggregate without feature reads, calculation, ID generation, insert, commit, or
 network work. The Recommendation READY gate is unchanged.
+
+P4B.1 may observe eligible scoring items without changing their rank or relative scores. It uses the
+source FeatureSnapshot `last_close` and official future sessions to store raw realized return, MFE,
+and MAE only. Those outcomes are neither probabilities nor Recommendations; see
+[forward outcomes](forward-outcomes.md).

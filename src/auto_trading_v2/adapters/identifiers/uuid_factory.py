@@ -5,6 +5,9 @@ from uuid import NAMESPACE_URL, uuid5
 
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
+    DailyFeatureOutcomeID,
+    DailyFeatureOutcomeObservationRunID,
+    DailyFeatureOutcomeObservationRunItemID,
     DailyFeaturePipelineItemID,
     DailyFeaturePipelineRunID,
     DailyFeatureScoringItemID,
@@ -95,6 +98,30 @@ class UuidDailyFeatureScoringItemIDFactory:
 
     def new(self) -> DailyFeatureScoringItemID:
         return self.identifier_factory.new(DailyFeatureScoringItemID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureOutcomeIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureOutcomeID:
+        return self.identifier_factory.new(DailyFeatureOutcomeID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureOutcomeObservationRunIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureOutcomeObservationRunID:
+        return self.identifier_factory.new(DailyFeatureOutcomeObservationRunID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureOutcomeObservationRunItemIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureOutcomeObservationRunItemID:
+        return self.identifier_factory.new(DailyFeatureOutcomeObservationRunItemID)
 
 
 @dataclass(frozen=True, slots=True)
