@@ -210,6 +210,25 @@ calendar is limited to 2026 and future bars must already exist canonically. See
 [forward outcomes](docs/forward-outcomes.md) and
 [ADR 0011](docs/adr/0011-prospective-forward-outcome-observation.md).
 
+## Prediction P4B.2A versioned labels and calibration datasets
+
+P4B.2A labels each immutable P4B.1 outcome revision with
+`US_EQUITY_POSITIVE_FORWARD_CLOSE_LABEL/v1`: only `forward_close_return > 0` is `POSITIVE`; zero
+and negative returns are `NOT_POSITIVE`. The label ignores costs and is neither a probability nor a
+target/stop result.
+
+`READY_SCORE_POSITIVE_CLOSE_CALIBRATION_DATASET/v1` snapshots one horizon at a caller-supplied UTC
+`dataset_as_of`. It includes only P4A `SCORED_READY`/`READY` scores and selects one P4B.1 revision per
+scoring item using availability and recorded-at cutoffs, ordered by latest input, recorded time, and
+outcome key descending. `PROSPECTIVE` and `RETROSPECTIVE_REPLAY` remain explicit item attributes.
+DEGRADED outcomes may be labeled but are excluded from this v1 dataset.
+
+Migration `0010_outcome_labels_calibration_dataset` adds three immutable tables and raises the
+canonical count from 22 to 25. This slice performs no fitting and creates no probability, model,
+Recommendation, entry/target/stop plan, provider call, TradeIntent, or order. See
+[outcome labels](docs/outcome-labels.md), [calibration datasets](docs/calibration-datasets.md), and
+[ADR 0012](docs/adr/0012-versioned-labels-calibration-dataset.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

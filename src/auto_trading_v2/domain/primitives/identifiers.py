@@ -123,6 +123,24 @@ class DailyFeatureOutcomeObservationRunItemID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class DailyFeatureOutcomeLabelID(_UUIDIdentifier):
+    """Identifier for one immutable versioned outcome label."""
+
+    __slots__ = ()
+
+
+class ProbabilityCalibrationDatasetID(_UUIDIdentifier):
+    """Identifier for one immutable calibration dataset snapshot."""
+
+    __slots__ = ()
+
+
+class ProbabilityCalibrationDatasetItemID(_UUIDIdentifier):
+    """Identifier for one item in a calibration dataset snapshot."""
+
+    __slots__ = ()
+
+
 class RecommendationID(_UUIDIdentifier):
     """Identifier for a canonical user-facing recommendation."""
 

@@ -19,7 +19,13 @@ pytestmark = pytest.mark.integration
 def test_0009_round_trip_preserves_all_prior_nineteen_tables(
     mssql_database: TemporaryMssqlDatabase,
 ) -> None:
-    expected = {table.name for table in BUSINESS_TABLES}
+    head = {table.name for table in BUSINESS_TABLES}
+    downstream = {
+        "daily_feature_outcome_labels",
+        "probability_calibration_datasets",
+        "probability_calibration_dataset_items",
+    }
+    expected = head - downstream
     added = {
         daily_feature_outcomes.name,
         daily_feature_outcome_observation_runs.name,
@@ -27,8 +33,11 @@ def test_0009_round_trip_preserves_all_prior_nineteen_tables(
     }
     prior = expected - added
 
+    assert len(head) == 25
     assert len(expected) == 22
     assert len(prior) == 19
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
+    mssql_database.run_downgrade("0009_daily_feature_outcomes")
     assert _revision(mssql_database) == "0009_daily_feature_outcomes"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected
     signature = _table_catalog_signature(mssql_database, prior)
@@ -41,7 +50,7 @@ def test_0009_round_trip_preserves_all_prior_nineteen_tables(
 
     mssql_database.run_upgrade("head")
 
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
-    assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
+    assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == head
     assert _table_catalog_signature(mssql_database, prior) == signature
     mssql_database.run_check()

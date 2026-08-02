@@ -51,3 +51,9 @@ P4B.1 may observe eligible scoring items without changing their rank or relative
 source FeatureSnapshot `last_close` and official future sessions to store raw realized return, MFE,
 and MAE only. Those outcomes are neither probabilities nor Recommendations; see
 [forward outcomes](forward-outcomes.md).
+
+P4B.2A joins these scores to versioned positive-close labels without changing P4A. Only
+`SCORED_READY` items whose source quality is `READY` and whose score, rank, and FeatureSnapshot are
+present enter `READY_SCORE_POSITIVE_CLOSE_CALIBRATION_DATASET/v1`. DEGRADED outcomes can still have
+labels, but their different component availability keeps them out of the v1 calibration dataset.
+The stored 0-to-100 score remains a relative score, never a probability.

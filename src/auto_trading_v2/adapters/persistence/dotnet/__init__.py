@@ -29,6 +29,7 @@ from auto_trading_v2.adapters.persistence.dotnet.probe import (
 )
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetCandidateRepository,
+    DotNetDailyFeatureOutcomeLabelRepository,
     DotNetDailyFeaturePipelineRunRepository,
     DotNetDailyFeatureScoringRunRepository,
     DotNetFeatureSnapshotRepository,
@@ -38,6 +39,8 @@ from auto_trading_v2.adapters.persistence.dotnet.repositories import (
     DotNetPaperOrderRepository,
     DotNetPaperPositionRepository,
     DotNetPositionEventRepository,
+    DotNetProbabilityCalibrationDatasetRepository,
+    DotNetProbabilityCalibrationDatasetSourceReader,
     DotNetRecommendationRepository,
     DotNetStrategyDecisionRepository,
     DotNetTradeIntentRepository,
@@ -63,6 +66,7 @@ __all__ = [
     "DotNetCoreConnection",
     "DotNetCandidateRepository",
     "DotNetDailyFeaturePipelineRunRepository",
+    "DotNetDailyFeatureOutcomeLabelRepository",
     "DotNetDailyFeatureScoringRunRepository",
     "DotNetErrorCategory",
     "DotNetFeatureSnapshotRepository",
@@ -76,6 +80,8 @@ __all__ = [
     "DotNetProbeResult",
     "DotNetResultConversionError",
     "DotNetPositionEventRepository",
+    "DotNetProbabilityCalibrationDatasetRepository",
+    "DotNetProbabilityCalibrationDatasetSourceReader",
     "DotNetRecommendationRepository",
     "DotNetRow",
     "DotNetRows",

@@ -174,6 +174,21 @@ Migration `0009_daily_feature_outcomes` adds only these three tables in dependen
 the canonical count from 19 to 22. Downgrade removes run items, runs, then outcomes. No backfill or
 existing-table mutation occurs.
 
+## P4B.2A labels and dataset snapshots
+
+Migration `0010_outcome_labels_calibration_dataset` adds only
+`daily_feature_outcome_labels`, `probability_calibration_datasets`, and
+`probability_calibration_dataset_items`, raising the canonical table count from 22 to 25. Labels
+reference their immutable outcome, scoring run/item, P3 run/item, and FeatureSnapshot. Dataset items
+also reference the label and dataset; every foreign key uses `ON DELETE NO ACTION`.
+
+Label identity is unique by source outcome and label policy. Dataset identity fixes policy/provider,
+calendar, horizon, and UTC `dataset_as_of`; ordered items are unique by ordinal, scoring item,
+outcome, and label within a dataset. Dataset item `overall_relative_score` is `DECIMAL(9,6)` and is
+constrained to READY quality. Header status/count constraints distinguish valid `EMPTY` from
+`READY` snapshots. Downgrade removes items, datasets, then labels and does not alter the prior 22
+tables.
+
 ## Point-in-Time FeatureSnapshot
 
 `trading.feature_snapshots`는 기존 11개 table과 FK가 없는 독립 aggregate입니다. 최소 column은

@@ -9,6 +9,9 @@ from migrations.ddl.feature_scoring import create_daily_feature_scoring_tables
 from migrations.ddl.features import create_feature_snapshot_table
 from migrations.ddl.market import create_market_tables
 from migrations.ddl.portfolio import create_portfolio_tables
+from migrations.ddl.probability_calibration_dataset import (
+    create_probability_calibration_dataset_tables,
+)
 from migrations.ddl.recommendations import create_recommendations_table
 from migrations.ddl.strategy import create_strategy_tables
 
@@ -18,6 +21,7 @@ __all__ = [
     "create_feature_snapshot_table",
     "create_daily_feature_scoring_tables",
     "create_daily_feature_outcome_tables",
+    "create_probability_calibration_dataset_tables",
     "create_market_tables",
     "create_multi_symbol_feature_pipeline_tables",
     "create_portfolio_tables",

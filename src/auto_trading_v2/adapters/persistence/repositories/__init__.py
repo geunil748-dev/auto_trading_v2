@@ -1,5 +1,12 @@
 """SQLAlchemy Core repositories for the first persistence slice."""
 
+from auto_trading_v2.adapters.persistence.repositories.calibration_dataset_sources import (
+    SqlAlchemyProbabilityCalibrationDatasetSourceReader,
+    eligible_calibration_dataset_sources_statement,
+)
+from auto_trading_v2.adapters.persistence.repositories.calibration_datasets import (
+    SqlAlchemyProbabilityCalibrationDatasetRepository,
+)
 from auto_trading_v2.adapters.persistence.repositories.candidates import (
     SqlAlchemyCandidateRepository,
 )
@@ -26,6 +33,9 @@ from auto_trading_v2.adapters.persistence.repositories.filter_evaluations import
 )
 from auto_trading_v2.adapters.persistence.repositories.market_snapshots import (
     SqlAlchemyMarketSnapshotRepository,
+)
+from auto_trading_v2.adapters.persistence.repositories.outcome_labels import (
+    SqlAlchemyDailyFeatureOutcomeLabelRepository,
 )
 from auto_trading_v2.adapters.persistence.repositories.paper_fills import (
     SqlAlchemyPaperFillRepository,
@@ -54,6 +64,7 @@ from auto_trading_v2.adapters.persistence.repositories.universes import (
 
 __all__ = [
     "SqlAlchemyCandidateRepository",
+    "SqlAlchemyDailyFeatureOutcomeLabelRepository",
     "SqlAlchemyDailyMarketBarRepository",
     "SqlAlchemyDailyFeaturePipelineRunRepository",
     "SqlAlchemyDailyFeatureOutcomeObservationRunRepository",
@@ -66,8 +77,11 @@ __all__ = [
     "SqlAlchemyPaperFillRepository",
     "SqlAlchemyPaperPositionRepository",
     "SqlAlchemyPositionEventRepository",
+    "SqlAlchemyProbabilityCalibrationDatasetRepository",
+    "SqlAlchemyProbabilityCalibrationDatasetSourceReader",
     "SqlAlchemyRecommendationRepository",
     "SqlAlchemyStrategyDecisionRepository",
     "SqlAlchemyTradeIntentRepository",
     "SqlAlchemyUniverseSnapshotRepository",
+    "eligible_calibration_dataset_sources_statement",
 ]

@@ -6,6 +6,13 @@ from auto_trading_v2.application.contracts.alpaca_ingestion import (
     AlpacaIngestionResult,
     AlpacaIngestionSummary,
 )
+from auto_trading_v2.application.contracts.calibration_datasets import (
+    CalibrationDatasetSourceRecord,
+    CreateProbabilityCalibrationDatasetCommand,
+    NewProbabilityCalibrationDatasetWithItems,
+    ProbabilityCalibrationDatasetCreationOutcome,
+    ProbabilityCalibrationDatasetCreationResult,
+)
 from auto_trading_v2.application.contracts.completed_daily_bars import (
     CompletedDailyBarsRequestCreationOutcome,
     CompletedDailyBarsRequestCreationResult,
@@ -49,6 +56,12 @@ from auto_trading_v2.application.contracts.feature_snapshots import (
     FeatureSnapshotCreationOutcome,
     FeatureSnapshotCreationResult,
     NewFeatureSnapshot,
+)
+from auto_trading_v2.application.contracts.outcome_labels import (
+    CreateDailyFeatureOutcomeLabelCommand,
+    DailyFeatureOutcomeLabelCreationOutcome,
+    DailyFeatureOutcomeLabelCreationResult,
+    NewDailyFeatureOutcomeLabel,
 )
 from auto_trading_v2.application.contracts.paper_fills import (
     NewPaperFill,
@@ -120,10 +133,13 @@ __all__ = [
     "AlpacaIngestionResult",
     "AlpacaIngestionSummary",
     "CompareDailyBarProvidersCommand",
+    "CalibrationDatasetSourceRecord",
     "CompletedDailyBarsRequestCreationOutcome",
     "CompletedDailyBarsRequestCreationResult",
     "JSONValue",
     "CreateDailyMarketBarCommand",
+    "CreateDailyFeatureOutcomeLabelCommand",
+    "CreateProbabilityCalibrationDatasetCommand",
     "CreateFeatureSnapshotCommand",
     "CreateRecommendationCommand",
     "FeatureSnapshotCreationOutcome",
@@ -136,6 +152,8 @@ __all__ = [
     "DailyFeatureScoringExecutionResult",
     "DailyFeatureOutcomeObservationExecutionOutcome",
     "DailyFeatureOutcomeObservationExecutionResult",
+    "DailyFeatureOutcomeLabelCreationOutcome",
+    "DailyFeatureOutcomeLabelCreationResult",
     "DailyBarProviderComparisonOutcome",
     "DailyBarProviderComparisonReport",
     "NewCandidate",
@@ -148,6 +166,8 @@ __all__ = [
     "NewDailyFeatureScoringRunWithItems",
     "NewDailyFeatureOutcome",
     "NewDailyFeatureOutcomeObservationRunWithItems",
+    "NewDailyFeatureOutcomeLabel",
+    "NewProbabilityCalibrationDatasetWithItems",
     "ObserveDailyFeatureScoringOutcomesCommand",
     "NewCandidateStrategyDecision",
     "NewPositionStrategyDecision",
@@ -166,6 +186,8 @@ __all__ = [
     "PaperOrderFillTransition",
     "PaperPositionBuyTransition",
     "PositionProjectionResult",
+    "ProbabilityCalibrationDatasetCreationOutcome",
+    "ProbabilityCalibrationDatasetCreationResult",
     "RecommendationCreationOutcome",
     "RecommendationCreationResult",
     "RunDailyFeaturePipelineCommand",

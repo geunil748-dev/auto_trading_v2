@@ -48,6 +48,9 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
         daily_feature_outcomes.name,
         daily_feature_outcome_observation_runs.name,
         daily_feature_outcome_observation_run_items.name,
+        "daily_feature_outcome_labels",
+        "probability_calibration_datasets",
+        "probability_calibration_dataset_items",
     }
     expected = head - downstream
     added = {
@@ -59,7 +62,7 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
     assert len(expected) == 17
     assert len(prior) == 14
     assert _version_column_length(mssql_database) == 64
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     signature = _table_catalog_signature(mssql_database, prior)
 
     mssql_database.run_downgrade("0006_daily_market_bars")
@@ -74,6 +77,6 @@ def test_0007_round_trip_preserves_all_prior_fourteen_tables(
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected
     assert _table_catalog_signature(mssql_database, prior) == signature
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == head
     mssql_database.run_check()

@@ -2,8 +2,9 @@
 
 P4B.1 records raw realized forward paths for eligible P4A scoring items. It does not predict a
 return and does not create a probability, confidence, label, expected value, Recommendation,
-entry/target/stop proposal, or VIRTUAL/ACTUAL trade. Labels and walk-forward calibration remain a
-P4B.2 concern; actionable Recommendations remain a later P4C concern.
+entry/target/stop proposal, or VIRTUAL/ACTUAL trade. P4B.2A now derives versioned labels and dataset
+snapshots from these rows; walk-forward calibration remains P4B.2B and actionable Recommendations
+remain P4C concerns.
 
 ## Source and maturity contract
 
@@ -44,3 +45,11 @@ An observation run key includes source scoring run, fixed policy/version, observ
 completion grace. Exact retry returns its stored run/items before source reads, bar reads,
 calculation, inserts, or commits. Migration `0009_daily_feature_outcomes` adds the three P4B.1 tables;
 the canonical table count is 22.
+
+## P4B.2A labels
+
+P4B.2A derives one immutable label per immutable outcome revision. Positive terminal-close return is
+`POSITIVE`; zero and negative return are `NOT_POSITIVE`. A corrected future-bar path has a different
+outcome ID and therefore a different label identity; neither row is overwritten. Label generation
+preserves `PROSPECTIVE` versus `RETROSPECTIVE_REPLAY` and does not reinterpret label creation time as
+market-data availability. See [outcome labels](outcome-labels.md).

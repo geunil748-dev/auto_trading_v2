@@ -12,6 +12,9 @@ from auto_trading_v2.application.services.completed_session import (
 from auto_trading_v2.application.services.daily_bar_comparison import (
     DailyBarProviderComparisonService,
 )
+from auto_trading_v2.application.services.daily_feature_outcome_label import (
+    DailyFeatureOutcomeLabelCreationService,
+)
 from auto_trading_v2.application.services.daily_feature_outcome_observation import (
     DailyFeatureOutcomeObservationService,
 )
@@ -39,6 +42,9 @@ from auto_trading_v2.application.services.filter_evaluation import (
 )
 from auto_trading_v2.application.services.position_exit_decision import (
     PositionExitDecisionService,
+)
+from auto_trading_v2.application.services.probability_calibration_dataset import (
+    ProbabilityCalibrationDatasetCreationService,
 )
 from auto_trading_v2.application.services.recommendation import (
     RecommendationCreationService,
@@ -72,11 +78,13 @@ __all__ = [
     "DailyFeaturePipelineService",
     "DailyFeatureScoringService",
     "DailyFeatureOutcomeObservationService",
+    "DailyFeatureOutcomeLabelCreationService",
     "DailyBarProviderComparisonService",
     "DailyTechnicalFeatureSnapshotService",
     "EvaluationBatchResult",
     "FeatureSnapshotCreationService",
     "PositionExitDecisionService",
+    "ProbabilityCalibrationDatasetCreationService",
     "RecommendationCreationService",
     "StrategyDecisionBatchResult",
     "TradeIntentBatchResult",

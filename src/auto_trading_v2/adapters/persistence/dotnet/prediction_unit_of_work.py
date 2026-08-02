@@ -5,9 +5,11 @@ from collections.abc import Callable
 from sqlalchemy import Connection
 
 from auto_trading_v2.adapters.persistence.dotnet.repositories import (
+    DotNetDailyFeatureOutcomeLabelRepository,
     DotNetDailyFeatureOutcomeObservationRunRepository,
     DotNetDailyFeatureOutcomeRepository,
     DotNetDailyFeatureScoringRunRepository,
+    DotNetProbabilityCalibrationDatasetRepository,
 )
 from auto_trading_v2.application.errors import TransactionStateError
 
@@ -20,17 +22,25 @@ class DotNetPredictionUnitOfWorkMixin:
     _daily_feature_outcome_observation_runs: (
         DotNetDailyFeatureOutcomeObservationRunRepository | None
     )
+    _daily_feature_outcome_labels: DotNetDailyFeatureOutcomeLabelRepository | None
+    _probability_calibration_datasets: DotNetProbabilityCalibrationDatasetRepository | None
 
     def _initialize_prediction_repository_slots(self) -> None:
         self._daily_feature_scoring_runs = None
         self._daily_feature_outcomes = None
         self._daily_feature_outcome_observation_runs = None
+        self._daily_feature_outcome_labels = None
+        self._probability_calibration_datasets = None
 
     def _bind_prediction_repositories(self, args: _RepositoryArgs) -> None:
         self._daily_feature_scoring_runs = DotNetDailyFeatureScoringRunRepository(*args)
         self._daily_feature_outcomes = DotNetDailyFeatureOutcomeRepository(*args)
         self._daily_feature_outcome_observation_runs = (
             DotNetDailyFeatureOutcomeObservationRunRepository(*args)
+        )
+        self._daily_feature_outcome_labels = DotNetDailyFeatureOutcomeLabelRepository(*args)
+        self._probability_calibration_datasets = DotNetProbabilityCalibrationDatasetRepository(
+            *args
         )
 
     @property
@@ -55,6 +65,22 @@ class DotNetPredictionUnitOfWorkMixin:
         if self._daily_feature_outcome_observation_runs is None:
             raise TransactionStateError("repository_access")
         return self._daily_feature_outcome_observation_runs
+
+    @property
+    def daily_feature_outcome_labels(self) -> DotNetDailyFeatureOutcomeLabelRepository:
+        self._ensure_repository_operation()
+        if self._daily_feature_outcome_labels is None:
+            raise TransactionStateError("repository_access")
+        return self._daily_feature_outcome_labels
+
+    @property
+    def probability_calibration_datasets(
+        self,
+    ) -> DotNetProbabilityCalibrationDatasetRepository:
+        self._ensure_repository_operation()
+        if self._probability_calibration_datasets is None:
+            raise TransactionStateError("repository_access")
+        return self._probability_calibration_datasets
 
     def _ensure_repository_operation(self) -> None:
         raise NotImplementedError
