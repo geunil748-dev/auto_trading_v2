@@ -38,8 +38,11 @@ def test_daily_market_bar_revision_round_trip_preserves_prior_13_tables(
         daily_feature_outcomes.name,
         daily_feature_outcome_observation_runs.name,
         daily_feature_outcome_observation_run_items.name,
+        "daily_feature_outcome_labels",
+        "probability_calibration_datasets",
+        "probability_calibration_dataset_items",
     }
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert len(prior_tables) == 13
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
 
@@ -51,7 +54,7 @@ def test_daily_market_bar_revision_round_trip_preserves_prior_13_tables(
 
     mssql_database.run_upgrade("head")
 
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()

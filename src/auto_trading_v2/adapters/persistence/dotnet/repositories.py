@@ -2,6 +2,7 @@
 
 from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyCandidateRepository,
+    SqlAlchemyDailyFeatureOutcomeLabelRepository,
     SqlAlchemyDailyFeatureOutcomeObservationRunRepository,
     SqlAlchemyDailyFeatureOutcomeRepository,
     SqlAlchemyDailyFeaturePipelineRunRepository,
@@ -14,6 +15,8 @@ from auto_trading_v2.adapters.persistence.repositories import (
     SqlAlchemyPaperOrderRepository,
     SqlAlchemyPaperPositionRepository,
     SqlAlchemyPositionEventRepository,
+    SqlAlchemyProbabilityCalibrationDatasetRepository,
+    SqlAlchemyProbabilityCalibrationDatasetSourceReader,
     SqlAlchemyRecommendationRepository,
     SqlAlchemyStrategyDecisionRepository,
     SqlAlchemyTradeIntentRepository,
@@ -53,6 +56,22 @@ class DotNetDailyFeatureOutcomeObservationRunRepository(
     SqlAlchemyDailyFeatureOutcomeObservationRunRepository
 ):
     """Outcome-observation audit backed by the DotNet Core compiler adapter."""
+
+
+class DotNetDailyFeatureOutcomeLabelRepository(SqlAlchemyDailyFeatureOutcomeLabelRepository):
+    """Outcome-label contract backed by the DotNet Core compiler adapter."""
+
+
+class DotNetProbabilityCalibrationDatasetRepository(
+    SqlAlchemyProbabilityCalibrationDatasetRepository
+):
+    """Calibration-dataset contract backed by the DotNet Core compiler adapter."""
+
+
+class DotNetProbabilityCalibrationDatasetSourceReader(
+    SqlAlchemyProbabilityCalibrationDatasetSourceReader
+):
+    """PIT source selection backed by the DotNet Core compiler adapter."""
 
 
 class DotNetRecommendationRepository(SqlAlchemyRecommendationRepository):
@@ -96,6 +115,7 @@ __all__ = [
     "DotNetDailyMarketBarRepository",
     "DotNetDailyFeaturePipelineRunRepository",
     "DotNetDailyFeatureOutcomeObservationRunRepository",
+    "DotNetDailyFeatureOutcomeLabelRepository",
     "DotNetDailyFeatureOutcomeRepository",
     "DotNetDailyFeatureScoringRunRepository",
     "DotNetFeatureSnapshotRepository",
@@ -105,6 +125,8 @@ __all__ = [
     "DotNetPaperOrderRepository",
     "DotNetPaperPositionRepository",
     "DotNetPositionEventRepository",
+    "DotNetProbabilityCalibrationDatasetRepository",
+    "DotNetProbabilityCalibrationDatasetSourceReader",
     "DotNetRecommendationRepository",
     "DotNetStrategyDecisionRepository",
     "DotNetTradeIntentRepository",

@@ -5,6 +5,7 @@ from typing import Protocol
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DailyFeatureOutcomeID,
+    DailyFeatureOutcomeLabelID,
     DailyFeatureOutcomeObservationRunID,
     DailyFeatureOutcomeObservationRunItemID,
     DailyFeaturePipelineItemID,
@@ -19,6 +20,8 @@ from auto_trading_v2.domain.primitives import (
     OrderID,
     PositionEventID,
     PositionID,
+    ProbabilityCalibrationDatasetID,
+    ProbabilityCalibrationDatasetItemID,
     RecommendationID,
     TradeIntentID,
     UniverseSnapshotID,
@@ -73,6 +76,18 @@ class DailyFeatureOutcomeObservationRunIDFactory(Protocol):
 
 class DailyFeatureOutcomeObservationRunItemIDFactory(Protocol):
     def new(self) -> DailyFeatureOutcomeObservationRunItemID: ...
+
+
+class DailyFeatureOutcomeLabelIDFactory(Protocol):
+    def new(self) -> DailyFeatureOutcomeLabelID: ...
+
+
+class ProbabilityCalibrationDatasetIDFactory(Protocol):
+    def new(self) -> ProbabilityCalibrationDatasetID: ...
+
+
+class ProbabilityCalibrationDatasetItemIDFactory(Protocol):
+    def new(self) -> ProbabilityCalibrationDatasetItemID: ...
 
 
 class RecommendationIDFactory(Protocol):

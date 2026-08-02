@@ -4,6 +4,10 @@ from auto_trading_v2.application.ports.batch_budget import (
     DailyMarketDataBatchBudgetPort,
     DailyMarketDataProviderRole,
 )
+from auto_trading_v2.application.ports.calibration_datasets import (
+    ProbabilityCalibrationDatasetRepository,
+    ProbabilityCalibrationDatasetSourceReader,
+)
 from auto_trading_v2.application.ports.daily_market_bars import DailyMarketBarRepository
 from auto_trading_v2.application.ports.daily_market_data import (
     CompletedDailyMarketBarObservation,
@@ -24,6 +28,7 @@ from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotR
 from auto_trading_v2.application.ports.id_factory import (
     ClientOrderIDFactory,
     DailyFeatureOutcomeIDFactory,
+    DailyFeatureOutcomeLabelIDFactory,
     DailyFeatureOutcomeObservationRunIDFactory,
     DailyFeatureOutcomeObservationRunItemIDFactory,
     DailyFeaturePipelineItemIDFactory,
@@ -38,11 +43,14 @@ from auto_trading_v2.application.ports.id_factory import (
     OrderIDFactory,
     PositionEventIDFactory,
     PositionIDFactory,
+    ProbabilityCalibrationDatasetIDFactory,
+    ProbabilityCalibrationDatasetItemIDFactory,
     RecommendationIDFactory,
     TradeIntentIDFactory,
     UniverseSnapshotIDFactory,
 )
 from auto_trading_v2.application.ports.market_calendar import UsEquityMarketCalendar
+from auto_trading_v2.application.ports.outcome_labels import DailyFeatureOutcomeLabelRepository
 from auto_trading_v2.application.ports.paper_broker import PaperBroker, PaperBrokerError
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
@@ -70,6 +78,8 @@ __all__ = [
     "DailyFeaturePipelineRunIDFactory",
     "DailyFeaturePipelineRunRepository",
     "DailyFeatureOutcomeIDFactory",
+    "DailyFeatureOutcomeLabelIDFactory",
+    "DailyFeatureOutcomeLabelRepository",
     "DailyFeatureOutcomeObservationRunIDFactory",
     "DailyFeatureOutcomeObservationRunItemIDFactory",
     "DailyFeatureOutcomeObservationRunRepository",
@@ -98,6 +108,10 @@ __all__ = [
     "PositionEventIDFactory",
     "PositionEventRepository",
     "PositionIDFactory",
+    "ProbabilityCalibrationDatasetIDFactory",
+    "ProbabilityCalibrationDatasetItemIDFactory",
+    "ProbabilityCalibrationDatasetRepository",
+    "ProbabilityCalibrationDatasetSourceReader",
     "RecommendationIDFactory",
     "RecommendationRepository",
     "StrategyDecisionRepository",

@@ -26,6 +26,9 @@ P3_TABLE_NAMES = {
     "daily_feature_outcomes",
     "daily_feature_outcome_observation_runs",
     "daily_feature_outcome_observation_run_items",
+    "daily_feature_outcome_labels",
+    "probability_calibration_datasets",
+    "probability_calibration_dataset_items",
 }
 
 
@@ -48,7 +51,7 @@ def test_migration_revision_catalog_and_drift(mssql_database: object) -> None:
     expected = {table.name for table in BUSINESS_TABLES}
     inspector = inspect(mssql_database.engine)
     assert set(inspector.get_table_names(schema="trading")) == expected
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     mssql_database.run_check()
 
 
@@ -73,7 +76,7 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
         feature_snapshots.name,
         recommendations.name,
     )
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0003_position_decision_version")
@@ -81,7 +84,7 @@ def test_feature_snapshot_revision_round_trip_preserves_prior_schema(
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
@@ -92,14 +95,14 @@ def test_recommendation_revision_round_trip_preserves_prior_schema(
 ) -> None:
     expected_tables = {table.name for table in BUSINESS_TABLES}
     prior_tables = _without_p3(daily_market_bars.name, recommendations.name)
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     signature_before = _table_catalog_signature(mssql_database, prior_tables)
     mssql_database.run_downgrade("0004_feature_snapshots")
     assert _revision(mssql_database) == "0004_feature_snapshots"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == prior_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_upgrade("head")
-    assert _revision(mssql_database) == "0009_daily_feature_outcomes"
+    assert _revision(mssql_database) == "0010_outcome_labels_calibration_dataset"
     assert set(inspect(mssql_database.engine).get_table_names(schema="trading")) == expected_tables
     assert _table_catalog_signature(mssql_database, prior_tables) == signature_before
     mssql_database.run_check()
@@ -135,6 +138,13 @@ def test_sql_server_catalog_contract(mssql_database: object) -> None:
     expected_uuid_count = sum(
         sum(isinstance(column.type, mssql.UNIQUEIDENTIFIER) for column in table.columns)
         for table in BUSINESS_TABLES
+    )
+    fixed_scale_decimal = (
+        "(t.name = 'daily_feature_scoring_items' AND c.name IN ('momentum_score',"
+        "'trend_score','breakout_score','price_action_score','stability_score',"
+        "'volume_score','overall_relative_score')) OR "
+        "(t.name = 'probability_calibration_dataset_items' "
+        "AND c.name = 'overall_relative_score')"
     )
 
     with mssql_database.engine.connect() as connection:
@@ -190,16 +200,10 @@ def test_sql_server_catalog_contract(mssql_database: object) -> None:
                 text(
                     "SELECT "
                     "SUM(CASE WHEN ty.name = 'decimal' THEN 1 ELSE 0 END) AS decimal_count, "
-                    "SUM(CASE WHEN ty.name = 'decimal' AND ((t.name = "
-                    "'daily_feature_scoring_items' AND c.name IN ('momentum_score',"
-                    "'trend_score','breakout_score','price_action_score','stability_score',"
-                    "'volume_score','overall_relative_score') AND "
-                    "(c.precision <> 9 OR c.scale <> 6)) OR (NOT (t.name = "
-                    "'daily_feature_scoring_items' AND c.name IN ('momentum_score',"
-                    "'trend_score','breakout_score','price_action_score','stability_score',"
-                    "'volume_score','overall_relative_score')) AND "
-                    "(c.precision <> 38 OR c.scale <> 18))) THEN 1 ELSE 0 END) "
-                    "AS wrong_decimal_count, "
+                    "SUM(CASE WHEN ty.name = 'decimal' AND ("
+                    f"c.precision <> CASE WHEN ({fixed_scale_decimal}) THEN 9 ELSE 38 END OR "
+                    f"c.scale <> CASE WHEN ({fixed_scale_decimal}) THEN 6 ELSE 18 END"
+                    ") THEN 1 ELSE 0 END) AS wrong_decimal_count, "
                     "SUM(CASE WHEN ty.name = 'datetimeoffset' THEN 1 ELSE 0 END) "
                     "AS datetimeoffset_count, "
                     "SUM(CASE WHEN ty.name = 'datetimeoffset' AND c.scale <> 7 THEN 1 ELSE 0 END) "

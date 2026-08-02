@@ -3,6 +3,7 @@
 from auto_trading_v2.adapters.identifiers.uuid_factory import (
     Uuid5ClientOrderIDFactory,
     UuidDailyFeatureOutcomeIDFactory,
+    UuidDailyFeatureOutcomeLabelIDFactory,
     UuidDailyFeatureOutcomeObservationRunIDFactory,
     UuidDailyFeatureOutcomeObservationRunItemIDFactory,
     UuidDailyFeaturePipelineItemIDFactory,
@@ -17,6 +18,8 @@ from auto_trading_v2.adapters.identifiers.uuid_factory import (
     UuidOrderIDFactory,
     UuidPositionEventIDFactory,
     UuidPositionIDFactory,
+    UuidProbabilityCalibrationDatasetIDFactory,
+    UuidProbabilityCalibrationDatasetItemIDFactory,
     UuidRecommendationIDFactory,
     UuidTradeIntentIDFactory,
     UuidUniverseSnapshotIDFactory,
@@ -25,6 +28,7 @@ from auto_trading_v2.adapters.identifiers.uuid_factory import (
 __all__ = [
     "Uuid5ClientOrderIDFactory",
     "UuidDailyFeatureOutcomeIDFactory",
+    "UuidDailyFeatureOutcomeLabelIDFactory",
     "UuidDailyFeatureOutcomeObservationRunIDFactory",
     "UuidDailyFeatureOutcomeObservationRunItemIDFactory",
     "UuidDailyFeaturePipelineItemIDFactory",
@@ -39,6 +43,8 @@ __all__ = [
     "UuidOrderIDFactory",
     "UuidPositionEventIDFactory",
     "UuidPositionIDFactory",
+    "UuidProbabilityCalibrationDatasetIDFactory",
+    "UuidProbabilityCalibrationDatasetItemIDFactory",
     "UuidRecommendationIDFactory",
     "UuidTradeIntentIDFactory",
     "UuidUniverseSnapshotIDFactory",

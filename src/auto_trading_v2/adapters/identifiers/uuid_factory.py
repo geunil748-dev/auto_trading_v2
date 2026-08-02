@@ -6,6 +6,7 @@ from uuid import NAMESPACE_URL, uuid5
 from auto_trading_v2.domain.primitives import (
     ClientOrderID,
     DailyFeatureOutcomeID,
+    DailyFeatureOutcomeLabelID,
     DailyFeatureOutcomeObservationRunID,
     DailyFeatureOutcomeObservationRunItemID,
     DailyFeaturePipelineItemID,
@@ -21,6 +22,8 @@ from auto_trading_v2.domain.primitives import (
     OrderID,
     PositionEventID,
     PositionID,
+    ProbabilityCalibrationDatasetID,
+    ProbabilityCalibrationDatasetItemID,
     RecommendationID,
     TradeIntentID,
     UniverseSnapshotID,
@@ -122,6 +125,30 @@ class UuidDailyFeatureOutcomeObservationRunItemIDFactory:
 
     def new(self) -> DailyFeatureOutcomeObservationRunItemID:
         return self.identifier_factory.new(DailyFeatureOutcomeObservationRunItemID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidDailyFeatureOutcomeLabelIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> DailyFeatureOutcomeLabelID:
+        return self.identifier_factory.new(DailyFeatureOutcomeLabelID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidProbabilityCalibrationDatasetIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> ProbabilityCalibrationDatasetID:
+        return self.identifier_factory.new(ProbabilityCalibrationDatasetID)
+
+
+@dataclass(frozen=True, slots=True)
+class UuidProbabilityCalibrationDatasetItemIDFactory:
+    identifier_factory: IdentifierFactory = field(default_factory=IdentifierFactory, repr=False)
+
+    def new(self) -> ProbabilityCalibrationDatasetItemID:
+        return self.identifier_factory.new(ProbabilityCalibrationDatasetItemID)
 
 
 @dataclass(frozen=True, slots=True)

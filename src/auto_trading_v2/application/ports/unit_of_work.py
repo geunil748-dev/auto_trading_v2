@@ -5,6 +5,9 @@ from __future__ import annotations
 from types import TracebackType
 from typing import Protocol, Self
 
+from auto_trading_v2.application.ports.calibration_datasets import (
+    ProbabilityCalibrationDatasetRepository,
+)
 from auto_trading_v2.application.ports.daily_market_bars import DailyMarketBarRepository
 from auto_trading_v2.application.ports.feature_outcomes import (
     DailyFeatureOutcomeObservationRunRepository,
@@ -17,6 +20,7 @@ from auto_trading_v2.application.ports.feature_scoring import (
     DailyFeatureScoringRunRepository,
 )
 from auto_trading_v2.application.ports.feature_snapshots import FeatureSnapshotRepository
+from auto_trading_v2.application.ports.outcome_labels import DailyFeatureOutcomeLabelRepository
 from auto_trading_v2.application.ports.paper_fills import PaperFillRepository
 from auto_trading_v2.application.ports.paper_orders import PaperOrderRepository
 from auto_trading_v2.application.ports.position_projection import (
@@ -42,6 +46,8 @@ class UnitOfWork(Protocol):
     daily_feature_scoring_runs: DailyFeatureScoringRunRepository
     daily_feature_outcomes: DailyFeatureOutcomeRepository
     daily_feature_outcome_observation_runs: DailyFeatureOutcomeObservationRunRepository
+    daily_feature_outcome_labels: DailyFeatureOutcomeLabelRepository
+    probability_calibration_datasets: ProbabilityCalibrationDatasetRepository
     recommendations: RecommendationRepository
     market_snapshots: MarketSnapshotRepository
     candidates: CandidateRepository

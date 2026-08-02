@@ -91,7 +91,7 @@ python scripts/check_persistence.py
 ```
 
 The diagnostic explicitly loads the repository `.env`, requires the database setting source to be
-`dotenv`, verifies the V2 development database, `trading` schema, all 22 canonical tables, and the
+`dotenv`, verifies the V2 development database, `trading` schema, all 25 canonical tables, and the
 Alembic head revision, then closes the connection and disposes the engine. It performs no inserts,
 updates, deletes, migrations, database creation, or schema creation and does not print connection
 details.
@@ -165,6 +165,19 @@ Migration `0009_daily_feature_outcomes` round-trips to `0008` only in guarded te
 It removes and recreates only the three P4B.1 tables while preserving the prior nineteen-table
 catalog signature. Future-bar selection is read-only and Point-in-Time; no provider, DailyMarketBar,
 FeatureSnapshot, scoring, Recommendation, or order write occurs.
+
+P4B.2A adds `DailyFeatureOutcomeLabelRepository` and
+`ProbabilityCalibrationDatasetRepository`, increasing both Unit of Work providers from 17 to 19
+repositories on one caller-owned connection and transaction. SQLAlchemy and DotNet reuse the same
+Core mappings and statements. A separate provider-neutral source reader performs one windowed query
+to choose the latest eligible outcome revision per scoring item with all four as-of cutoffs.
+
+Migration `0010_outcome_labels_calibration_dataset` round-trips to `0009` only in guarded temporary
+databases. It removes and recreates only the three P4B.2A tables while preserving the prior
+twenty-two-table catalog signature. Label creation uses an independent immutable transaction per
+source; the dataset header and all ordered items commit together. Unique races roll back and re-read
+through a fresh Unit of Work; equal digests reuse the winner and different digests raise sanitized
+conflicts.
 
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test
