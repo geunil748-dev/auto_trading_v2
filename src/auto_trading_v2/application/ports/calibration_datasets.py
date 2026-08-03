@@ -7,6 +7,9 @@ from auto_trading_v2.application.contracts.calibration_datasets import (
     CalibrationDatasetSourceRecord,
     NewProbabilityCalibrationDatasetWithItems,
 )
+from auto_trading_v2.application.contracts.training_readiness import (
+    TrainingReadinessLineageRecord,
+)
 from auto_trading_v2.domain.calibration_datasets import (
     CalibrationDatasetPolicyCode,
     CalibrationDatasetPolicyVersion,
@@ -46,3 +49,7 @@ class ProbabilityCalibrationDatasetRepository(Protocol):
     def list_items(
         self, dataset_id: ProbabilityCalibrationDatasetID
     ) -> tuple[ProbabilityCalibrationDatasetItem, ...]: ...
+
+    def list_training_readiness_lineage(
+        self, dataset: ProbabilityCalibrationDataset
+    ) -> tuple[TrainingReadinessLineageRecord, ...]: ...

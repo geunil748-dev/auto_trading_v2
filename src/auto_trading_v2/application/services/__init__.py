@@ -57,6 +57,9 @@ from auto_trading_v2.application.services.trade_intent import (
     CandidateTradeIntentService,
     TradeIntentBatchResult,
 )
+from auto_trading_v2.application.services.training_readiness import (
+    TrainingReadinessAuditService,
+)
 from auto_trading_v2.application.services.twelve_data_daily_features import (
     TwelveDataDailyFeatureService,
 )
@@ -88,6 +91,7 @@ __all__ = [
     "RecommendationCreationService",
     "StrategyDecisionBatchResult",
     "TradeIntentBatchResult",
+    "TrainingReadinessAuditService",
     "TwelveDataDailyMarketBarIngestionService",
     "TwelveDataDailyFeatureService",
     "UsEquityCompletedSessionResolver",

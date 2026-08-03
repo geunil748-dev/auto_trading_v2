@@ -229,6 +229,27 @@ Recommendation, entry/target/stop plan, provider call, TradeIntent, or order. Se
 [outcome labels](docs/outcome-labels.md), [calibration datasets](docs/calibration-datasets.md), and
 [ADR 0012](docs/adr/0012-versioned-labels-calibration-dataset.md).
 
+## Prediction Readiness R1
+
+P4B.2B walk-forward probability calibration is `PAUSED_NOT_ABANDONED` before full integration.
+Its protected worktree is not a base or source for this branch. The final investment
+decision-support goal is unchanged, but model work now follows evidence: executable MVP contract,
+read-only Training Readiness Audit, data-quality correction, calendar/backfill, prospective
+collection, execution-aligned outcomes and cost-adjusted labels, then a simple baseline.
+
+The current positive-close label is `LEGACY_POSITIVE_CLOSE_RESEARCH_LABEL`. It answers only whether
+a future close is above the source close; it is not executable-trade success or Recommendation
+confidence. The current P4A score remains a within-run relative rank, not probability or expected
+return. No recommendation is a valid outcome.
+
+`TrainingReadinessAuditService` reads explicit persisted P4B.2A dataset IDs, never selects a latest
+dataset implicitly, and emits deterministic JSON/Markdown/SHA evidence outside the repository. It
+does not commit, fit a model, call a provider, or create a Recommendation or order. This branch adds
+no migration or table: the canonical count remains 25 and Alembic head remains
+`0010_outcome_labels_calibration_dataset`. See [Prediction MVP v1](docs/prediction-mvp-v1.md),
+[Training Readiness Audit](docs/training-readiness-audit.md), and
+[ADR 0013](docs/adr/0013-prediction-readiness-first-direction.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

@@ -15,12 +15,19 @@ from auto_trading_v2.adapters.persistence.calibration_dataset_mapping import (
     new_probability_calibration_dataset_values,
 )
 from auto_trading_v2.adapters.persistence.errors import translate_persistence_error
+from auto_trading_v2.adapters.persistence.repositories.calibration_dataset_readiness import (
+    map_training_readiness_lineage_record,
+    training_readiness_lineage_statement,
+)
 from auto_trading_v2.adapters.persistence.tables import (
     probability_calibration_dataset_items,
     probability_calibration_datasets,
 )
 from auto_trading_v2.application.contracts.calibration_datasets import (
     NewProbabilityCalibrationDatasetWithItems,
+)
+from auto_trading_v2.application.contracts.training_readiness import (
+    TrainingReadinessLineageRecord,
 )
 from auto_trading_v2.application.errors import PersistenceMappingError
 from auto_trading_v2.domain.calibration_datasets import (
@@ -130,6 +137,26 @@ class SqlAlchemyProbabilityCalibrationDatasetRepository:
             self._mark_failed()
             raise translate_persistence_error(
                 exc, entity="probability_calibration_dataset", operation="select"
+            ) from None
+
+    def list_training_readiness_lineage(
+        self, dataset: ProbabilityCalibrationDataset
+    ) -> tuple[TrainingReadinessLineageRecord, ...]:
+        self._ensure_active()
+        try:
+            rows = (
+                self._connection.execute(training_readiness_lineage_statement(dataset))
+                .mappings()
+                .all()
+            )
+            return tuple(map_training_readiness_lineage_record(row) for row in rows)
+        except PersistenceMappingError:
+            self._mark_failed()
+            raise
+        except SQLAlchemyError as exc:
+            self._mark_failed()
+            raise translate_persistence_error(
+                exc, entity="training_readiness_lineage", operation="select"
             ) from None
 
     def _select_aggregate(

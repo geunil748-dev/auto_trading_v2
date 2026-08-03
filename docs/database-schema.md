@@ -189,6 +189,11 @@ constrained to READY quality. Header status/count constraints distinguish valid 
 `READY` snapshots. Downgrade removes items, datasets, then labels and does not alter the prior 22
 tables.
 
+Prediction Readiness R1 adds no table, column, constraint, index, or migration. It reads the existing
+25-table lineage through the P4B.2A dataset repository. The canonical table count remains 25 and
+Alembic head remains `0010_outcome_labels_calibration_dataset`. A P3 `DATA_INSUFFICIENT` item has no
+FeatureSnapshot by contract, so the audit cannot relabel it as a FeatureSnapshot state.
+
 ## Point-in-Time FeatureSnapshot
 
 `trading.feature_snapshots`는 기존 11개 table과 FK가 없는 독립 aggregate입니다. 최소 column은

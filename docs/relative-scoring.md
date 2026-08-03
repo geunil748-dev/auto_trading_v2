@@ -57,3 +57,6 @@ P4B.2A joins these scores to versioned positive-close labels without changing P4
 present enter `READY_SCORE_POSITIVE_CLOSE_CALIBRATION_DATASET/v1`. DEGRADED outcomes can still have
 labels, but their different component availability keeps them out of the v1 calibration dataset.
 The stored 0-to-100 score remains a relative score, never a probability.
+It is also not expected return, absolute trade quality, a cross-date comparable value, or evidence
+that a trade should be recommended every day. The readiness audit may count it and verify its
+canonical range, but it never converts the score into confidence or probability.
