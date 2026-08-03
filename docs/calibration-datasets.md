@@ -1,7 +1,8 @@
 # Leakage-safe calibration datasets
 
-`READY_SCORE_POSITIVE_CLOSE_CALIBRATION_DATASET/v1` is an immutable input snapshot for future P4B.2B
-calibration. It is not a model or probability artifact. Every dataset contains exactly one horizon
+`READY_SCORE_POSITIVE_CLOSE_CALIBRATION_DATASET/v1` is an immutable legacy research snapshot.
+P4B.2B is paused before full integration, and this dataset is not currently authorized as model
+input. It is not a model or probability artifact. Every dataset contains exactly one horizon
 from 1 through 5 and a timezone-aware UTC `dataset_as_of`.
 
 Eligible items are P4A `SCORED_READY` rows with READY source quality and non-null relative score,
@@ -20,5 +21,10 @@ scoring run ID, rank, MIC, symbol, and outcome ID. Ordinals start at one. Summar
 
 Exact dataset retry performs no source query, label creation, dataset calculation, ID generation,
 insert, or commit. Labels are independent immutable aggregates; the dataset header and items are one
-transaction. P4B.2B may later fit horizon-specific walk-forward sigmoid calibrators from these
-snapshots. P4C remains responsible for Recommendations.
+transaction.
+
+The current label is documented as `LEGACY_POSITIVE_CLOSE_RESEARCH_LABEL`. READY-only filtering may
+exclude every volume-incomplete Twelve Data sample. The Training Readiness Audit therefore measures
+the persisted included population and canonical upstream exclusions before any future calibration
+is reconsidered. It reports unknown lineage as `NOT_DERIVABLE_FROM_CURRENT_SCHEMA`, not zero. See
+[training readiness](training-readiness-audit.md).

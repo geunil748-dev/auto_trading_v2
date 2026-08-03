@@ -179,6 +179,12 @@ source; the dataset header and all ordered items commit together. Unique races r
 through a fresh Unit of Work; equal digests reuse the winner and different digests raise sanitized
 conflicts.
 
+Prediction Readiness R1 adds one read-only lineage method to the existing
+`ProbabilityCalibrationDatasetRepository`; it does not add a repository to either UoW. Both
+providers reuse one Core SELECT and mapping. `TrainingReadinessAuditService` opens a UoW, reads the
+explicit dataset header/items and lineage, never calls `commit()`, and relies on normal-exit
+rollback. Repository count remains 19, table count remains 25, and no migration changes.
+
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test
 administrator remains a separate hardening option. Further ODBC TCP/TLS/trust diagnosis is outside
