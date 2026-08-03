@@ -17,15 +17,20 @@ from auto_trading_v2.application.contracts.twelve_data_ingestion import (
 )
 from auto_trading_v2.application.errors import PersistenceError
 from auto_trading_v2.application.feature_building import (
-    BuildDailyTechnicalFeatureSnapshotCommand,
     DailyTechnicalFeatureSnapshotBuildOutcome,
 )
 from auto_trading_v2.application.ports.batch_budget import DailyMarketDataBatchBudgetPort
 from auto_trading_v2.application.ports.id_factory import (
     DailyFeaturePipelineItemIDFactory,
 )
+from auto_trading_v2.application.services.daily_feature_pipeline_features import (
+    build_pipeline_feature_snapshot,
+)
 from auto_trading_v2.application.services.daily_feature_pipeline_policy import (
     ingestion_item_outcome,
+)
+from auto_trading_v2.application.services.daily_price_technical_feature_snapshot import (
+    DailyPriceTechnicalFeatureSnapshotService,
 )
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
@@ -34,7 +39,10 @@ from auto_trading_v2.application.services.twelve_data_ingestion import (
     TwelveDataDailyMarketBarIngestionService,
 )
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
-from auto_trading_v2.domain.feature_pipeline import DailyFeaturePipelineItemOutcome
+from auto_trading_v2.domain.feature_pipeline import (
+    DailyFeaturePipelineItemOutcome,
+    DailyFeaturePipelinePolicy,
+)
 from auto_trading_v2.domain.feature_snapshots import FeatureQualityStatus
 from auto_trading_v2.domain.primitives import DailyFeaturePipelineRunID, FeatureSnapshotID
 from auto_trading_v2.domain.universes import UniverseMember
@@ -55,6 +63,8 @@ class SequentialDailyFeaturePipelineExecutor:
     clock: Clock
     item_id_factory: DailyFeaturePipelineItemIDFactory
     transient_failure_limit: int
+    policy: DailyFeaturePipelinePolicy
+    price_feature_service: DailyPriceTechnicalFeatureSnapshotService | None = None
 
     def execute(
         self,
@@ -158,13 +168,12 @@ class SequentialDailyFeaturePipelineExecutor:
                 continue
             transient_failures = 0
             try:
-                built = self.feature_service.build(
-                    BuildDailyTechnicalFeatureSnapshotCommand(
-                        source_code=command.provider_code,
-                        symbol=entry.member.symbol,
-                        as_of=command.as_of,
-                        horizon=command.horizon,
-                    )
+                built = build_pipeline_feature_snapshot(
+                    entry.member,
+                    command,
+                    self.policy,
+                    self.feature_service,
+                    self.price_feature_service,
                 )
             except PersistenceError:
                 fatal = True

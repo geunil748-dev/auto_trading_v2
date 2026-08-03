@@ -30,6 +30,9 @@ from auto_trading_v2.application.services.daily_market_bar import (
 from auto_trading_v2.application.services.daily_market_bar_calendar import (
     DailyMarketBarCalendarValidator,
 )
+from auto_trading_v2.application.services.daily_price_technical_feature_snapshot import (
+    DailyPriceTechnicalFeatureSnapshotService,
+)
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
 )
@@ -63,6 +66,9 @@ from auto_trading_v2.application.services.training_readiness import (
 from auto_trading_v2.application.services.twelve_data_daily_features import (
     TwelveDataDailyFeatureService,
 )
+from auto_trading_v2.application.services.twelve_data_daily_price_features import (
+    TwelveDataDailyPriceFeatureService,
+)
 from auto_trading_v2.application.services.twelve_data_ingestion import (
     TwelveDataDailyMarketBarIngestionService,
 )
@@ -78,6 +84,7 @@ __all__ = [
     "CompletedDailyBarsRequestFactory",
     "DailyMarketBarCalendarValidator",
     "DailyMarketBarCreationService",
+    "DailyPriceTechnicalFeatureSnapshotService",
     "DailyFeaturePipelineService",
     "DailyFeatureScoringService",
     "DailyFeatureOutcomeObservationService",
@@ -94,6 +101,7 @@ __all__ = [
     "TrainingReadinessAuditService",
     "TwelveDataDailyMarketBarIngestionService",
     "TwelveDataDailyFeatureService",
+    "TwelveDataDailyPriceFeatureService",
     "UsEquityCompletedSessionResolver",
     "UniverseSnapshotCreationService",
 ]

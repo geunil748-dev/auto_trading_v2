@@ -51,6 +51,22 @@ The payload also contains `adjustment_basis = "SPLIT_ADJUSTED"` and
 
 DEGRADED retains all price features and stores all three volume features as null.
 
+## Explicit price-only v2 contract
+
+`US_EQUITY_DAILY_TECHNICAL/v2` uses the same 21-bar PIT selection, provenance, local Decimal
+context, metadata, and 14 price formulas listed above. It contains exactly those 14 numeric keys
+plus `adjustment_basis = "SPLIT_ADJUSTED"` and `completed_bar_count = 21`. The keys
+`volume_ratio_5_to_20`, `latest_volume_to_avg20`, and `average_dollar_volume_20` do not exist in the
+v2 payload; absence is canonical and they are not stored as null.
+
+Null, zero, and complete volume are ignored by v2, so complete prices yield `READY` with no quality
+reason. Fewer than 21 bars still yield `DATA_INSUFFICIENT` without an ID, write, or commit. v1 is
+unchanged and remains the default; callers use `BuildDailyPriceTechnicalFeatureSnapshotCommand`
+and `DailyPriceTechnicalFeatureSnapshotService` to select v2 explicitly.
+
+v2 `READY` is not a model, probability, profitable-trade claim, or Recommendation. Price-only and
+volume-enhanced models may be compared only in later reviewed work.
+
 ## Orchestration and provenance
 
 The pure builder has no Repository, Unit of Work, DB, Clock, UUID, config, network, Recommendation,
@@ -78,3 +94,7 @@ initial split-adjusted volume policy, 21 sessions produce
 `volume_ratio_5_to_20`, `latest_volume_to_avg20`, and `average_dollar_volume_20` are null.
 Allowed build outcomes remain `CREATED`, `ALREADY_EXISTS`, and `DATA_INSUFFICIENT`; no path creates
 a Recommendation, TradeIntent, broker request, or order.
+
+`TwelveDataDailyPriceFeatureService` is the separate explicit v2 boundary. It uses the same single
+provider and immutable bars without fallback or synthesized volume; 21 complete-price/null-volume
+bars produce a v2 `READY` snapshot.

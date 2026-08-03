@@ -90,8 +90,11 @@ def training_readiness_lineage_statement(
             scoring_item.c.outcome.label("scoring_outcome"),
             scoring_item.c.source_quality_status,
             pipeline_item.c.outcome.label("pipeline_outcome"),
+            snapshot.c.feature_set_code,
+            snapshot.c.feature_set_version,
             snapshot.c.quality_status.label("feature_quality_status"),
             snapshot.c.quality_reason_codes,
+            snapshot.c.feature_values,
             scoring_item.c.overall_relative_score,
             scoring_item.c.rank.label("source_rank"),
             _flag(base_outcome).label("has_any_outcome"),
@@ -161,8 +164,11 @@ def map_training_readiness_lineage_record(
             scoring_outcome=_string(row["scoring_outcome"]),
             source_quality_status=_optional_string(row["source_quality_status"]),
             pipeline_outcome=_string(row["pipeline_outcome"]),
+            feature_set_code=_optional_string(row["feature_set_code"]),
+            feature_set_version=_optional_string(row["feature_set_version"]),
             feature_quality_status=_optional_string(row["feature_quality_status"]),
             quality_reason_codes=_quality_reasons(row["quality_reason_codes"]),
+            feature_values=_feature_values(row["feature_values"]),
             overall_relative_score=_optional_decimal(row["overall_relative_score"]),
             source_rank=_optional_int(row["source_rank"]),
             has_any_outcome=_boolean(row["has_any_outcome"]),
@@ -191,6 +197,15 @@ def _quality_reasons(value: object) -> tuple[str, ...]:
     if not isinstance(decoded, list) or any(not isinstance(item, str) for item in decoded):
         raise TypeError
     return tuple(decoded)
+
+
+def _feature_values(value: object) -> dict[str, object] | None:
+    if value is None:
+        return None
+    decoded = json.loads(_string(value))
+    if not isinstance(decoded, dict) or any(not isinstance(key, str) for key in decoded):
+        raise TypeError
+    return decoded
 
 
 def _uuid(value: object) -> UUID:

@@ -13,11 +13,13 @@ from auto_trading_v2.application.contracts.daily_market_bars import (
     NewDailyMarketBar,
 )
 from auto_trading_v2.application.feature_building import (
+    BuildDailyPriceTechnicalFeatureSnapshotCommand,
     BuildDailyTechnicalFeatureSnapshotCommand,
 )
 from auto_trading_v2.application.ports.unit_of_work import UnitOfWorkFactory
 from auto_trading_v2.application.services import (
     DailyMarketBarCreationService,
+    DailyPriceTechnicalFeatureSnapshotService,
     DailyTechnicalFeatureSnapshotService,
     FeatureSnapshotCreationService,
 )
@@ -121,6 +123,18 @@ def build_command(case: int, as_of: datetime) -> BuildDailyTechnicalFeatureSnaps
     )
 
 
+def price_build_command(
+    case: int,
+    as_of: datetime,
+) -> BuildDailyPriceTechnicalFeatureSnapshotCommand:
+    return BuildDailyPriceTechnicalFeatureSnapshotCommand(
+        source_code=f"P2_SOURCE_{case}",
+        symbol=Symbol("AAPL"),
+        as_of=as_of,
+        horizon=TradingDayHorizon(3),
+    )
+
+
 def feature_service(
     unit_of_work_factory: UnitOfWorkFactory,
     as_of: datetime,
@@ -133,6 +147,20 @@ def feature_service(
         UuidFeatureSnapshotIDFactory(identifiers),
     )
     return DailyTechnicalFeatureSnapshotService(unit_of_work_factory, creation)
+
+
+def price_feature_service(
+    unit_of_work_factory: UnitOfWorkFactory,
+    as_of: datetime,
+    identifier: int,
+) -> DailyPriceTechnicalFeatureSnapshotService:
+    identifiers = IdentifierFactory(lambda: UUID(int=identifier))
+    creation = FeatureSnapshotCreationService(
+        unit_of_work_factory,
+        FixedClock(as_of + timedelta(seconds=1)),
+        UuidFeatureSnapshotIDFactory(identifiers),
+    )
+    return DailyPriceTechnicalFeatureSnapshotService(unit_of_work_factory, creation)
 
 
 def revised(

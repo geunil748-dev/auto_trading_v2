@@ -14,6 +14,8 @@ from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBas
 from auto_trading_v2.domain.feature_snapshots import (
     FeatureQualityStatus,
     TradingDayHorizon,
+    feature_content_digest,
+    feature_snapshot_key,
 )
 from auto_trading_v2.domain.primitives import Symbol
 from tests.unit.domain.daily_market_bars.helpers import BASE_TIME, stored_bar
@@ -169,3 +171,15 @@ def test_builder_does_not_change_process_global_decimal_context() -> None:
     assert after.rounding == before.rounding
     assert after.traps == before.traps
     assert after.flags == before.flags
+
+
+def test_v1_semantic_key_and_content_digest_regression_fixture_is_unchanged() -> None:
+    snapshot = _build([stored_bar(index) for index in range(21)]).snapshot_input
+
+    assert snapshot is not None
+    assert feature_snapshot_key(snapshot) == (
+        "feature-snapshot:v1:e71831fdd8f47692183dc623651999be70458e4d19fe50415af2d4118f5e60d0"
+    )
+    assert feature_content_digest(snapshot) == (
+        "fccd188eb3200bc40113f77f0056d8b78335653ca02af769df507e3dbd94155a"
+    )

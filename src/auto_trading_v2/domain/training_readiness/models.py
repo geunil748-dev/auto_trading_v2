@@ -85,6 +85,11 @@ class UpstreamQualityFacts:
     source_feature_snapshot_degraded_count: int
     source_feature_snapshot_data_insufficient_count: DerivableCount
     volume_data_incomplete_count: int
+    price_feature_complete_count: DerivableCount
+    volume_only_degraded_count: DerivableCount
+    price_only_v2_eligible_count: DerivableCount
+    price_only_v2_ineligible_count: DerivableCount
+    price_only_v2_ineligibility_reason_counts: tuple[NamedCount, ...]
     missing_outcome_count: int
     missing_as_of_eligible_outcome_count: int
     missing_label_count: int
@@ -109,7 +114,7 @@ class ProviderQualityDistribution:
 @dataclass(frozen=True, slots=True)
 class DataQualityDecisionEvidence:
     volume_only_excluded: PercentageFact
-    price_only_eligibility: str
+    price_only_eligibility: PercentageFact
     complete_volume: PercentageFact
     provider_quality_distribution: tuple[ProviderQualityDistribution, ...]
     horizon_included_count: int
@@ -118,6 +123,10 @@ class DataQualityDecisionEvidence:
     source_session_count_after_ready_filter: int
     symbol_count_before_ready_filter: int
     symbol_count_after_ready_filter: int
+    price_only_source_session_count_before_eligibility: int
+    price_only_source_session_count_after_eligibility: DerivableCount
+    price_only_symbol_count_before_eligibility: int
+    price_only_symbol_count_after_eligibility: DerivableCount
 
 
 @dataclass(frozen=True, slots=True)

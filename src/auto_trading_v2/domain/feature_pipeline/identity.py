@@ -27,10 +27,43 @@ PIPELINE_CODE = "US_EQUITY_DAILY_FEATURE_BATCH"
 PIPELINE_VERSION = "v1"
 FEATURE_SET_CODE = "US_EQUITY_DAILY_TECHNICAL"
 FEATURE_SET_VERSION = "v1"
+PIPELINE_VERSION_V2 = "v2"
+FEATURE_SET_VERSION_V2 = "v2"
 MIN_REQUESTED_SESSIONS = 21
 DEFAULT_REQUESTED_SESSIONS = 30
 TRANSIENT_FAILURE_LIMIT = 3
 _CODE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
+
+
+@dataclass(frozen=True, slots=True)
+class DailyFeaturePipelinePolicy:
+    pipeline_code: str
+    pipeline_version: str
+    feature_set_code: str
+    feature_set_version: str
+
+    def __post_init__(self) -> None:
+        if (
+            self.pipeline_code,
+            self.pipeline_version,
+            self.feature_set_code,
+            self.feature_set_version,
+        ) not in _SUPPORTED_CONTRACTS:
+            _invalid("PIPELINE_CONTRACT_VERSION_INVALID")
+
+
+_SUPPORTED_CONTRACTS = frozenset(
+    {
+        (PIPELINE_CODE, PIPELINE_VERSION, FEATURE_SET_CODE, FEATURE_SET_VERSION),
+        (PIPELINE_CODE, PIPELINE_VERSION_V2, FEATURE_SET_CODE, FEATURE_SET_VERSION_V2),
+    }
+)
+DAILY_FEATURE_PIPELINE_POLICY_V1 = DailyFeaturePipelinePolicy(
+    PIPELINE_CODE, PIPELINE_VERSION, FEATURE_SET_CODE, FEATURE_SET_VERSION
+)
+DAILY_FEATURE_PIPELINE_POLICY_V2 = DailyFeaturePipelinePolicy(
+    PIPELINE_CODE, PIPELINE_VERSION_V2, FEATURE_SET_CODE, FEATURE_SET_VERSION_V2
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,11 +119,11 @@ class DailyFeaturePipelineIdentity:
         ):
             _invalid("PIPELINE_REQUESTED_SESSIONS_INVALID")
         if (
-            self.pipeline_code != PIPELINE_CODE
-            or self.pipeline_version != PIPELINE_VERSION
-            or self.feature_set_code != FEATURE_SET_CODE
-            or self.feature_set_version != FEATURE_SET_VERSION
-        ):
+            self.pipeline_code,
+            self.pipeline_version,
+            self.feature_set_code,
+            self.feature_set_version,
+        ) not in _SUPPORTED_CONTRACTS:
             _invalid("PIPELINE_CONTRACT_VERSION_INVALID")
         try:
             as_of = normalize_utc(self.as_of)

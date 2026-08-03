@@ -43,6 +43,9 @@ from auto_trading_v2.application.services.daily_feature_pipeline_policy import (
     assess_budget,
     completed_run_status,
 )
+from auto_trading_v2.application.services.daily_price_technical_feature_snapshot import (
+    DailyPriceTechnicalFeatureSnapshotService,
+)
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
 )
@@ -51,6 +54,8 @@ from auto_trading_v2.application.services.twelve_data_ingestion import (
 )
 from auto_trading_v2.domain.daily_market_bars import DailyMarketBarAdjustmentBasis
 from auto_trading_v2.domain.feature_pipeline import (
+    DAILY_FEATURE_PIPELINE_POLICY_V1,
+    DAILY_FEATURE_PIPELINE_POLICY_V2,
     TRANSIENT_FAILURE_LIMIT,
     DailyFeaturePipelineIdentity,
     DailyFeaturePipelineItemOutcome,
@@ -72,6 +77,7 @@ class DailyFeaturePipelineService:
     run_id_factory: DailyFeaturePipelineRunIDFactory
     item_id_factory: DailyFeaturePipelineItemIDFactory
     transient_failure_limit: int = field(default=TRANSIENT_FAILURE_LIMIT)
+    price_feature_service: DailyPriceTechnicalFeatureSnapshotService | None = None
 
     def run(
         self,
@@ -89,7 +95,7 @@ class DailyFeaturePipelineService:
                 existing,
             )
         run_id = self.run_id_factory.new()
-        executor = self._executor()
+        executor = self._executor(command)
         started = self.clock.now_utc()
         calendar_outcomes = tuple(entry.result.outcome for entry in prepared)
         if all(
@@ -240,12 +246,21 @@ class DailyFeaturePipelineService:
             requested_session_count=command.requested_session_count,
             as_of=command.as_of,
             completion_grace=command.completion_grace,
+            pipeline_code=command.policy.pipeline_code,
+            pipeline_version=command.policy.pipeline_version,
+            feature_set_code=command.policy.feature_set_code,
+            feature_set_version=command.policy.feature_set_version,
         )
 
     def _provider_preflight_reason(
         self,
         command: RunDailyFeaturePipelineCommand,
     ) -> str | None:
+        if command.policy == DAILY_FEATURE_PIPELINE_POLICY_V2:
+            if self.price_feature_service is None:
+                return "FEATURE_POLICY_SERVICE_UNAVAILABLE"
+        elif command.policy != DAILY_FEATURE_PIPELINE_POLICY_V1:
+            return "FEATURE_POLICY_UNSUPPORTED"
         maximum = self.budget.maximum_rows_per_request
         if (
             command.provider_code != self.budget.provider_code
@@ -262,7 +277,10 @@ class DailyFeaturePipelineService:
             return "PROVIDER_CAPABILITY_UNSUPPORTED"
         return None
 
-    def _executor(self) -> SequentialDailyFeaturePipelineExecutor:
+    def _executor(
+        self,
+        command: RunDailyFeaturePipelineCommand,
+    ) -> SequentialDailyFeaturePipelineExecutor:
         return SequentialDailyFeaturePipelineExecutor(
             self.budget,
             self.ingestion_service,
@@ -270,6 +288,8 @@ class DailyFeaturePipelineService:
             self.clock,
             self.item_id_factory,
             self.transient_failure_limit,
+            command.policy,
+            self.price_feature_service,
         )
 
     def _store(self) -> DailyFeaturePipelineRunStore:

@@ -40,6 +40,12 @@ Accordingly, canonical split-adjusted volume is always `None`. A 21-session tech
 `DEGRADED / VOLUME_DATA_INCOMPLETE`: all 14 price features are present and all three volume
 features are null.
 
+The separate explicit `TwelveDataDailyPriceFeatureService` targets
+`US_EQUITY_DAILY_TECHNICAL/v2`. The same 21 complete split-adjusted prices with null canonical
+volume produce `READY`; the v2 payload omits all three volume keys. v1 behavior remains unchanged.
+Neither boundary synthesizes volume, blends providers, creates a Recommendation, or places an
+order. v2 `READY` is feature completeness, not probability or a profitable-trade claim.
+
 `adjust=none` maps to `RAW`. RAW bars can be ingested and retained as independent facts but cannot
 enter `US_EQUITY_DAILY_TECHNICAL/v1`.
 

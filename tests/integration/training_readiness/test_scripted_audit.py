@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from sqlalchemy import Connection, Engine, func, select, text
@@ -18,8 +19,10 @@ from auto_trading_v2.application.contracts.training_readiness import (
 from auto_trading_v2.application.services.training_readiness import (
     TrainingReadinessAuditService,
 )
+from auto_trading_v2.application.services.training_readiness_report import (
+    write_training_readiness_reports,
+)
 from auto_trading_v2.domain.training_readiness import (
-    COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE,
     NOT_DERIVABLE_FROM_CURRENT_SCHEMA,
     LegacyCalibrationReadiness,
     MvpTradeModelReadiness,
@@ -39,6 +42,7 @@ AUDIT_GENERATED_AT = datetime(2026, 8, 3, 2, tzinfo=UTC)
 def test_read_only_training_readiness_audit_and_cross_provider_parity(
     sqlalchemy_uow_factory: SqlAlchemyUnitOfWorkFactory,
     dotnet_uow_factory: DotNetUnitOfWorkFactory,
+    tmp_path: Path,
 ) -> None:
     datasets = seed_synthetic_readiness_data(sqlalchemy_uow_factory.engine)
     persist_datasets(sqlalchemy_uow_factory, datasets)
@@ -62,6 +66,14 @@ def test_read_only_training_readiness_audit_and_cross_provider_parity(
     ).run_batch(command)
 
     assert sqlalchemy_result == dotnet_result
+    first_paths = write_training_readiness_reports(sqlalchemy_result, tmp_path / "first")
+    second_paths = write_training_readiness_reports(dotnet_result, tmp_path / "second")
+    assert first_paths.json_path.read_bytes() == second_paths.json_path.read_bytes()
+    assert first_paths.markdown_path.read_bytes() == second_paths.markdown_path.read_bytes()
+    assert (
+        first_paths.sha256_path.read_text(encoding="utf-8").split()[0]
+        == (second_paths.sha256_path.read_text(encoding="utf-8").split()[0])
+    )
     audits = {
         audit.dataset_identity.probability_calibration_dataset_id: audit
         for audit in sqlalchemy_result.audits
@@ -129,7 +141,19 @@ def _assert_ready_dataset(audit: object) -> None:
         7,
         5,
     )
-    assert decision.price_only_eligibility == (COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE)
+    assert upstream.price_feature_complete_count == 402
+    assert upstream.volume_only_degraded_count == 1
+    assert upstream.price_only_v2_eligible_count == 402
+    assert upstream.price_only_v2_ineligible_count == 0
+    assert decision.price_only_eligibility.percentage == "100.000000"
+    assert (
+        decision.price_only_source_session_count_before_eligibility,
+        decision.price_only_source_session_count_after_eligibility,
+    ) == (82, 82)
+    assert (
+        decision.price_only_symbol_count_before_eligibility,
+        decision.price_only_symbol_count_after_eligibility,
+    ) == (7, 7)
 
 
 def _assert_replay_only_dataset(audit: object) -> None:
@@ -150,6 +174,9 @@ def _assert_empty_dataset(audit: object) -> None:
         LegacyCalibrationReadiness.DATA_INSUFFICIENT
     )
     assert audit.data_quality_decision_evidence.volume_only_excluded.status is (  # type: ignore[attr-defined]
+        PercentageStatus.ZERO_DENOMINATOR
+    )
+    assert audit.data_quality_decision_evidence.price_only_eligibility.status is (  # type: ignore[attr-defined]
         PercentageStatus.ZERO_DENOMINATOR
     )
 

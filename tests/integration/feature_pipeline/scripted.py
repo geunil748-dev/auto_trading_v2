@@ -63,6 +63,7 @@ class ScriptedMultiSymbolProvider:
     budget: ScriptedBatchBudget
     calendar: StaticOfficialUsEquityCalendar2026
     calls: list[str] = field(default_factory=list)
+    complete_price_mode: bool = False
     capabilities: DailyMarketDataProviderCapabilities = field(
         default_factory=lambda: DailyMarketDataProviderCapabilities(
             provider_code=TWELVE_DATA_SOURCE_CODE,
@@ -83,14 +84,14 @@ class ScriptedMultiSymbolProvider:
     ) -> tuple[DailyMarketBarInput, ...]:
         self.calls.append(request.symbol.value)
         self.budget.consumed += 1
-        if request.symbol.value == "NVDA":
+        if request.symbol.value == "NVDA" and not self.complete_price_mode:
             raise TwelveDataProviderError(TwelveDataErrorCategory.INSTRUMENT_NOT_FOUND)
         assert request.source_code == TWELVE_DATA_SOURCE_CODE
         assert request.adjustment_basis is DailyMarketBarAdjustmentBasis.SPLIT_ADJUSTED
         assert request.mic_code == "XNGS"
         cutoff = request.completed_through_session_date
         assert cutoff is not None
-        count = 21 if request.symbol.value == "AAPL" else 10
+        count = 21 if self.complete_price_mode or request.symbol.value == "AAPL" else 10
         sessions = tuple(
             session
             for session in self.calendar.sessions("XNGS")

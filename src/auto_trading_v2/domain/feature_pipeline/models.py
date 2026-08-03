@@ -217,7 +217,7 @@ def daily_feature_pipeline_content_digest(
     run: DailyFeaturePipelineRun,
     items: tuple[DailyFeaturePipelineItem, ...],
 ) -> str:
-    payload = {
+    payload: dict[str, object] = {
         "calendar_code": run.identity.calendar_code.value,
         "calendar_version": run.identity.calendar_version.value,
         "completed_session_date": None
@@ -239,6 +239,13 @@ def daily_feature_pipeline_content_digest(
         "provider_request_count": sum(item.provider_request_count for item in items),
         "status": run.status.value,
     }
+    if run.identity.pipeline_version != "v1":
+        payload["policy"] = {
+            "feature_set_code": run.identity.feature_set_code,
+            "feature_set_version": run.identity.feature_set_version,
+            "pipeline_code": run.identity.pipeline_code,
+            "pipeline_version": run.identity.pipeline_version,
+        }
     return pipeline_content_digest(payload)
 
 

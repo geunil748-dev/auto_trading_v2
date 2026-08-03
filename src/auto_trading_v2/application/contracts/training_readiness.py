@@ -1,5 +1,6 @@
 """Explicit commands and read-only lineage rows for training-readiness audits."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -51,8 +52,11 @@ class TrainingReadinessLineageRecord:
     scoring_outcome: str
     source_quality_status: str | None
     pipeline_outcome: str
+    feature_set_code: str | None
+    feature_set_version: str | None
     feature_quality_status: str | None
     quality_reason_codes: tuple[str, ...]
+    feature_values: Mapping[str, object] | None
     overall_relative_score: Decimal | None
     source_rank: int | None
     has_any_outcome: bool
