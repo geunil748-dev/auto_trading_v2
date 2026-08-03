@@ -1,7 +1,9 @@
-from sqlalchemy import CheckConstraint, UniqueConstraint
+from sqlalchemy import CheckConstraint, ForeignKeyConstraint, UniqueConstraint
 
 from auto_trading_v2.adapters.persistence.tables import (
     candidates,
+    daily_market_bars,
+    feature_snapshots,
     filter_evaluations,
     paper_orders,
     paper_positions,
@@ -41,12 +43,34 @@ def test_required_semantic_unique_constraints_are_present() -> None:
     assert ("decision_id",) in _constraint_columns(trade_intents, UniqueConstraint)
     assert ("trade_intent_id",) in _constraint_columns(paper_orders, UniqueConstraint)
     assert ("client_order_id",) in _constraint_columns(paper_orders, UniqueConstraint)
+    assert ("snapshot_key",) in _constraint_columns(feature_snapshots, UniqueConstraint)
+    assert (
+        "symbol",
+        "feature_set_code",
+        "feature_set_version",
+        "horizon_trading_days",
+        "as_of",
+    ) in _constraint_columns(feature_snapshots, UniqueConstraint)
+    assert ("bar_key",) in _constraint_columns(daily_market_bars, UniqueConstraint)
+    assert (
+        "source_code",
+        "source_record_key",
+        "source_version",
+    ) in _constraint_columns(daily_market_bars, UniqueConstraint)
+    assert (
+        "source_code",
+        "symbol",
+        "adjustment_basis",
+        "session_date",
+        "available_at",
+    ) in _constraint_columns(daily_market_bars, UniqueConstraint)
 
 
 def test_filtered_unique_indexes_are_explicit_mssql_contracts() -> None:
     expected = {
         "ix_paper_positions_open_unique": "status = 'OPEN'",
         "ix_strategy_decisions_candidate_unique": "candidate_id IS NOT NULL",
+        "ix_strategy_decisions_position_snapshot_unique": "position_id IS NOT NULL",
         "ix_paper_orders_broker_ref_unique": "broker_order_ref IS NOT NULL",
     }
     indexes = {
@@ -57,6 +81,33 @@ def test_filtered_unique_indexes_are_explicit_mssql_contracts() -> None:
     }
 
     assert indexes == expected
+
+
+def test_position_decision_snapshot_fk_and_indexes_are_canonical() -> None:
+    foreign_keys = {
+        constraint.name: tuple(column.name for column in constraint.columns)
+        for constraint in strategy_decisions.constraints
+        if isinstance(constraint, ForeignKeyConstraint)
+    }
+    indexes = {
+        index.name: tuple(column.name for column in index.columns)
+        for index in strategy_decisions.indexes
+    }
+
+    assert foreign_keys["fk_strategy_decisions_market_snapshot_id_market_snapshots"] == (
+        "market_snapshot_id",
+    )
+    assert foreign_keys["fk_strategy_decisions_position_version_position_events"] == (
+        "position_id",
+        "position_version",
+    )
+    assert indexes["ix_strategy_decisions_market_snapshot"] == ("market_snapshot_id",)
+    assert indexes["ix_strategy_decisions_position_decided"] == ("position_id", "decided_at")
+    assert indexes["ix_strategy_decisions_position_version"] == (
+        "position_id",
+        "position_version",
+    )
+    assert "ix_strategy_decisions_position" not in indexes
 
 
 def test_symbol_check_matches_domain_allowed_character_policy() -> None:
@@ -89,10 +140,78 @@ def test_json_shape_checks_and_state_checks_are_present() -> None:
             for constraint in table.constraints
             if isinstance(constraint, CheckConstraint)
         )
-        for table in (filter_evaluations, strategy_decisions, paper_positions, paper_orders)
+        for table in (
+            filter_evaluations,
+            feature_snapshots,
+            strategy_decisions,
+            paper_positions,
+            paper_orders,
+        )
     }
 
     assert "ISJSON(details) = 1" in check_sql["filter_evaluations"]
     assert "ISJSON(reason_codes) = 1" in check_sql["strategy_decisions"]
+    assert "ISJSON(feature_values) = 1" in check_sql["feature_snapshots"]
+    assert "ISJSON(provenance) = 1" in check_sql["feature_snapshots"]
+    assert "horizon_trading_days BETWEEN 1 AND 5" in check_sql["feature_snapshots"]
+    assert "generated_at >= as_of" in check_sql["feature_snapshots"]
+    assert "latest_input_available_at <= as_of" in check_sql["feature_snapshots"]
+    assert "candidate_id IS NULL OR market_snapshot_id IS NULL" in check_sql["strategy_decisions"]
+    assert (
+        "position_id IS NULL OR market_snapshot_id IS NOT NULL" in check_sql["strategy_decisions"]
+    )
+    assert "candidate_id IS NULL OR position_version IS NULL" in check_sql["strategy_decisions"]
+    assert "position_id IS NULL OR position_version IS NOT NULL" in check_sql["strategy_decisions"]
+    assert "position_version IS NULL OR position_version > 0" in check_sql["strategy_decisions"]
     assert "status = 'OPEN'" in check_sql["paper_positions"]
     assert "PARTIALLY_FILLED" in check_sql["paper_orders"]
+
+
+def test_feature_snapshot_indexes_are_exact_and_content_digest_is_not_unique() -> None:
+    indexes = {
+        index.name: (
+            tuple(column.name for column in index.columns),
+            index.unique,
+        )
+        for index in feature_snapshots.indexes
+    }
+
+    assert indexes == {
+        "ix_feature_snapshots_content_digest": (("content_digest",), False),
+        "ix_feature_snapshots_quality_as_of": (("quality_status", "as_of"), False),
+        "ix_feature_snapshots_set_as_of": (
+            ("feature_set_code", "feature_set_version", "as_of"),
+            False,
+        ),
+        "ix_feature_snapshots_symbol_as_of": (("symbol", "as_of"), False),
+    }
+
+
+def test_daily_market_bar_checks_and_indexes_are_exact() -> None:
+    checks = " ".join(
+        str(constraint.sqltext)
+        for constraint in daily_market_bars.constraints
+        if isinstance(constraint, CheckConstraint)
+    )
+    indexes = {
+        index.name: (tuple(column.name for column in index.columns), index.unique)
+        for index in daily_market_bars.indexes
+    }
+
+    assert "currency = 'USD'" in checks
+    assert "observed_at <= available_at" in checks
+    assert "SPLIT_ADJUSTED" in checks
+    assert "high_price >= close_price" in checks
+    assert "volume IS NULL OR volume >= 0" in checks
+    assert indexes == {
+        "ix_daily_market_bars_available": (("available_at",), False),
+        "ix_daily_market_bars_source_symbol_available": (
+            ("source_code", "symbol", "available_at"),
+            False,
+        ),
+        "ix_daily_market_bars_source_symbol_basis_session": (
+            ("source_code", "symbol", "adjustment_basis", "session_date"),
+            False,
+        ),
+        "ix_daily_market_bars_symbol_session": (("symbol", "session_date"), False),
+    }

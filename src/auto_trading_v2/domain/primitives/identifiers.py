@@ -63,6 +63,90 @@ class MarketSnapshotID(_UUIDIdentifier):
     __slots__ = ()
 
 
+class DailyMarketBarID(_UUIDIdentifier):
+    """Identifier for a canonical completed daily market bar."""
+
+    __slots__ = ()
+
+
+class FeatureSnapshotID(_UUIDIdentifier):
+    """Identifier for a canonical Point-in-Time feature bundle."""
+
+    __slots__ = ()
+
+
+class UniverseSnapshotID(_UUIDIdentifier):
+    """Identifier for an immutable caller-provided universe snapshot."""
+
+    __slots__ = ()
+
+
+class DailyFeaturePipelineRunID(_UUIDIdentifier):
+    """Identifier for one immutable daily feature pipeline run."""
+
+    __slots__ = ()
+
+
+class DailyFeaturePipelineItemID(_UUIDIdentifier):
+    """Identifier for one symbol result within a pipeline run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureScoringRunID(_UUIDIdentifier):
+    """Identifier for one immutable relative-scoring run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureScoringItemID(_UUIDIdentifier):
+    """Identifier for one audited item within a relative-scoring run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeID(_UUIDIdentifier):
+    """Identifier for one immutable forward-outcome revision."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeObservationRunID(_UUIDIdentifier):
+    """Identifier for one immutable outcome-observation run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeObservationRunItemID(_UUIDIdentifier):
+    """Identifier for one audited item within an observation run."""
+
+    __slots__ = ()
+
+
+class DailyFeatureOutcomeLabelID(_UUIDIdentifier):
+    """Identifier for one immutable versioned outcome label."""
+
+    __slots__ = ()
+
+
+class ProbabilityCalibrationDatasetID(_UUIDIdentifier):
+    """Identifier for one immutable calibration dataset snapshot."""
+
+    __slots__ = ()
+
+
+class ProbabilityCalibrationDatasetItemID(_UUIDIdentifier):
+    """Identifier for one item in a calibration dataset snapshot."""
+
+    __slots__ = ()
+
+
+class RecommendationID(_UUIDIdentifier):
+    """Identifier for a canonical user-facing recommendation."""
+
+    __slots__ = ()
+
+
 class FilterEvaluationID(_UUIDIdentifier):
     """Identifier for a canonical filter evaluation."""
 
@@ -76,7 +160,7 @@ class DecisionID(_UUIDIdentifier):
 
 
 class TradeIntentID(_UUIDIdentifier):
-    """Identifier reserved for a future trade intent."""
+    """Identifier for a canonical trade intent."""
 
     __slots__ = ()
 
@@ -88,19 +172,19 @@ class ClientOrderID(_UUIDIdentifier):
 
 
 class OrderID(_UUIDIdentifier):
-    """Identifier reserved for a future order."""
+    """Identifier for a canonical paper order."""
 
     __slots__ = ()
 
 
 class FillID(_UUIDIdentifier):
-    """Identifier reserved for a future fill."""
+    """Identifier for a canonical paper fill."""
 
     __slots__ = ()
 
 
 class PositionID(_UUIDIdentifier):
-    """Identifier reserved for a future position."""
+    """Identifier for a canonical PaperPosition."""
 
     __slots__ = ()
 

@@ -1,0 +1,296 @@
+"""Credential- and payload-safe persistence exception hierarchy."""
+
+from __future__ import annotations
+
+import re
+
+from auto_trading_v2.application.paper_fill_errors import (
+    InvalidPaperFillHistoryError as InvalidPaperFillHistoryError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperFillConflictError as PaperFillConflictError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperFillSourceError as PaperFillSourceError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderConcurrencyError as PaperOrderConcurrencyError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderNotFillableError as PaperOrderNotFillableError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    PaperOrderNotFoundError as PaperOrderNotFoundError,
+)
+from auto_trading_v2.application.paper_fill_errors import (
+    UnsupportedPaperOrderBrokerError as UnsupportedPaperOrderBrokerError,
+)
+from auto_trading_v2.domain.filtering.models import FilterSetName
+from auto_trading_v2.domain.primitives import (
+    CandidateID,
+    MarketSnapshotID,
+    TradeIntentID,
+)
+from auto_trading_v2.domain.strategy_decisions.models import StrategyName
+
+_SAFE_LABEL = re.compile(r"^[A-Za-z0-9_]{1,128}$")
+
+
+def _safe_label(value: str, fallback: str) -> str:
+    return value if isinstance(value, str) and _SAFE_LABEL.fullmatch(value) else fallback
+
+
+class PersistenceError(RuntimeError):
+    """Base persistence failure containing only safe categorical context."""
+
+    def __init__(
+        self,
+        *,
+        entity: str,
+        operation: str,
+        reason: str = "operation_failed",
+        constraint: str | None = None,
+    ) -> None:
+        self.entity = _safe_label(entity, "record")
+        self.operation = _safe_label(operation, "operation")
+        self.reason = _safe_label(reason, "operation_failed")
+        self.constraint = (
+            None if constraint is None else _safe_label(constraint, "unknown_constraint")
+        )
+        message = f"persistence {self.operation} failed for {self.entity}: {self.reason}"
+        if self.constraint is not None:
+            message += f" ({self.constraint})"
+        super().__init__(message)
+
+
+class PersistenceUnavailableError(PersistenceError):
+    """Database connectivity or availability failure."""
+
+
+class DuplicateRecordError(PersistenceError):
+    """Database uniqueness violation."""
+
+
+class ForeignKeyViolationError(PersistenceError):
+    """Database referential-integrity violation."""
+
+
+class CheckConstraintViolationError(PersistenceError):
+    """Database check-constraint violation."""
+
+
+class PersistenceNotFoundError(PersistenceError):
+    """A guarded persistence mutation found no target row."""
+
+
+class OptimisticConcurrencyError(PersistenceError):
+    """A guarded persistence mutation observed a stale status or version."""
+
+
+class TransactionStateError(PersistenceError):
+    """Invalid Unit of Work lifecycle transition."""
+
+    def __init__(self, operation: str, reason: str = "invalid_transaction_state") -> None:
+        super().__init__(entity="unit_of_work", operation=operation, reason=reason)
+
+
+class PersistenceMappingError(PersistenceError):
+    """Stored data could not be mapped to an application contract."""
+
+    def __init__(self, entity: str, operation: str = "map") -> None:
+        super().__init__(entity=entity, operation=operation, reason="invalid_stored_data")
+
+
+class CandidateNotFoundError(RuntimeError):
+    """The requested canonical candidate does not exist."""
+
+    def __init__(self, candidate_id: CandidateID) -> None:
+        self.candidate_id = candidate_id
+        super().__init__(f"candidate not found: {candidate_id.serialize()}")
+
+
+class MarketSnapshotNotFoundError(RuntimeError):
+    """The candidate references no readable canonical market snapshot."""
+
+    def __init__(self, market_snapshot_id: MarketSnapshotID) -> None:
+        self.market_snapshot_id = market_snapshot_id
+        super().__init__(f"market snapshot not found: {market_snapshot_id.serialize()}")
+
+
+class FilterEvaluationConflictError(RuntimeError):
+    """A versioned filter evaluation already exists."""
+
+    def __init__(self, filter_set_name: FilterSetName) -> None:
+        self.filter_set_name = filter_set_name
+        super().__init__(f"filter evaluation conflict: {filter_set_name.value}")
+
+
+class RequiredFilterEvaluationMissingError(RuntimeError):
+    """A current strategy has no matching canonical filter evaluation."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        filter_set_name: FilterSetName,
+        evaluation_version: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.filter_set_name = filter_set_name
+        self.evaluation_version = _safe_label(evaluation_version, "unknown_version")
+        super().__init__(
+            "required filter evaluation missing: "
+            f"{filter_set_name.value}/{self.evaluation_version} "
+            f"for {candidate_id.serialize()}"
+        )
+
+
+class InvalidFilterEvaluationError(RuntimeError):
+    """A stored filter evaluation cannot safely drive a decision."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        filter_set_name: FilterSetName,
+        evaluation_version: str,
+        reason: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.filter_set_name = filter_set_name
+        self.evaluation_version = _safe_label(evaluation_version, "unknown_version")
+        self.reason = _safe_label(reason, "invalid_filter_evaluation")
+        super().__init__(
+            "invalid filter evaluation: "
+            f"{filter_set_name.value}/{self.evaluation_version}: {self.reason}"
+        )
+
+
+class StrategyDecisionConflictError(RuntimeError):
+    """A candidate strategy/version decision already exists."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+        category: str = "duplicate_record",
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        self.category = _safe_label(category, "conflict")
+        super().__init__(
+            "strategy decision conflict: "
+            f"{strategy_name.value}/{self.strategy_version}: {self.category}"
+        )
+
+
+class RequiredStrategyDecisionMissingError(RuntimeError):
+    """A built-in strategy has no matching persisted decision."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        super().__init__(
+            "required strategy decision missing: "
+            f"{strategy_name.value}/{self.strategy_version} for {candidate_id.serialize()}"
+        )
+
+
+class InvalidStrategyDecisionError(RuntimeError):
+    """A persisted decision cannot safely drive a trade intent."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+        reason: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        self.reason = _safe_label(reason, "invalid_strategy_decision")
+        super().__init__(
+            "invalid strategy decision: "
+            f"{strategy_name.value}/{self.strategy_version}: {self.reason}"
+        )
+
+
+class TradeIntentRiskRejectedError(RuntimeError):
+    """The deterministic risk policy approved no positive quantity."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        policy_name: str,
+        policy_version: str,
+        reason_code: str,
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.policy_name = _safe_label(policy_name, "unknown_policy")
+        self.policy_version = _safe_label(policy_version, "unknown_version")
+        self.reason_code = _safe_label(reason_code, "risk_rejected")
+        super().__init__(
+            "trade intent risk rejected: "
+            f"{self.policy_name}/{self.policy_version}: {self.reason_code}"
+        )
+
+
+class TradeIntentConflictError(RuntimeError):
+    """A canonical trade intent already occupies the semantic identity."""
+
+    def __init__(
+        self,
+        candidate_id: CandidateID,
+        strategy_name: StrategyName,
+        strategy_version: str,
+        category: str = "duplicate_record",
+    ) -> None:
+        self.candidate_id = candidate_id
+        self.strategy_name = strategy_name
+        self.strategy_version = _safe_label(strategy_version, "unknown_version")
+        self.category = _safe_label(category, "conflict")
+        super().__init__(
+            f"trade intent conflict: {strategy_name.value}/{self.strategy_version}: {self.category}"
+        )
+
+
+class TradeIntentNotFoundError(RuntimeError):
+    """The requested canonical TradeIntent does not exist."""
+
+    def __init__(self, trade_intent_id: TradeIntentID) -> None:
+        self.trade_intent_id = trade_intent_id
+        super().__init__(f"trade intent not found: {trade_intent_id.serialize()}")
+
+
+class PaperOrderConflictError(RuntimeError):
+    """A canonical paper-order identity is already occupied."""
+
+    def __init__(self, trade_intent_id: TradeIntentID, category: str) -> None:
+        self.trade_intent_id = trade_intent_id
+        self.category = _safe_label(category, "conflict")
+        super().__init__(f"paper order conflict for {trade_intent_id.serialize()}: {self.category}")
+
+
+class InvalidPaperBrokerResultError(RuntimeError):
+    """A broker result cannot safely become a canonical PaperOrder."""
+
+    def __init__(self, broker_code: str, reason: str) -> None:
+        self.broker_code = _safe_label(broker_code, "unknown_broker")
+        self.reason = _safe_label(reason, "invalid_result")
+        super().__init__(f"invalid paper broker result: {self.broker_code}/{self.reason}")
+
+
+class PaperOrderSubmissionError(RuntimeError):
+    """A paper broker failed technically without a valid rejection result."""
+
+    def __init__(self, broker_code: str, category: str) -> None:
+        self.broker_code = _safe_label(broker_code, "unknown_broker")
+        self.category = _safe_label(category, "submission_failed")
+        super().__init__(f"paper order submission failed: {self.broker_code}/{self.category}")

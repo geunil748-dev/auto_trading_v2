@@ -8,27 +8,66 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 11개 table입니다.
+canonical source of truth는 다음 19개 table입니다.
 
 1. `market_snapshots`
-2. `candidates`
-3. `filter_evaluations`
-4. `paper_positions`
-5. `strategy_decisions`
-6. `trade_intents`
-7. `paper_orders`
-8. `paper_fills`
-9. `position_events`
-10. `equity_snapshots`
-11. `trading_events`
+2. `daily_market_bars`
+3. `feature_snapshots`
+4. `recommendations`
+5. `candidates`
+6. `filter_evaluations`
+7. `paper_positions`
+8. `strategy_decisions`
+9. `trade_intents`
+10. `paper_orders`
+11. `paper_fills`
+12. `position_events`
+13. `equity_snapshots`
+14. `trading_events`
+15. `universe_snapshots`
+16. `daily_feature_pipeline_runs`
+17. `daily_feature_pipeline_items`
+18. `daily_feature_scoring_runs`
+19. `daily_feature_scoring_items`
 
 ```mermaid
 erDiagram
+    daily_market_bars {
+        uuid daily_market_bar_id PK
+        string bar_key UK
+        string content_digest
+        string source_code
+        date session_date
+        datetime available_at
+    }
+    feature_snapshots {
+        uuid feature_snapshot_id PK
+        string snapshot_key UK
+        string content_digest
+        string symbol
+        int horizon_trading_days
+        datetime as_of
+    }
+    recommendations {
+        uuid recommendation_id PK
+        string recommendation_key UK
+        string content_digest
+        uuid feature_snapshot_id FK
+        string disposition
+        datetime generated_at
+    }
+    feature_snapshots ||--o{ recommendations : "supports"
+    daily_feature_pipeline_runs ||--o{ daily_feature_scoring_runs : "scored from"
+    daily_feature_scoring_runs ||--o{ daily_feature_scoring_items : "contains"
+    daily_feature_pipeline_items ||--o| daily_feature_scoring_items : "audited as"
+    feature_snapshots o|--o{ daily_feature_scoring_items : "scored from"
     market_snapshots ||--o{ candidates : "observed as"
     candidates ||--o{ filter_evaluations : "evaluated by"
     candidates o|--o{ strategy_decisions : "candidate decision"
     filter_evaluations o|--o{ strategy_decisions : "supports"
     paper_positions o|--o{ strategy_decisions : "position decision"
+    market_snapshots o|--o{ strategy_decisions : "position decision source"
+    position_events o|--o{ strategy_decisions : "pinned position version"
     strategy_decisions ||--o| trade_intents : "creates at most one"
     trade_intents ||--o| paper_orders : "creates at most one"
     paper_orders ||--o{ paper_fills : "receives"
@@ -80,8 +119,107 @@ ID는 MSSQL `UNIQUEIDENTIFIER`와 domain의 타입별 UUID 값 객체를 대응�
 생성기는 UUID4이며 UUIDv7은 비목표입니다.
 
 JSON column은 `NVARCHAR(MAX)`에 저장하고 `ISJSON(column) = 1`을 강제합니다. `details`와
-`payload`는 JSON object, `reason_codes`는 JSON array 형태까지 check constraint로 제한합니다.
+`payload`, `feature_values`는 JSON object, `reason_codes`, `quality_reason_codes`,
+`provenance`는 JSON array 형태까지 check constraint로 제한합니다.
 JSON은 검색 최적화된 정규화 데이터의 대체물이 아니라 확장 가능한 설명·감사 payload입니다.
+
+## P3 universe and daily feature pipeline
+
+`trading.universe_snapshots` stores one immutable caller-provided membership definition. Its
+semantic identity is `(universe_code, universe_version)`. The `universe_key` hashes that identity;
+`content_digest` hashes only the MIC/symbol member list in canonical order. The JSON member array is
+non-empty, contains 1 to 100 members, and is mapped without provider URLs or raw payloads.
+
+`trading.daily_feature_pipeline_runs` references one UniverseSnapshot with `ON DELETE NO ACTION`.
+Its unique run key includes the pipeline/version, universe ID, provider, calendar/version,
+completed-session marker, split adjustment, feature set/version, horizon, requested sessions,
+normalized `as_of`, and completion grace. Outcome counts are non-negative and must sum to the total.
+
+`trading.daily_feature_pipeline_items` is inserted with its run in one transaction and retains
+canonical ordinal order. READY and DEGRADED items require a FeatureSnapshot FK and matching quality;
+all other outcomes require both feature fields to be null. Unique constraints cover run/ordinal,
+run/symbol, and run/symbol/MIC. Migration `0007_multi_symbol_feature_pipeline` creates only these
+three tables and downgrades them in item, run, universe order. Existing migrations 0001 through 0006
+and their fourteen tables are unchanged.
+
+## P4A daily feature scoring
+
+`trading.daily_feature_scoring_runs` identifies one immutable scoring result by the source P3 run
+and four fixed scoring/ranking policy fields. Its key is a versioned SHA-256 identity; the content
+digest covers status, counts, ordered item outcomes, fixed Decimal scores, and ranks. It is not
+unique so identical content from different source runs remains auditable.
+
+`trading.daily_feature_scoring_items` preserves the P3 ordinal and stores nullable `DECIMAL(9,6)`
+component/overall relative scores. READY rows contain all six components; supported volume-related
+DEGRADED rows contain price components and a null volume component. Unscorable rows contain no
+scores or rank and require a safe reason code. FKs to the scoring run, P3 item, and optional
+FeatureSnapshot all use `ON DELETE NO ACTION`. Migration `0008_daily_feature_scoring` adds only
+these two tables, taking the canonical count from 17 to 19, and downgrades only to
+`0007_multi_symbol_feature_pipeline`.
+
+## P4B.1 forward outcomes
+
+`daily_feature_outcomes` stores immutable raw terminal return, MFE, and MAE at `DECIMAL(38,18)` plus
+the P4A/P3/FeatureSnapshot foreign-key chain. Its ordered provenance is a JSON array of safe
+DailyMarketBar revision identities without copied prices or provider payload. Outcome identity
+includes a path-revision digest, so corrected bars create a new row rather than an overwrite.
+
+`daily_feature_outcome_observation_runs` and
+`daily_feature_outcome_observation_run_items` audit one exact observation command and each source
+item outcome. `completion_grace_seconds` is `INTEGER` because the allowed 86,400 seconds exceeds SQL
+Server `SMALLINT`. Run/items are inserted atomically; canonical outcomes may be inserted in separate
+per-item transactions. All FKs use `ON DELETE NO ACTION`.
+
+Migration `0009_daily_feature_outcomes` adds only these three tables in dependency order and raises
+the canonical count from 19 to 22. Downgrade removes run items, runs, then outcomes. No backfill or
+existing-table mutation occurs.
+
+## P4B.2A labels and dataset snapshots
+
+Migration `0010_outcome_labels_calibration_dataset` adds only
+`daily_feature_outcome_labels`, `probability_calibration_datasets`, and
+`probability_calibration_dataset_items`, raising the canonical table count from 22 to 25. Labels
+reference their immutable outcome, scoring run/item, P3 run/item, and FeatureSnapshot. Dataset items
+also reference the label and dataset; every foreign key uses `ON DELETE NO ACTION`.
+
+Label identity is unique by source outcome and label policy. Dataset identity fixes policy/provider,
+calendar, horizon, and UTC `dataset_as_of`; ordered items are unique by ordinal, scoring item,
+outcome, and label within a dataset. Dataset item `overall_relative_score` is `DECIMAL(9,6)` and is
+constrained to READY quality. Header status/count constraints distinguish valid `EMPTY` from
+`READY` snapshots. Downgrade removes items, datasets, then labels and does not alter the prior 22
+tables.
+
+Prediction Readiness R1 adds no table, column, constraint, index, or migration. It reads the existing
+25-table lineage through the P4B.2A dataset repository. The canonical table count remains 25 and
+Alembic head remains `0010_outcome_labels_calibration_dataset`. A P3 `DATA_INSUFFICIENT` item has no
+FeatureSnapshot by contract, so the audit cannot relabel it as a FeatureSnapshot state.
+
+## Point-in-Time FeatureSnapshot
+
+`trading.feature_snapshots`는 기존 11개 table과 FK가 없는 독립 aggregate입니다. 최소 column은
+ID, semantic `snapshot_key`, 독립 `content_digest`, symbol, feature set code/version, 1~5
+trading-day horizon, `as_of`, `generated_at`, 계산된 `latest_input_available_at`, READY/DEGRADED
+quality, reason JSON, feature JSON, provenance JSON과 DB 생성 `recorded_at`입니다.
+
+DB는 horizon 범위, `generated_at >= as_of`, `latest_input_available_at <= as_of`, quality 상태,
+비어 있지 않은 feature/provenance JSON 형태를 검사합니다. `snapshot_key`와
+`(symbol, feature_set_code, feature_set_version, horizon_trading_days, as_of)`는 각각
+unique입니다. `content_digest`는 비교·감사용 non-unique index입니다. 조회 index는 symbol/cutoff,
+feature set/cutoff, quality/cutoff 조합을 제공합니다.
+
+## Canonical Recommendation
+
+`trading.recommendations`는 하나의 `feature_snapshot_id`를 `ON DELETE NO ACTION` FK로 참조하는
+immutable 사용자 판단 fact입니다. `RECOMMEND`와 `CONDITIONAL`만 actionable이며 USD 가격
+계획·1~5 거래일 보유 기간·Decimal 확률/기대값/손익비/신뢰도·UTC 만료 시각을 모두 가집니다.
+`WATCH`, `NO_RECOMMENDATION`, `DATA_INSUFFICIENT`, `MARKET_RISK`는 모든 plan column을 `NULL`로
+저장합니다.
+
+`recommendation_key`는 FeatureSnapshot ID와 generator code/version만 포함한 semantic identity
+hash이고, `content_digest`는 disposition·plan·정렬된 reason/risk/invalidation code만 포함합니다.
+두 key의 분리로 exact retry와 same-identity/different-content conflict를 구분합니다. key 및
+`(feature_snapshot_id, generator_code, generator_version)`는 unique이고 content digest는
+non-unique입니다. 이 table은 StrategyDecision·TradeIntent·주문·체결·포지션 FK를 갖지 않습니다.
 
 ## 정합성과 중복 방지
 
@@ -89,18 +227,25 @@ JSON은 검색 최적화된 정규화 데이터의 대체물이 아니라 확장
 손실되지 않도록 하며 삭제보다 명시적 상태 전이를 사용합니다. PK는 각 table의 타입별 UUID
 ID이고 FK, unique, check와 조회 index는 모두 이름을 가집니다.
 
-MSSQL filtered unique index는 다음 세 개입니다.
+MSSQL filtered unique index는 다음 네 개입니다.
 
 - `ix_paper_positions_open_unique`: strategy, symbol, currency별 `OPEN` position 하나
 - `ix_strategy_decisions_candidate_unique`: candidate, strategy, version별 candidate decision 하나
+- `ix_strategy_decisions_position_snapshot_unique`: position, snapshot, strategy, version별
+  position decision 하나
 - `ix_paper_orders_broker_ref_unique`: broker order reference가 있을 때 broker 내 하나
 
 주요 semantic deduplication key는 다음과 같습니다.
 
 - snapshot: `(source, symbol, observed_at)`
+- feature snapshot: `snapshot_key`, 그리고
+  `(symbol, feature_set_code, feature_set_version, horizon_trading_days, as_of)`
+- recommendation: `recommendation_key`, 그리고
+  `(feature_snapshot_id, generator_code, generator_version)`
 - candidate: `(run_id, market_snapshot_id, candidate_source)`
 - filter evaluation: `(candidate_id, filter_set_id, evaluation_version)`
-- strategy decision: `decision_key`, 그리고 filtered candidate/strategy/version
+- strategy decision: `decision_key`, filtered candidate/strategy/version, 그리고 filtered
+  position/snapshot/strategy/version
 - trade intent: `decision_id`, `idempotency_key`
 - paper order: `trade_intent_id`, `client_order_id`, 그리고 filtered broker reference
 - fill: `execution_key`, `(order_id, fill_sequence)`
@@ -108,11 +253,18 @@ MSSQL filtered unique index는 다음 세 개입니다.
 - equity snapshot: `snapshot_key`, `(strategy_id, currency, as_of)`
 - trading event: `dedup_key`
 
-`market_snapshots`, `candidates`, `filter_evaluations`, `strategy_decisions`, `trade_intents`,
-`paper_fills`, `position_events`, `equity_snapshots`, `trading_events`는 기록 후 의미를 바꾸지 않는
-immutable fact입니다. `paper_positions`와 `paper_orders`는 optimistic `version`과 `updated_at`을
-가진 current-state table입니다. 이 PR은 해당 갱신이나 projection 업무 로직을 구현하지
-않습니다.
+Candidate decision은 Candidate의 `market_snapshot_id`를 통해 canonical snapshot에 연결되며
+`strategy_decisions.market_snapshot_id`와 `position_version`을 중복 저장하지 않습니다.
+Position decision은 `position_id`, `position_version`, `market_snapshot_id`를 직접 저장합니다.
+`(position_id, position_version)`은
+`position_events(position_id, sequence_no)`를 참조하여 mutable PaperPosition의 exact canonical
+version을 고정합니다. 관련 FK는 모두 `ON DELETE NO ACTION`입니다. `trading_events`의 선택적
+context FK는 통합 타임라인을 위한 것이며 이 source 관계의 원본이 아닙니다.
+
+`market_snapshots`, `feature_snapshots`, `recommendations`, `candidates`, `filter_evaluations`,
+`strategy_decisions`, `trade_intents`, `paper_fills`, `position_events`, `equity_snapshots`,
+`trading_events`는 기록 후 의미를 바꾸지 않는 immutable fact입니다. `paper_positions`와
+`paper_orders`는 optimistic `version`과 `updated_at`을 가진 current-state table입니다.
 
 ## 생성과 마이그레이션
 
@@ -161,13 +313,38 @@ fixture는 실행 중 자신이 생성한 정확한 이름만 삭제하며, 삭�
 연결 정보가 없으면 통합 테스트는 실패 대신 skip됩니다.
 
 `alembic downgrade base`와 재-upgrade 검증은 이 임시 test DB에서만 수행합니다. 개발 또는
-운영 DB에서 downgrade하지 않습니다. downgrade는 reverse dependency 순서로 11개 table과
-비어 있는 `trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
+운영 DB에서 downgrade하지 않습니다. 전체 downgrade는 먼저 `daily_market_bars`, 이어
+`recommendations`와 독립 `feature_snapshots`를 제거한 뒤 reverse dependency 순서로 기존
+11개 table과 비어 있는 `trading` schema만 제거하며 database 자체는 절대 삭제하지 않습니다.
 
 connection URL, server host, login, password는 log, exception, test output, 문서와 최종
 보고에서 출력하지 않습니다. URL wrapper는 문자열 변환과 `repr`에서도 값을 redaction합니다.
 production backup, 복구, 운영 배포와 data file 관리는 이 PR의 비목표입니다.
 
-다음 PR 권장 범위는 Repository port와 SQLAlchemy Core 구현, Unit of Work 및 명시적
-transaction boundary입니다. 필터, 주문 실행, fill 생성, position projector와 P&L 업무 로직은
-그 경계와 정책이 합의된 뒤 별도 PR에서 구현합니다.
+초기 `0001_mssql_schema`는 수정하지 않습니다. `0002_position_snapshot`은
+`strategy_decisions.market_snapshot_id`, FK, source-shape CHECK, position semantic filtered
+unique index와 최소 조회 index를 additive migration으로 적용합니다. 기존 candidate row는
+신규 column이 `NULL`인 채 그대로 유효합니다.
+
+`0003_position_decision_version`은 `strategy_decisions.position_version`, positive/source-shape
+CHECK, `(position_id, position_version)` composite FK와 조회 index를 additive migration으로
+적용합니다. 기존 candidate row는 `NULL`로 보존됩니다. 기존 position decision이 있으면
+임의 backfill하지 않고 sanitized blocker로 upgrade를 중단합니다.
+
+`0004_feature_snapshots`는 기존 table이나 data를 변경하지 않고
+`trading.feature_snapshots` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+기존 `0001`~`0003` 파일과 기존 11개 table definition은 변경하지 않습니다.
+
+`0005_recommendations`는 기존 12개 table이나 data를 변경하지 않고
+`trading.recommendations` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+기존 `0001`~`0004` 파일과 기존 12개 table definition은 변경하지 않습니다.
+
+`0006_daily_market_bars`는 기존 13개 table이나 data를 변경하지 않고 독립
+`trading.daily_market_bars` 하나만 생성합니다. downgrade도 이 table 하나만 제거합니다.
+bar에는 FK가 없으며 provider identity, session revision uniqueness, PIT 조회 index를
+제공합니다. 기존 `0001`~`0005` 파일과 기존 13개 table definition은 변경하지 않습니다.
+
+아래 기존 Application 설명은 optional shadow simulation 기반의 역사적 범위입니다.
+Application은 OPEN 상태, exact PositionEvent version, symbol, strategy, USD 통화, snapshot
+평가 시각과 freshness를 검증하고 `FIXED_POSITION_EXIT/v1` 결정을 저장합니다. SELL, position
+종료와 P&L은 여전히 이 schema migration과 PR 12의 범위가 아닙니다.

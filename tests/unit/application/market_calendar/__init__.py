@@ -1,0 +1,1 @@
+"""Market-calendar application tests."""

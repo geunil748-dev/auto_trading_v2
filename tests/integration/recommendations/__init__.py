@@ -1,0 +1,1 @@
+"""Recommendation persistence integration tests."""
