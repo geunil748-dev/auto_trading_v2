@@ -17,7 +17,6 @@ from auto_trading_v2.application.training_readiness_errors import (
     TrainingReadinessDatasetNotFoundError,
 )
 from auto_trading_v2.domain.training_readiness import (
-    COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE,
     NOT_DERIVABLE_FROM_CURRENT_SCHEMA,
     MvpTradeModelReadiness,
 )
@@ -102,5 +101,7 @@ def test_upstream_quality_reasons_and_not_derivable_fields_are_explicit() -> Non
     assert upstream.source_feature_snapshot_data_insufficient_count == (
         NOT_DERIVABLE_FROM_CURRENT_SCHEMA
     )
-    assert decision.price_only_eligibility == (COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE)
-    assert "counterfactual_price_only_eligibility_percentage" in not_derivable
+    assert upstream.price_only_v2_eligible_count == 3
+    assert upstream.price_only_v2_ineligible_count == 0
+    assert decision.price_only_eligibility.percentage == "100.000000"
+    assert "counterfactual_price_only_eligibility_percentage" not in not_derivable

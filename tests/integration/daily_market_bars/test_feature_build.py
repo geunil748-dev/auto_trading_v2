@@ -6,6 +6,8 @@ import pytest
 from auto_trading_v2.adapters.persistence import SqlAlchemyUnitOfWorkFactory
 from auto_trading_v2.adapters.persistence.dotnet import DotNetUnitOfWorkFactory
 from auto_trading_v2.application.feature_building import (
+    PRICE_FEATURE_NAMES,
+    PRICE_ONLY_FEATURE_SET_VERSION,
     DailyTechnicalFeatureSnapshotBuildOutcome,
 )
 from auto_trading_v2.domain.feature_snapshots import FeatureQualityStatus
@@ -15,6 +17,8 @@ from tests.integration.daily_market_bars.helpers import (
     feature_service,
     new_bar,
     persist_series,
+    price_build_command,
+    price_feature_service,
     revised,
 )
 
@@ -93,3 +97,42 @@ def test_degraded_and_data_insufficient_are_distinct_normal_outcomes(
     ).build(build_command(244, insufficient_as_of))
     assert insufficient.outcome is DailyTechnicalFeatureSnapshotBuildOutcome.DATA_INSUFFICIENT
     assert insufficient.snapshot is None
+
+
+@pytest.mark.parametrize("case,volume_none_at", [(245, 7), (246, None)])
+def test_v1_v2_price_parity_and_dotnet_v2_read(
+    sqlalchemy_uow_factory: SqlAlchemyUnitOfWorkFactory,
+    dotnet_uow_factory: DotNetUnitOfWorkFactory,
+    case: int,
+    volume_none_at: int | None,
+) -> None:
+    persist_series(sqlalchemy_uow_factory, case, volume_none_at=volume_none_at)
+    as_of = command(case, 20).available_at
+    v1 = feature_service(sqlalchemy_uow_factory, as_of, case * 1000 + 997).build(
+        build_command(case, as_of)
+    )
+    v2 = price_feature_service(sqlalchemy_uow_factory, as_of, case * 1000 + 998).build(
+        price_build_command(case, as_of)
+    )
+
+    assert v1.snapshot is not None and v2.snapshot is not None
+    v1_input = v1.snapshot.snapshot_input
+    v2_input = v2.snapshot.snapshot_input
+    assert all(
+        v1_input.feature_values[name] == v2_input.feature_values[name]
+        for name in PRICE_FEATURE_NAMES
+    )
+    assert v2_input.feature_set_version == PRICE_ONLY_FEATURE_SET_VERSION
+    assert v2_input.quality_status is FeatureQualityStatus.READY
+    assert not {
+        "volume_ratio_5_to_20",
+        "latest_volume_to_avg20",
+        "average_dollar_volume_20",
+    }.intersection(v2_input.feature_values)
+    expected_v1 = (
+        FeatureQualityStatus.DEGRADED if volume_none_at is not None else FeatureQualityStatus.READY
+    )
+    assert v1_input.quality_status is expected_v1
+    with dotnet_uow_factory() as reader:
+        dotnet_v2 = reader.feature_snapshots.get_by_id(v2.snapshot.feature_snapshot_id)
+    assert dotnet_v2 == v2.snapshot

@@ -9,10 +9,12 @@ from enum import StrEnum
 
 from auto_trading_v2.domain.errors import ValidationError
 from auto_trading_v2.domain.feature_pipeline import (
+    DAILY_FEATURE_PIPELINE_POLICY_V1,
     MIN_REQUESTED_SESSIONS,
     DailyFeaturePipelineIdentity,
     DailyFeaturePipelineItem,
     DailyFeaturePipelineItemOutcome,
+    DailyFeaturePipelinePolicy,
     DailyFeaturePipelineRun,
     DailyFeaturePipelineRunStatus,
     DailyFeaturePipelineRunWithItems,
@@ -40,6 +42,7 @@ class RunDailyFeaturePipelineCommand:
     completion_grace: CompletionGracePeriod
     horizon: TradingDayHorizon
     requested_session_count: int = 30
+    policy: DailyFeaturePipelinePolicy = DAILY_FEATURE_PIPELINE_POLICY_V1
 
     def __post_init__(self) -> None:
         if not isinstance(self.universe_snapshot_id, UniverseSnapshotID):
@@ -52,6 +55,8 @@ class RunDailyFeaturePipelineCommand:
             raise ValueError("completion_grace is invalid")
         if not isinstance(self.horizon, TradingDayHorizon):
             raise ValueError("horizon is invalid")
+        if not isinstance(self.policy, DailyFeaturePipelinePolicy):
+            raise ValueError("daily feature pipeline policy is invalid")
         if (
             isinstance(self.requested_session_count, bool)
             or not isinstance(self.requested_session_count, int)

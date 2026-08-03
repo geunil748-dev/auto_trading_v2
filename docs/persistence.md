@@ -185,6 +185,12 @@ providers reuse one Core SELECT and mapping. `TrainingReadinessAuditService` ope
 explicit dataset header/items and lineage, never calls `commit()`, and relies on normal-exit
 rollback. Repository count remains 19, table count remains 25, and no migration changes.
 
+Price-only FeatureSet v2 reuses the existing `FeatureSnapshotRepository`, P3 run repository, and
+Unit of Work boundaries. Its identity differs by explicit feature/pipeline version, while its JSON
+payload omits the three volume keys. No repository, table, migration, development-DB backfill, or
+existing-row mutation is added; repository count remains 19, table count remains 25, and Alembic
+head remains `0010_outcome_labels_calibration_dataset`.
+
 The current local Windows account has the temporary-database permissions needed by the LPC test
 path. No login or credential is created or committed. A dedicated least-privilege test
 administrator remains a separate hardening option. Further ODBC TCP/TLS/trust diagnosis is outside

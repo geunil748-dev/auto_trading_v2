@@ -40,6 +40,10 @@ def render_training_readiness_markdown(result: TrainingReadinessAuditBatchResult
         included = audit.included_dataset
         upstream = audit.upstream_quality
         decision = audit.data_quality_decision_evidence
+        price_only_eligibility = (
+            decision.price_only_eligibility.percentage
+            or decision.price_only_eligibility.status.value
+        )
         lines.extend(
             [
                 f"## Dataset `{identity.probability_calibration_dataset_id}`",
@@ -59,15 +63,31 @@ def render_training_readiness_markdown(result: TrainingReadinessAuditBatchResult
                 f"- READY / DEGRADED scoring: {upstream.scored_ready_count} / "
                 f"{upstream.scored_degraded_count}",
                 f"- Volume incomplete: {upstream.volume_data_incomplete_count}",
+                f"- Price features complete: {upstream.price_feature_complete_count}",
+                f"- Volume-only degraded: {upstream.volume_only_degraded_count}",
+                f"- Price-only v2 eligible / ineligible: "
+                f"{upstream.price_only_v2_eligible_count} / "
+                f"{upstream.price_only_v2_ineligible_count}",
                 f"- Legacy readiness: {audit.legacy_calibration_readiness.status.value}",
                 f"- MVP readiness: {audit.mvp_trade_model_readiness.status.value}",
-                f"- Price-only counterfactual: {decision.price_only_eligibility}",
+                f"- Price-only eligibility: {price_only_eligibility}",
+                f"- Price-only source sessions before / after: "
+                f"{decision.price_only_source_session_count_before_eligibility} / "
+                f"{decision.price_only_source_session_count_after_eligibility}",
+                f"- Price-only symbols before / after: "
+                f"{decision.price_only_symbol_count_before_eligibility} / "
+                f"{decision.price_only_symbol_count_after_eligibility}",
                 "",
                 "### Exclusion reasons",
                 "",
             ]
         )
         lines.extend(f"- {fact.code}: {fact.count}" for fact in upstream.exclusion_reason_counts)
+        lines.extend(["", "### Price-only v2 ineligibility reasons", ""])
+        lines.extend(
+            f"- {fact.code}: {fact.count}"
+            for fact in upstream.price_only_v2_ineligibility_reason_counts
+        )
         lines.extend(["", "### MVP blockers", ""])
         lines.extend(f"- {blocker}" for blocker in audit.mvp_trade_model_readiness.blockers)
         lines.extend(["", "### Not derivable", ""])

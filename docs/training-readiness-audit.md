@@ -27,9 +27,15 @@ Each result contains:
 FeatureSnapshots support only READY and DEGRADED. A P3 `DATA_INSUFFICIENT` item has no
 FeatureSnapshot, so “FeatureSnapshot DATA_INSUFFICIENT count” is
 `NOT_DERIVABLE_FROM_CURRENT_SCHEMA`; the provider distribution can still report the canonical P3
-pipeline count. The schema also cannot prove that a volume-degraded row would be READY under a
-future price-only policy. That field is
-`COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE`.
+pipeline count.
+
+The lineage SELECT now includes the stored v1 feature-set identity and feature JSON. The audit
+derives price-feature completeness, volume-only degradation, price-only-v2 eligible/ineligible
+counts and reasons, eligibility percentage, and source-session/symbol coverage before and after
+eligibility. Eligibility requires exactly `US_EQUITY_DAILY_TECHNICAL/v1`, all 14 finite canonical
+Decimal price strings, split-adjusted metadata, 21 completed bars, and either READY with no reason
+or DEGRADED solely for `VOLUME_DATA_INCOMPLETE`/`VOLUME_DATA_UNUSABLE`. Other DEGRADED states are
+not inferred. Missing lineage remains `NOT_DERIVABLE_FROM_CURRENT_SCHEMA`, never zero.
 
 ## Legacy research thresholds
 
@@ -49,7 +55,8 @@ question has enough data. It is not evidence for an executable, cost-adjusted tr
 MVP readiness is always `MVP_TRADE_MODEL_NOT_READY` in this slice. Its blockers include missing
 execution-aligned outcome and cost-adjusted label policies, unfrozen costs, next-open/fixed-hold
 results, multi-year calendar/backfill, prospective operation, the data-quality decision, baseline
-evaluation, and both unresolved data-quality implementation options.
+evaluation, and a verified-volume alternative. Price-only FeatureSet v2 itself is implemented;
+that blocker is no longer reported.
 
 ## CLI and reports
 

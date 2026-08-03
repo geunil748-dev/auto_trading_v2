@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
+from auto_trading_v2.application.feature_building import PRICE_FEATURE_NAMES
 from auto_trading_v2.domain.feature_outcomes import (
     CALENDAR_CODE,
     CALENDAR_VERSION,
@@ -133,7 +135,15 @@ def snapshot(
         "latest_input_available_at": run_time,
         "quality_status": quality,
         "quality_reason_codes": reasons,
-        "feature_values": '{"last_close":"100"}',
+        "feature_values": json.dumps(
+            {
+                **{name: str(index + 1) for index, name in enumerate(PRICE_FEATURE_NAMES)},
+                "adjustment_basis": "SPLIT_ADJUSTED",
+                "completed_bar_count": 21,
+            },
+            separators=(",", ":"),
+            sort_keys=True,
+        ),
         "provenance": '[{"source":"synthetic"}]',
         "recorded_at": run_time + timedelta(minutes=1),
     }

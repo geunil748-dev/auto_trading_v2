@@ -8,7 +8,7 @@ V2는 운영 인프라를 불필요하게 늘리지 않기 위해 승인된 기�
 정확히 `auto_trading_v2`이며 모든 business table은 `trading` schema에 생성합니다.
 Alembic version table은 기본 `dbo.alembic_version`을 사용합니다.
 
-canonical source of truth는 다음 19개 table입니다.
+canonical source of truth는 다음 25개 table입니다.
 
 1. `market_snapshots`
 2. `daily_market_bars`
@@ -29,6 +29,12 @@ canonical source of truth는 다음 19개 table입니다.
 17. `daily_feature_pipeline_items`
 18. `daily_feature_scoring_runs`
 19. `daily_feature_scoring_items`
+20. `daily_feature_outcomes`
+21. `daily_feature_outcome_observation_runs`
+22. `daily_feature_outcome_observation_run_items`
+23. `daily_feature_outcome_labels`
+24. `probability_calibration_datasets`
+25. `probability_calibration_dataset_items`
 
 ```mermaid
 erDiagram
@@ -193,6 +199,11 @@ Prediction Readiness R1 adds no table, column, constraint, index, or migration. 
 25-table lineage through the P4B.2A dataset repository. The canonical table count remains 25 and
 Alembic head remains `0010_outcome_labels_calibration_dataset`. A P3 `DATA_INSUFFICIENT` item has no
 FeatureSnapshot by contract, so the audit cannot relabel it as a FeatureSnapshot state.
+
+Price-only FeatureSet v2 also adds no table, column, constraint, index, or migration. It persists
+through the existing `feature_snapshots` and P3 tables. Alembic head remains
+`0010_outcome_labels_calibration_dataset`, canonical table count remains 25, and existing table
+definitions are unchanged.
 
 ## Point-in-Time FeatureSnapshot
 

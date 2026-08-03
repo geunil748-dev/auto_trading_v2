@@ -15,10 +15,15 @@ from auto_trading_v2.application.contracts.feature_snapshots import (
 from auto_trading_v2.application.feature_building import (
     FEATURE_SET_CODE,
     FEATURE_SET_VERSION,
+    PRICE_ONLY_FEATURE_SET_VERSION,
+    BuildDailyPriceTechnicalFeatureSnapshotCommand,
     BuildDailyTechnicalFeatureSnapshotCommand,
     DailyTechnicalFeatureSnapshotBuildOutcome,
 )
 from auto_trading_v2.application.ports.unit_of_work import UnitOfWorkFactory
+from auto_trading_v2.application.services.daily_price_technical_feature_snapshot import (
+    DailyPriceTechnicalFeatureSnapshotService,
+)
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
 )
@@ -188,3 +193,28 @@ def test_degraded_price_snapshot_is_still_created_with_safe_reason() -> None:
 
     assert result.outcome is DailyTechnicalFeatureSnapshotBuildOutcome.CREATED
     assert creation.calls[0].quality_reason_codes == ("VOLUME_DATA_INCOMPLETE",)
+
+
+def test_price_only_v2_insufficient_never_writes_and_null_volume_is_ready() -> None:
+    repository = FakeBarRepository(tuple(stored_bar(index) for index in range(20)))
+    unit = ReadUnitOfWork(repository)
+    creation = FakeSnapshotCreationService(FeatureSnapshotCreationOutcome.CREATED)
+    service = DailyPriceTechnicalFeatureSnapshotService(
+        cast(UnitOfWorkFactory, ReadFactory(unit)),
+        cast(FeatureSnapshotCreationService, creation),
+    )
+    command = BuildDailyPriceTechnicalFeatureSnapshotCommand(
+        "UNIT_SOURCE", Symbol("AAPL"), BASE_TIME.replace(year=2027), TradingDayHorizon(3)
+    )
+
+    insufficient = service.build(command)
+    repository.bars = tuple(stored_bar(index, volume=None) for index in range(21))
+    ready = service.build(command)
+
+    assert insufficient.outcome is DailyTechnicalFeatureSnapshotBuildOutcome.DATA_INSUFFICIENT
+    assert insufficient.snapshot is None
+    assert unit.commit_calls == 0
+    assert len(creation.calls) == 1
+    assert ready.snapshot is not None
+    assert creation.calls[0].feature_set_version == PRICE_ONLY_FEATURE_SET_VERSION
+    assert creation.calls[0].quality_status.name == "READY"

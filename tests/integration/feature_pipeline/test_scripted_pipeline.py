@@ -29,12 +29,14 @@ from auto_trading_v2.application.services import (
     DailyFeaturePipelineService,
     DailyMarketBarCalendarValidator,
     DailyMarketBarCreationService,
+    DailyPriceTechnicalFeatureSnapshotService,
     DailyTechnicalFeatureSnapshotService,
     FeatureSnapshotCreationService,
     TwelveDataDailyMarketBarIngestionService,
     UsEquityCompletedSessionResolver,
 )
 from auto_trading_v2.domain.feature_pipeline import (
+    DAILY_FEATURE_PIPELINE_POLICY_V2,
     DailyFeaturePipelineItemOutcome,
     DailyFeaturePipelineRunStatus,
 )
@@ -138,3 +140,81 @@ def test_scripted_three_symbol_pipeline_isolated_retry_and_dotnet_parity(
         assert connection.scalar(select(func.count()).select_from(recommendations)) == 0
         assert connection.scalar(select(func.count()).select_from(trade_intents)) == 0
         assert connection.scalar(select(func.count()).select_from(paper_orders)) == 0
+
+
+def test_explicit_v2_pipeline_makes_all_null_volume_price_members_ready(
+    sqlalchemy_uow_factory: SqlAlchemyUnitOfWorkFactory,
+    dotnet_uow_factory: DotNetUnitOfWorkFactory,
+) -> None:
+    calendar = StaticOfficialUsEquityCalendar2026()
+    clock = FixedClock(NOW)
+    budget = ScriptedBatchBudget()
+    provider = ScriptedMultiSymbolProvider(budget, calendar, complete_price_mode=True)
+    identifiers = count(810_000)
+    id_policy = IdentifierFactory(lambda: UUID(int=next(identifiers)))
+    ingestion = TwelveDataDailyMarketBarIngestionService(
+        provider,
+        sqlalchemy_uow_factory,
+        DailyMarketBarCreationService(
+            sqlalchemy_uow_factory,
+            UuidDailyMarketBarIDFactory(id_policy),
+        ),
+        clock,
+        DailyMarketBarCalendarValidator(calendar),
+    )
+    creation = FeatureSnapshotCreationService(
+        sqlalchemy_uow_factory,
+        FixedClock(NOW + timedelta(seconds=1)),
+        UuidFeatureSnapshotIDFactory(id_policy),
+    )
+    v1_features = DailyTechnicalFeatureSnapshotService(sqlalchemy_uow_factory, creation)
+    v2_features = DailyPriceTechnicalFeatureSnapshotService(sqlalchemy_uow_factory, creation)
+    snapshot = (
+        universe_service(sqlalchemy_uow_factory, 811001)
+        .create(universe_command(811, "NVDA", "MSFT", "AAPL"))
+        .snapshot
+    )
+    target = DailyFeaturePipelineService(
+        sqlalchemy_uow_factory,
+        CompletedDailyBarsRequestFactory(UsEquityCompletedSessionResolver(calendar)),
+        budget,
+        ingestion,
+        v1_features,
+        clock,
+        UuidDailyFeaturePipelineRunIDFactory(id_policy),
+        UuidDailyFeaturePipelineItemIDFactory(id_policy),
+        price_feature_service=v2_features,
+    )
+    command = RunDailyFeaturePipelineCommand(
+        snapshot.universe_snapshot_id,
+        "TWELVE_DATA_TIME_SERIES",
+        NOW,
+        CompletionGracePeriod(timedelta(minutes=15)),
+        TradingDayHorizon(1),
+        30,
+        DAILY_FEATURE_PIPELINE_POLICY_V2,
+    )
+
+    first = target.run(command)
+    calls = tuple(provider.calls)
+    retried = target.run(command)
+
+    assert first.result.run.identity.pipeline_version == "v2"
+    assert first.result.run.identity.feature_set_version == "v2"
+    assert [item.symbol.value for item in first.result.items] == ["AAPL", "MSFT", "NVDA"]
+    assert all(item.outcome is DailyFeaturePipelineItemOutcome.READY for item in first.result.items)
+    assert retried.outcome is DailyFeaturePipelineExecutionOutcome.ALREADY_EXISTS
+    assert retried.result == first.result
+    assert tuple(provider.calls) == calls == ("AAPL", "MSFT", "NVDA")
+    for item in first.result.items:
+        assert item.feature_snapshot_id is not None
+        with sqlalchemy_uow_factory() as reader:
+            sqlalchemy_snapshot = reader.feature_snapshots.get_by_id(item.feature_snapshot_id)
+        with dotnet_uow_factory() as reader:
+            dotnet_snapshot = reader.feature_snapshots.get_by_id(item.feature_snapshot_id)
+        assert sqlalchemy_snapshot == dotnet_snapshot
+        assert sqlalchemy_snapshot is not None
+        feature_input = sqlalchemy_snapshot.snapshot_input
+        assert feature_input.feature_set_version == "v2"
+        assert feature_input.quality_status is FeatureQualityStatus.READY
+        assert "volume_ratio_5_to_20" not in feature_input.feature_values

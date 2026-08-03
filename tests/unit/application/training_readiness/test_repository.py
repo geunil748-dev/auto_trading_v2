@@ -1,3 +1,4 @@
+import json
 from typing import cast
 
 import pytest
@@ -15,6 +16,7 @@ from auto_trading_v2.adapters.persistence.repositories.calibration_datasets impo
     SqlAlchemyProbabilityCalibrationDatasetRepository,
 )
 from auto_trading_v2.application.errors import PersistenceMappingError
+from auto_trading_v2.application.feature_building import PRICE_FEATURE_NAMES
 from tests.unit.training_readiness_helpers import aggregate
 
 
@@ -65,8 +67,17 @@ def _row() -> dict[str, object]:
         "scoring_outcome": "SCORED_READY",
         "source_quality_status": "READY",
         "pipeline_outcome": "READY",
+        "feature_set_code": "US_EQUITY_DAILY_TECHNICAL",
+        "feature_set_version": "v1",
         "feature_quality_status": "READY",
         "quality_reason_codes": "[]",
+        "feature_values": json.dumps(
+            {
+                **{name: str(index + 1) for index, name in enumerate(PRICE_FEATURE_NAMES)},
+                "adjustment_basis": "SPLIT_ADJUSTED",
+                "completed_bar_count": 21,
+            }
+        ),
         "overall_relative_score": item.overall_relative_score.value,
         "source_rank": item.source_rank,
         "has_any_outcome": 1,

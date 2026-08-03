@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -7,6 +8,7 @@ from auto_trading_v2.adapters.clock import FixedClock
 from auto_trading_v2.application.contracts.training_readiness import (
     TrainingReadinessLineageRecord,
 )
+from auto_trading_v2.application.feature_building import PRICE_FEATURE_NAMES
 from auto_trading_v2.application.services.probability_calibration_dataset_builder import (
     build_calibration_dataset,
     validate_and_order_sources,
@@ -83,6 +85,9 @@ def lineage_record(
     has_any_label: bool = True,
     has_matching_label: bool = True,
     provider_code: str | None = None,
+    feature_set_code: str | None = "US_EQUITY_DAILY_TECHNICAL",
+    feature_set_version: str | None = "v1",
+    feature_values: Mapping[str, object] | None = None,
 ) -> TrainingReadinessLineageRecord:
     identity = dataset_identity()
     return TrainingReadinessLineageRecord(
@@ -100,8 +105,19 @@ def lineage_record(
         scoring_outcome=scoring_outcome,
         source_quality_status=source_quality_status,
         pipeline_outcome=pipeline_outcome,
+        feature_set_code=feature_set_code,
+        feature_set_version=feature_set_version,
         feature_quality_status=feature_quality_status,
         quality_reason_codes=quality_reason_codes,
+        feature_values=(
+            {
+                **{name: str(index + 1) for index, name in enumerate(PRICE_FEATURE_NAMES)},
+                "adjustment_basis": "SPLIT_ADJUSTED",
+                "completed_bar_count": 21,
+            }
+            if feature_values is None
+            else feature_values
+        ),
         overall_relative_score=score,
         source_rank=rank,
         has_any_outcome=has_any_outcome,

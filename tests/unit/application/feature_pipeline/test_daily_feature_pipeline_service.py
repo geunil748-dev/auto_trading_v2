@@ -10,8 +10,13 @@ from auto_trading_v2.application.contracts.daily_feature_pipeline import (
 from auto_trading_v2.application.contracts.twelve_data_ingestion import (
     TwelveDataIngestionOutcome,
 )
+from auto_trading_v2.application.feature_building import (
+    BuildDailyPriceTechnicalFeatureSnapshotCommand,
+    BuildDailyTechnicalFeatureSnapshotCommand,
+)
 from auto_trading_v2.application.ports.batch_budget import DailyMarketDataProviderRole
 from auto_trading_v2.domain.feature_pipeline import (
+    DAILY_FEATURE_PIPELINE_POLICY_V2,
     DailyFeaturePipelineItemOutcome,
     DailyFeaturePipelineRunStatus,
 )
@@ -229,3 +234,55 @@ def test_command_rejects_non_primary_provider_code_at_run_preflight() -> None:
     assert result.result.run.status is DailyFeaturePipelineRunStatus.ABORTED_PROVIDER_FATAL
     assert result.result.items[0].safe_reason_code == "PROVIDER_CODE_UNSUPPORTED"
     assert context.ingestion.calls == []
+
+
+def test_v1_is_default_and_v2_requires_explicit_configured_policy_service() -> None:
+    snapshot = universe("AAPL")
+    default = service(snapshot)
+    unavailable = service(snapshot)
+    explicit = service(snapshot, with_v2=True)
+
+    default_result = default.service.run(command(snapshot))
+    unavailable_result = unavailable.service.run(
+        command(snapshot, policy=DAILY_FEATURE_PIPELINE_POLICY_V2)
+    )
+    explicit_result = explicit.service.run(
+        command(snapshot, policy=DAILY_FEATURE_PIPELINE_POLICY_V2)
+    )
+
+    assert isinstance(default.features.commands[0], BuildDailyTechnicalFeatureSnapshotCommand)
+    assert default_result.result.run.identity.pipeline_version == "v1"
+    assert unavailable_result.result.items[0].safe_reason_code == (
+        "FEATURE_POLICY_SERVICE_UNAVAILABLE"
+    )
+    assert unavailable.ingestion.calls == unavailable.features.calls == []
+    assert isinstance(explicit.features.commands[0], BuildDailyPriceTechnicalFeatureSnapshotCommand)
+    assert explicit_result.result.run.identity.pipeline_version == "v2"
+    assert explicit_result.result.run.identity.feature_set_version == "v2"
+    assert explicit_result.result.run.run_key != default_result.result.run.run_key
+    assert explicit_result.result.run.content_digest != default_result.result.run.content_digest
+
+
+def test_v2_exact_retry_has_zero_additional_provider_feature_or_persistence_work() -> None:
+    snapshot = universe("NVDA", "MSFT", "AAPL")
+    context = service(snapshot, with_v2=True)
+    selected = command(snapshot, policy=DAILY_FEATURE_PIPELINE_POLICY_V2)
+    first = context.service.run(selected)
+    observed = (
+        tuple(context.ingestion.calls),
+        tuple(context.features.calls),
+        context.factory.runs.add_calls,
+        sum(unit.commits for unit in context.factory.units),
+    )
+
+    retried = context.service.run(selected)
+
+    assert retried.outcome is DailyFeaturePipelineExecutionOutcome.ALREADY_EXISTS
+    assert retried.result == first.result
+    assert observed == (
+        tuple(context.ingestion.calls),
+        tuple(context.features.calls),
+        context.factory.runs.add_calls,
+        sum(unit.commits for unit in context.factory.units),
+    )
+    assert context.ingestion.calls == ["AAPL", "MSFT", "NVDA"]

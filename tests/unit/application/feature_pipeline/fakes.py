@@ -39,6 +39,9 @@ from auto_trading_v2.application.services.completed_session import (
 from auto_trading_v2.application.services.daily_feature_pipeline import (
     DailyFeaturePipelineService,
 )
+from auto_trading_v2.application.services.daily_price_technical_feature_snapshot import (
+    DailyPriceTechnicalFeatureSnapshotService,
+)
 from auto_trading_v2.application.services.daily_technical_feature_snapshot import (
     DailyTechnicalFeatureSnapshotService,
 )
@@ -122,10 +125,12 @@ class FakeSnapshot:
 class ScriptedFeatureService:
     scripts: dict[str, FeatureQualityStatus | None] = field(default_factory=dict)
     calls: list[str] = field(default_factory=list)
+    commands: list[object] = field(default_factory=list)
 
     def build(self, command: Any) -> DailyTechnicalFeatureSnapshotBuildResult:
         symbol = command.symbol.value
         self.calls.append(symbol)
+        self.commands.append(command)
         quality = self.scripts.get(symbol, FeatureQualityStatus.READY)
         if quality is None:
             return DailyTechnicalFeatureSnapshotBuildResult(
@@ -198,7 +203,13 @@ def universe(*symbols: str) -> UniverseSnapshot:
     )
 
 
-def command(snapshot: UniverseSnapshot, *, as_of: datetime = NOW) -> RunDailyFeaturePipelineCommand:
+def command(
+    snapshot: UniverseSnapshot,
+    *,
+    as_of: datetime = NOW,
+    policy: object | None = None,
+) -> RunDailyFeaturePipelineCommand:
+    options = {} if policy is None else {"policy": policy}
     return RunDailyFeaturePipelineCommand(
         snapshot.universe_snapshot_id,
         TWELVE_DATA_SOURCE_CODE,
@@ -206,6 +217,7 @@ def command(snapshot: UniverseSnapshot, *, as_of: datetime = NOW) -> RunDailyFea
         CompletionGracePeriod(timedelta(minutes=15)),
         TradingDayHorizon(1),
         30,
+        **options,
     )
 
 
@@ -220,7 +232,12 @@ class ServiceContext:
     item_ids: CountingItemIDs
 
 
-def service(snapshot: UniverseSnapshot, budget: FakeBudget | None = None) -> ServiceContext:
+def service(
+    snapshot: UniverseSnapshot,
+    budget: FakeBudget | None = None,
+    *,
+    with_v2: bool = False,
+) -> ServiceContext:
     actual_budget = FakeBudget() if budget is None else budget
     ingestion = ScriptedIngestionService(actual_budget)
     features = ScriptedFeatureService()
@@ -239,6 +256,9 @@ def service(snapshot: UniverseSnapshot, budget: FakeBudget | None = None) -> Ser
         cast(Clock, clock),
         cast(DailyFeaturePipelineRunIDFactory, run_ids),
         cast(DailyFeaturePipelineItemIDFactory, item_ids),
+        price_feature_service=(
+            cast(DailyPriceTechnicalFeatureSnapshotService, features) if with_v2 else None
+        ),
     )
     return ServiceContext(
         target,

@@ -21,6 +21,8 @@ from auto_trading_v2.domain.primitives.time import normalize_utc
 
 FEATURE_SET_CODE = "US_EQUITY_DAILY_TECHNICAL"
 FEATURE_SET_VERSION = "v1"
+PRICE_ONLY_FEATURE_SET_CODE = FEATURE_SET_CODE
+PRICE_ONLY_FEATURE_SET_VERSION = "v2"
 INSUFFICIENT_REASON = "INSUFFICIENT_COMPLETED_DAILY_BARS"
 _CODE_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")
 
@@ -62,6 +64,26 @@ class BuildDailyTechnicalFeatureSnapshotCommand:
             ) from None
         object.__setattr__(self, "source_code", source_code)
         object.__setattr__(self, "as_of", as_of)
+
+
+@dataclass(frozen=True, slots=True)
+class BuildDailyPriceTechnicalFeatureSnapshotCommand:
+    """Explicit request for the price-only daily technical FeatureSet v2."""
+
+    source_code: str
+    symbol: Symbol
+    as_of: datetime
+    horizon: TradingDayHorizon
+
+    def __post_init__(self) -> None:
+        validated = BuildDailyTechnicalFeatureSnapshotCommand(
+            self.source_code,
+            self.symbol,
+            self.as_of,
+            self.horizon,
+        )
+        object.__setattr__(self, "source_code", validated.source_code)
+        object.__setattr__(self, "as_of", validated.as_of)
 
 
 class DailyTechnicalFeatureSnapshotBuildOutcome(StrEnum):

@@ -250,6 +250,23 @@ no migration or table: the canonical count remains 25 and Alembic head remains
 [Training Readiness Audit](docs/training-readiness-audit.md), and
 [ADR 0013](docs/adr/0013-prediction-readiness-first-direction.md).
 
+## Prediction Data Q1 price-only FeatureSet v2
+
+`US_EQUITY_DAILY_TECHNICAL/v2` explicitly reuses the same latest 21 completed
+`SPLIT_ADJUSTED` bars and the same 14 Decimal price calculations as v1, but its canonical payload
+contains no volume feature keys. Complete prices therefore produce `READY` even when canonical
+volume is null or zero. v1 remains unchanged and remains the default; callers select v2 explicitly,
+including `US_EQUITY_DAILY_FEATURE_BATCH/v2`.
+
+v2 `READY` means only that its price-feature contract is complete. It is not a profitable-trade
+claim, model, probability, score, or Recommendation, and it creates no order. The readiness audit
+can now derive counterfactual v2 eligibility from exact persisted v1 payload lineage. No migration
+was added: Alembic head remains `0010_outcome_labels_calibration_dataset`, the canonical table count
+remains 25, and the UoW repository count remains 19. Price-only and future volume-enhanced models
+will be compared later. The next work is multi-year calendar/backfill or reviewed price-only
+relative scoring v2—not the paused P4B.2B implementation. See [feature building](docs/feature-building.md)
+and [ADR 0014](docs/adr/0014-price-only-daily-technical-features.md).
+
 아래 PR 5~12 절은 현재 자동 주문 제품 목표가 아니라, 향후 Recommendation의 선택적 shadow
 simulation으로 재사용할 수 있는 역사적 기반을 기록합니다.
 

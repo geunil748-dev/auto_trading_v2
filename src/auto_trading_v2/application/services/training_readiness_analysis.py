@@ -5,13 +5,15 @@ from collections import Counter, defaultdict
 from auto_trading_v2.application.contracts.training_readiness import (
     TrainingReadinessLineageRecord,
 )
+from auto_trading_v2.application.services.training_readiness_price_only import (
+    analyze_price_only_v2,
+)
 from auto_trading_v2.domain.calibration_datasets import (
     ProbabilityCalibrationDataset,
     ProbabilityCalibrationDatasetItem,
 )
 from auto_trading_v2.domain.primitives import DailyFeatureScoringItemID
 from auto_trading_v2.domain.training_readiness import (
-    COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE,
     EXCLUSION_REASON_ORDER,
     NOT_DERIVABLE_FROM_CURRENT_SCHEMA,
     DataQualityDecisionEvidence,
@@ -82,6 +84,7 @@ def analyze_upstream_lineage(
     missing_outcome = sum(not row.has_any_outcome for row in records)
     missing_as_of = sum(row.has_any_outcome and not row.has_as_of_outcome for row in records)
     missing_label = sum(row.has_policy_outcome and not row.has_any_label for row in records)
+    price_only = analyze_price_only_v2(records)
     upstream = UpstreamQualityFacts(
         source_scoring_item_count=len(records),
         scored_ready_count=sum(row.scoring_outcome == "SCORED_READY" for row in records),
@@ -95,6 +98,11 @@ def analyze_upstream_lineage(
         ),
         source_feature_snapshot_data_insufficient_count=NOT_DERIVABLE_FROM_CURRENT_SCHEMA,
         volume_data_incomplete_count=volume_count,
+        price_feature_complete_count=price_only.price_feature_complete_count,
+        volume_only_degraded_count=price_only.volume_only_degraded_count,
+        price_only_v2_eligible_count=price_only.eligible_count,
+        price_only_v2_ineligible_count=price_only.ineligible_count,
+        price_only_v2_ineligibility_reason_counts=price_only.ineligibility_reasons,
         missing_outcome_count=missing_outcome,
         missing_as_of_eligible_outcome_count=missing_as_of,
         missing_label_count=missing_label,
@@ -114,7 +122,7 @@ def analyze_upstream_lineage(
     )
     decision = DataQualityDecisionEvidence(
         volume_only_excluded=calculate_percentage(reasons["VOLUME_DATA_INCOMPLETE"], len(records)),
-        price_only_eligibility=(COUNTERFACTUAL_PRICE_ONLY_ELIGIBILITY_NOT_DERIVABLE),
+        price_only_eligibility=price_only.eligibility_percentage,
         complete_volume=calculate_percentage(complete_volume, len(records)),
         provider_quality_distribution=distributions,
         horizon_included_count=included_records,
@@ -129,12 +137,25 @@ def analyze_upstream_lineage(
         symbol_count_after_ready_filter=len(
             {(item.mic_code, item.symbol.serialize()) for item in items}
         ),
+        price_only_source_session_count_before_eligibility=(price_only.source_session_count_before),
+        price_only_source_session_count_after_eligibility=(price_only.source_session_count_after),
+        price_only_symbol_count_before_eligibility=price_only.symbol_count_before,
+        price_only_symbol_count_after_eligibility=price_only.symbol_count_after,
     )
-    not_derivable = (
-        "source_feature_snapshot_data_insufficient_count",
-        "would_otherwise_satisfy_price_feature_quality_count",
-        "counterfactual_price_only_eligibility_percentage",
-    )
+    not_derivable_values = ["source_feature_snapshot_data_insufficient_count"]
+    if price_only.unavailable:
+        not_derivable_values.extend(
+            (
+                "price_feature_complete_count",
+                "volume_only_degraded_count",
+                "price_only_v2_eligible_count",
+                "price_only_v2_ineligible_count",
+                "counterfactual_price_only_eligibility_percentage",
+                "price_only_source_session_count_after_eligibility",
+                "price_only_symbol_count_after_eligibility",
+            )
+        )
+    not_derivable = tuple(not_derivable_values)
     return upstream, decision, not_derivable
 
 

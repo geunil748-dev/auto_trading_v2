@@ -19,6 +19,14 @@ sessions (30 by default). The P2.2 `US_EQUITY_CORE/2026.v1` resolver and request
 one eligible completed session for every member. No-session and out-of-coverage results do not call
 the provider.
 
+The explicit v2 policy is `US_EQUITY_DAILY_FEATURE_BATCH/v2` paired only with
+`US_EQUITY_DAILY_TECHNICAL/v2`. The command must select that immutable policy and the application
+must be configured with the v2 feature service; otherwise it fails before provider I/O. v1 remains
+the default. Both policy versions keep the same universe order, single-provider sequential
+execution, budget preflight, failure isolation, bounded circuit, and exact-retry behavior. Their run
+keys and v2 content digest carry the selected policy versions, so v1 and v2 coexist without fallback
+or identity collision. Complete Twelve Data prices with null canonical volume are `READY` under v2.
+
 Twelve Data is the only primary P3 source. Alpaca IEX remains validation-only. The application
 estimates maximum credits for all members and fails closed when the daily budget is unknown or too
 small. Execution is sequential in canonical member order. There is no fallback or mixed-provider
@@ -45,6 +53,9 @@ rollback and re-read the stored aggregate using a fresh Unit of Work.
 P3 does not calculate probability, expected return, entry/target/stop prices, or ranks. It creates
 no Recommendation, StrategyDecision, TradeIntent, broker call, order, notification, or scheduler
 execution. P4A consumes the immutable run without mutating it.
+
+The existing P4A scoring policy accepts only the documented v1 pipeline. Price-only P4A scoring is
+outside this slice; v2 FeatureSnapshots do not silently enter v1 scoring.
 
 ## P4A downstream scoring boundary
 
