@@ -115,3 +115,9 @@ repository lookup or creation. The sequence must be chronological, unique, withi
 schedule, no later than its completed cutoff, and consistent in source and symbol. Failure creates
 no DailyMarketBar and causes no FeatureSnapshot, Recommendation, fallback, or order side effect.
 See [US equity market calendar](market-calendar.md).
+
+For a future historical backfill, a caller may instead explicitly select
+`US_EQUITY_CORE / 2018-2026.v1` and validate an inclusive historical range. Every observation must
+still be a unique official session within that calendar and no later than the explicit cutoff.
+Selection never blends versions or infers missing sessions. Calendar Q1 performs no provider fetch,
+DailyMarketBar write, development-database migration, or historical backfill.

@@ -86,3 +86,8 @@ available for historical replay. Parsed observations pass the shared calendar va
 any persistence; a weekend, official closure, after-cutoff row, unsupported MIC, or out-of-range
 date fails closed without provider fallback. The calendar does not change Twelve Data's nullable
 split-adjusted volume policy.
+
+Future historical backfill may explicitly inject `US_EQUITY_CORE / 2018-2026.v1`; it is never
+selected automatically by symbol, wall clock, or request range. The multi-year calendar adds no
+Twelve Data request, credential use, pagination, provider fallback, persistence write, or volume
+policy change in Calendar Q1.

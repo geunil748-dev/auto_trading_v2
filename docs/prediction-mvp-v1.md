@@ -29,3 +29,9 @@ A later Recommendation Generator must permit these normal outputs:
 
 No recommendation is an expected result when the opportunity, market, or data contract is not
 qualified. PREDICTION, VIRTUAL, and ACTUAL result streams must never be combined.
+
+`US_EQUITY_CORE / 2018-2026.v1` supplies only verified session dates and close instants for future
+historical research. It is not a prediction model, label, probability, score, or Recommendation.
+Calendar Q1 creates no historical bars or FeatureSnapshots and does not change the MVP readiness
+decision. The next prerequisite slice is a separately reviewed historical DailyMarketBar backfill
+foundation.

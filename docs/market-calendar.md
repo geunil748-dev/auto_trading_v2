@@ -92,3 +92,58 @@ Official sources:
 - [NYSE Holidays & Trading Hours](https://www.nyse.com/markets/hours-calendars)
 - [Nasdaq trading calendar](https://www.nasdaqtrader.com/trader.aspx?id=calendar)
 - [Python 3.12 `zoneinfo`](https://docs.python.org/3.12/library/zoneinfo.html)
+
+## Explicit multi-year research version
+
+The separate `US_EQUITY_CORE / 2018-2026.v1` adapter covers 2018-01-01 through
+2026-12-31. Its serialized version retains the hyphen because the existing enum contract permits
+that exact unambiguous value. Annual schedule counts are:
+
+| Year | Sessions | Full closures | Early closes |
+| --- | ---: | ---: | ---: |
+| 2018 | 251 | 10 | 3 |
+| 2019 | 252 | 9 | 3 |
+| 2020 | 253 | 9 | 2 |
+| 2021 | 252 | 9 | 1 |
+| 2022 | 251 | 9 | 1 |
+| 2023 | 250 | 10 | 2 |
+| 2024 | 252 | 10 | 3 |
+| 2025 | 250 | 11 | 3 |
+| 2026 | 251 | 10 | 2 |
+
+The tracked [canonical schedule data](../src/auto_trading_v2/adapters/market_calendar/data/us_equity_core_2018_2026_v1.py)
+lists all 87 full closures and 20 early closes with safe reason codes. The only exceptional full
+closures are 2018-12-05 for President George H. W. Bush and 2025-01-09 for President Jimmy Carter,
+both supported by separate NYSE and Nasdaq notices. Manifest digest:
+`1af97a32a7a0db2b441839c37017580937d42cdbeb92e032997b3087951f2ff3`.
+
+`sessions_between` uses inclusive dates, returns chronological official sessions, permits an empty
+valid range, and rejects reversed or partially out-of-coverage ranges. Completed-session resolution
+still uses explicit caller grace; exact close plus grace is eligible, while dates after 2026-12-31
+fail closed rather than returning the last session.
+
+The static registry accepts only an exact code/version pair. It has no `latest`, wall-clock switch,
+or fallback. Existing operational callers, P3 v1/v2, and `2026.v1` remain unchanged. Tests compare
+every 2026 session across all five MICs; session date, MIC, family, kind, reason, and local/UTC times
+are identical, with calendar version the sole difference.
+
+Canonical dates come from archived official ICE/NYSE multi-year holiday announcements, official
+NYSE holiday pages, Nasdaq annual trading calendars or archived Equity Trader alerts, and both
+exchanges' official national-mourning notices. Recurring holiday rules and third-party libraries
+are not the source of truth. Only derived dates, identifiers, URLs, verification metadata, counts,
+and a deterministic digest are tracked; raw pages and PDFs are not stored. Runtime network calls
+are zero.
+
+This version includes the two officially verified mourning closures but does not model other
+exchange emergencies, technical halts, individual-symbol halts, or provider outages. A future year
+or new emergency requires a separately reviewed version. No migration, historical backfill,
+FeatureSnapshot, scheduler, model, Recommendation, or order is added.
+
+Additional official schedule evidence:
+
+- [NYSE 2018–2020 calendar](https://ir.theice.com/press/news-details/2017/NYSE-Group-Announces-2018-2019-and-2020-Holiday-and-Early-Closings-Calendar/default.aspx)
+- [NYSE 2021–2023 calendar](https://ir.theice.com/press/news-details/2020/NYSE-Group-Announces-2021-2022-and-2023-Holiday-and-Early-Closings-Calendar/default.aspx)
+- [NYSE 2022–2024 calendar](https://ir.theice.com/press/news-details/2021/NYSE-Group-Announces-2022-2023-and-2024-Holiday-and-Early-Closings-Calendar/default.aspx)
+- [NYSE 2023–2025 calendar](https://ir.theice.com/press/news-details/2022/NYSE-Group-Announces-2023-2024-and-2025-Holiday-and-Early-Closings-Calendar/default.aspx)
+- [Nasdaq 2018 Bush closure notice](https://www.nasdaqtrader.com/TraderNews.aspx?id=ETA2018-98)
+- [NYSE 2025 Carter closure notice](https://ir.theice.com/press/news-details/2024/The-New-York-Stock-Exchange-Will-Close-Markets-on-January-9-to-Honor-the-Passing-of-Former-President-Jimmy-Carter-on-National-Day-of-Mourning/default.aspx)
