@@ -30,6 +30,7 @@ class ExchangeCalendarCode(StrEnum):
 
 
 class ExchangeCalendarVersion(StrEnum):
+    V2018_2026_1 = "2018-2026.v1"
     V2026_1 = "2026.v1"
 
 

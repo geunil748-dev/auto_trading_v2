@@ -80,3 +80,10 @@ change a snapshot, call a provider, or create a Recommendation. The static calen
 without exposing secrets; Twelve Data was disabled and no credential was configured. This does not
 block a draft PR after all local unit, MSSQL integration, static, cleanup, and preservation gates
 pass.
+
+## Multi-year calendar compatibility
+
+The multi-year `US_EQUITY_CORE / 2018-2026.v1` calendar is a separately selected research boundary.
+P3 v1 and v2 continue to use the existing `2026.v1` operational calendar; neither pipeline changes
+calendar version automatically or starts historical replay. Historical DailyMarketBar backfill is
+the next slice and is not implemented here.

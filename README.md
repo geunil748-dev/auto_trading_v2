@@ -373,3 +373,17 @@ Coverage is deliberately limited to 2026 and fails closed outside that range. Un
 emergency closures, scheduler execution, Recommendation/ranking, and orders remain outside
 this slice. See [market calendar policy](docs/market-calendar.md) and
 [ADR 0008](docs/adr/0008-us-equity-core-calendar.md).
+
+## Prediction Calendar Q1 multi-year research calendar
+
+Historical research can explicitly select the separate immutable
+`US_EQUITY_CORE / 2018-2026.v1` calendar covering 2018-01-01 through 2026-12-31.
+Its 2,262 sessions come from repository-tracked NYSE/ICE and Nasdaq official evidence,
+including the 2018 George H. W. Bush and 2025 Jimmy Carter national mourning closures.
+Runtime construction performs no network call and `2026.v1` remains the operational default.
+
+The registry requires an exact code/version pair: there is no latest-version selection,
+date-based switch, or fallback. This slice adds no migration, table, provider call,
+DailyMarketBar backfill, FeatureSnapshot, score, model, Recommendation, or order. Alembic remains
+at `0010_outcome_labels_calibration_dataset`; canonical tables remain 25 and UoW repositories
+remain 19. See [multi-year calendar ADR](docs/adr/0015-multi-year-us-equity-calendar.md).

@@ -19,7 +19,20 @@ class UsEquityMarketCalendar(Protocol):
     @property
     def coverage(self) -> CalendarCoverage: ...
 
+    @property
+    def closure_dates(self) -> tuple[SessionDate, ...]: ...
+
+    @property
+    def early_close_dates(self) -> tuple[SessionDate, ...]: ...
+
     def sessions(self, mic_code: str) -> tuple[MarketSession, ...]: ...
+
+    def sessions_between(
+        self,
+        mic_code: str,
+        start_date: SessionDate,
+        end_date: SessionDate,
+    ) -> tuple[MarketSession, ...]: ...
 
     def session_on(
         self,
